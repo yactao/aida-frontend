@@ -630,6 +630,4 @@ document.addEventListener('DOMContentLoaded', () => {
 
     init();
 });
-```
-    
 
