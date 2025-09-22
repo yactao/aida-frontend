@@ -1,0 +1,10 @@
+# Ce fichier dit à Netlify où trouver nos fonctions spéciales
+[build]
+  functions = "netlify/functions"
+
+# Cette règle est la carte : elle redirige toutes les requêtes 
+# de /api/* vers notre fonction proxy pour qu'elle les traite.
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/api/:splat"
+  status = 200
