@@ -3,16 +3,8 @@ const axios = require('axios');
 
 // Ceci est notre fonction intermédiaire
 exports.handler = async function(event, context) {
-  // --- DÉBUT DU MODE DÉTECTIVE ---
-  console.log("--- FONCTION PROXY DÉCLENCHÉE ---");
-  console.log("Requête reçue pour le chemin :", event.path);
-  
   const backendUrl = process.env.VITE_BACKEND_URL;
 
-  // Log crucial pour vérifier la variable secrète
-  console.log("URL du backend lue depuis les secrets Netlify :", backendUrl);
-
-  // Vérification de sécurité : si l'URL n'est pas trouvée, on arrête tout.
   if (!backendUrl) {
     console.error("!!! ERREUR FATALE : VITE_BACKEND_URL n'est pas définie sur Netlify.");
     return {
@@ -21,10 +13,15 @@ exports.handler = async function(event, context) {
     };
   }
   
+  // On reconstruit le chemin de l'API demandé par le frontend
   const apiPath = event.path.replace('/.netlify/functions/api', '');
-  const fullUrl = `${backendUrl}${apiPath}`;
+  
+  // --- LA CORRECTION EST ICI ---
+  // On ajoute bien "/api" devant le chemin pour appeler la bonne route sur le serveur Azure.
+  const fullUrl = `${backendUrl}/api${apiPath}`;
+  // --- FIN DE LA CORRECTION ---
+
   console.log("La requête va être transmise à :", fullUrl);
-  // --- FIN DU MODE DÉTECTIVE ---
 
   try {
     const response = await axios({
@@ -35,7 +32,6 @@ exports.handler = async function(event, context) {
       params: event.queryStringParameters,
     });
 
-    console.log("Succès ! Réponse reçue du backend Azure. Statut :", response.status);
     return {
       statusCode: response.status,
       body: JSON.stringify(response.data)
@@ -47,5 +43,3 @@ exports.handler = async function(event, context) {
     return { statusCode, body };
   }
 };
-
-
