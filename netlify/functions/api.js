@@ -1,42 +1,22 @@
-const axios = require('axios');
+// --- CODE DE TEST DE DIAGNOSTIC ---
+// Ce code a pour seul but de vérifier si la redirection Netlify fonctionne.
+// Il n'a pas besoin d'axios ou des variables d'environnement.
 
 exports.handler = async function(event, context) {
-  const backendUrl = process.env.VITE_BACKEND_URL;
-  
-  if (!backendUrl) {
-    return {
-      statusCode: 500,
-      body: JSON.stringify({ error: "Erreur de configuration du serveur : l'adresse du backend est manquante." })
-    };
-  }
-  
-  const apiPath = event.path.replace('/.netlify/functions/api', '');
-  
-  // --- VERSION FINALE ET CORRECTE ---
-  // On remet l'ajout de "/api" pour construire l'URL que le serveur Azure attend.
-  const fullUrl = `${backendUrl}/api${apiPath}`;
-  // --- FIN DE LA CORRECTION ---
+  // Ce message apparaîtra dans les logs de la fonction sur Netlify
+  console.log("--- LE PROXY DE TEST A BIEN ÉTÉ ATTEINT ---");
+  console.log("Requête reçue pour le chemin :", event.path);
 
-  console.log("URL finale transmise à Azure :", fullUrl);
-
-  try {
-    const response = await axios({
-      method: event.httpMethod,
-      url: fullUrl,
-      headers: { 'Content-Type': 'application/json' },
-      data: event.body,
-      params: event.queryStringParameters,
-    });
-
-    return {
-      statusCode: response.status,
-      body: JSON.stringify(response.data)
-    };
-  } catch (error) {
-    const statusCode = error.response ? error.response.status : 500;
-    const body = error.response ? JSON.stringify(error.response.data) : JSON.stringify({ error: "Le proxy n'a pas pu joindre le serveur backend." });
-    return { statusCode, body };
-  }
+  // On renvoie une réponse unique pour la voir dans le navigateur.
+  // Le code 418 signifie "I'm a teapot" (Je suis une théière), 
+  // c'est un code d'erreur amusant utilisé pour les tests.
+  return {
+    statusCode: 418, 
+    body: JSON.stringify({ 
+      message: "Bravo ! Le proxy de test est bien atteint.",
+      chemin_recu: event.path 
+    })
+  };
 };
 
     
