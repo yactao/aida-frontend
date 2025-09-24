@@ -12,12 +12,12 @@ exports.handler = async function(event, context) {
   
   const apiPath = event.path.replace('/.netlify/functions/api', '');
   
-  // --- TEST DE DIAGNOSTIC ---
-  // On retire temporairement l'ajout de "/api" pour voir si un "fantôme" l'ajoute déjà.
-  const fullUrl = `${backendUrl}${apiPath}`;
-  // --- FIN DU TEST ---
+  // --- VERSION FINALE ET CORRECTE ---
+  // On remet l'ajout de "/api" pour construire l'URL que le serveur Azure attend.
+  const fullUrl = `${backendUrl}/api${apiPath}`;
+  // --- FIN DE LA CORRECTION ---
 
-  console.log("URL de test transmise à Azure :", fullUrl);
+  console.log("URL finale transmise à Azure :", fullUrl);
 
   try {
     const response = await axios({
