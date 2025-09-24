@@ -1,7 +1,5 @@
-// On importe un outil pour faire des requêtes HTTP
 const axios = require('axios');
 
-// Ceci est notre fonction intermédiaire
 exports.handler = async function(event, context) {
   const backendUrl = process.env.VITE_BACKEND_URL;
   
@@ -13,7 +11,13 @@ exports.handler = async function(event, context) {
   }
   
   const apiPath = event.path.replace('/.netlify/functions/api', '');
-  const fullUrl = `${backendUrl}/api${apiPath}`;
+  
+  // --- TEST DE DIAGNOSTIC ---
+  // On retire temporairement l'ajout de "/api" pour voir si un "fantôme" l'ajoute déjà.
+  const fullUrl = `${backendUrl}${apiPath}`;
+  // --- FIN DU TEST ---
+
+  console.log("URL de test transmise à Azure :", fullUrl);
 
   try {
     const response = await axios({
@@ -34,4 +38,6 @@ exports.handler = async function(event, context) {
     return { statusCode, body };
   }
 };
+
+    
 
