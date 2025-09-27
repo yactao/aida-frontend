@@ -12,13 +12,35 @@
         <nav class="navbar">
             <div class="logo">
                 <a href="#" id="home-link">
-                    <img src="https://ecole20.netlify.app/logo.png" alt="AIDA Logo" style="height: 40px;">
+                    <!-- NOUVEAU LOGO -->
+                    <div class="logo-icon">A</div>
                     <span>AIDA</span>
                 </a>
             </div>
+            <!-- NOUVEAU MENU UTILISATEUR -->
             <div class="nav-actions">
-                <button id="theme-toggle-btn" class="theme-toggle" aria-label="Changer de thème"><i class="fa-solid fa-moon"></i></button>
                 <a href="#" class="btn-main btn-register">Connexion</a>
+                <div id="user-menu" class="user-menu hidden">
+                    <button id="user-menu-btn" class="user-menu-btn">
+                        <i class="fa-solid fa-user"></i>
+                    </button>
+                    <div id="user-menu-dropdown" class="user-menu-dropdown hidden">
+                        <div class="user-info">
+                            <span id="user-email-display"></span>
+                        </div>
+                        <div class="menu-item">
+                            <span>Thème</span>
+                            <label class="theme-switch">
+                                <input type="checkbox" id="theme-toggle-checkbox">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        <button id="logout-btn" class="menu-item logout-btn">
+                            <i class="fa-solid fa-arrow-right-from-bracket"></i>
+                            <span>Déconnexion</span>
+                        </button>
+                    </div>
+                </div>
             </div>
         </nav>
     </header>
@@ -165,11 +187,9 @@
     <div id="generation-modal" class="modal-overlay hidden">
         <div class="modal-content">
             <button class="close-modal">&times;</button>
-            <!-- Étape 1: Formulaire -->
             <div id="modal-form-step">
                 <h3>Générer une ressource pédagogique</h3>
                 <form id="resource-form">
-                    <!-- NOUVEAU MENU DÉROULANT POUR LE CYCLE -->
                     <div class="form-group">
                         <label for="cycle-select">Cycle Éducatif</label>
                         <select id="cycle-select" class="form-control">
@@ -200,13 +220,11 @@
                     <button type="submit" class="btn-main" disabled>Générer le quiz</button>
                 </form>
             </div>
-            <!-- Étape 2: Chargement -->
             <div id="modal-loading-step" class="hidden">
                 <h3>Génération en cours...</h3>
                 <div class="spinner"></div>
                 <p>AIDA prépare votre ressource, veuillez patienter.</p>
             </div>
-            <!-- Étape 3: Résultat -->
             <div id="modal-result-step" class="hidden">
                  <h3>Quiz généré avec succès !</h3>
                 <div class="generated-content"></div>

@@ -7,7 +7,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const startButton = document.querySelector('#home .btn-main');
     const registerBtn = document.querySelector('.btn-register');
     const homeLink = document.getElementById('home-link');
-    const themeToggleBtn = document.getElementById('theme-toggle-btn');
     const loginFormContainer = document.getElementById('login-form-container');
     const signupFormContainer = document.getElementById('signup-form-container');
     const loginForm = document.getElementById('login-form');
@@ -53,6 +52,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const subjectSelect = document.getElementById('subject-select');
     const notionSelect = document.getElementById('notion-select');
     const resourceFormButton = document.querySelector('#resource-form button');
+    // NOUVEAUX SÉLECTEURS POUR LE MENU UTILISATEUR
+    const userMenu = document.getElementById('user-menu');
+    const userMenuBtn = document.getElementById('user-menu-btn');
+    const userMenuDropdown = document.getElementById('user-menu-dropdown');
+    const userEmailDisplay = document.getElementById('user-email-display');
+    const logoutBtn = document.getElementById('logout-btn');
+    const themeToggleCheckbox = document.getElementById('theme-toggle-checkbox');
+
 
     // --- VARIABLES GLOBALES ---
     let currentUser = null;
@@ -66,8 +73,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function applyTheme(theme) {
         document.body.classList.toggle('dark-mode', theme === 'dark');
-        if (themeToggleBtn) {
-            themeToggleBtn.innerHTML = theme === 'dark' ? '<i class="fa-solid fa-sun"></i>' : '<i class="fa-solid fa-moon"></i>';
+        if (themeToggleCheckbox) {
+            themeToggleCheckbox.checked = (theme === 'dark');
         }
     }
 
@@ -95,13 +102,14 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     
+    // MISE À JOUR pour gérer le nouveau menu utilisateur
     async function setupUIForUser() {
         if (!currentUser) return;
-        if (registerBtn) {
-            registerBtn.textContent = 'Déconnexion';
-            registerBtn.removeEventListener('click', goToAuthPage);
-            registerBtn.addEventListener('click', logout);
-        }
+
+        registerBtn.classList.add('hidden');
+        userMenu.classList.remove('hidden');
+        userEmailDisplay.textContent = currentUser.email;
+
         if (currentUser.role === 'student') {
             if (studentWelcome) studentWelcome.textContent = `Bonjour ${currentUser.email.split('@')[0]} !`;
             await fetchAndDisplayStudentClasses();
@@ -113,14 +121,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function logout(e) {
-        e.preventDefault();
+    // MISE À JOUR pour gérer le nouveau menu utilisateur
+    function logout() {
         currentUser = null;
-        if (registerBtn) {
-            registerBtn.textContent = 'Connexion';
-            registerBtn.removeEventListener('click', logout);
-            registerBtn.addEventListener('click', goToAuthPage);
-        }
+        registerBtn.classList.remove('hidden');
+        userMenu.classList.add('hidden');
+        userMenuDropdown.classList.add('hidden');
         initializeAppState();
     }
     
@@ -337,8 +343,6 @@ document.addEventListener('DOMContentLoaded', () => {
         changePage('home');
     }
     
-    // --- NOUVELLE LOGIQUE POUR LE MODAL DE RESSOURCES ---
-
     function initializeResourceModal() {
         cycleSelect.value = '';
         levelSelect.innerHTML = '<option value="">-- D\'abord choisir un cycle --</option>';
@@ -351,6 +355,7 @@ document.addEventListener('DOMContentLoaded', () => {
         programmesData = null;
     }
 
+    // CORRECTION du bug de chargement
     async function loadProgrammesForCycle(cycle) {
         levelSelect.innerHTML = '<option value="">Chargement...</option>';
         subjectSelect.innerHTML = '<option value="">-- D\'abord choisir un niveau --</option>';
@@ -364,9 +369,23 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
+        // Dictionnaire pour faire correspondre la valeur du select au nom du fichier
+        const fileMap = {
+            primaire: 'programmes-primaire.json',
+            college: 'programmes-college.json',
+            lycee: 'programmes-lycee.json'
+        };
+        const fileName = fileMap[cycle];
+
+        if (!fileName) {
+            console.error("Cycle inconnu:", cycle);
+            levelSelect.innerHTML = '<option value="">Erreur de cycle</option>';
+            return;
+        }
+
         try {
-            const response = await fetch(`programmes-${cycle}.json`);
-            if (!response.ok) throw new Error(`Fichier programmes-${cycle}.json non trouvé.`);
+            const response = await fetch(fileName);
+            if (!response.ok) throw new Error(`Fichier ${fileName} non trouvé.`);
             programmesData = await response.json();
             
             levelSelect.innerHTML = '<option value="">-- Choisir le niveau --</option>';
@@ -384,13 +403,29 @@ document.addEventListener('DOMContentLoaded', () => {
         if (startButton) startButton.addEventListener('click', (e) => { e.preventDefault(); changePage(startButton.getAttribute('data-target')); });
         if (registerBtn) registerBtn.addEventListener('click', goToAuthPage);
         if (homeLink) homeLink.addEventListener('click', (e) => { e.preventDefault(); changePage('home'); });
-        if (themeToggleBtn) {
-            themeToggleBtn.addEventListener('click', () => {
-                const newTheme = document.body.classList.contains('dark-mode') ? 'light' : 'dark';
+        
+        // Logique pour le nouveau menu utilisateur
+        if (userMenuBtn) {
+            userMenuBtn.addEventListener('click', () => {
+                userMenuDropdown.classList.toggle('active');
+            });
+        }
+        if (logoutBtn) logoutBtn.addEventListener('click', logout);
+        if (themeToggleCheckbox) {
+             themeToggleCheckbox.addEventListener('change', () => {
+                const newTheme = themeToggleCheckbox.checked ? 'dark' : 'light';
                 localStorage.setItem('theme', newTheme);
                 applyTheme(newTheme);
             });
         }
+        // Fermer le dropdown si on clique ailleurs
+        document.addEventListener('click', (e) => {
+            if (userMenu && !userMenu.contains(e.target)) {
+                userMenuDropdown.classList.remove('active');
+            }
+        });
+
+
         if (showSignupLink) showSignupLink.addEventListener('click', (e) => { e.preventDefault(); if(loginFormContainer && signupFormContainer) { loginFormContainer.classList.add('hidden'); signupFormContainer.classList.remove('hidden'); } });
         if (showLoginLink) showLoginLink.addEventListener('click', (e) => { e.preventDefault(); if(signupFormContainer && loginFormContainer) { signupFormContainer.classList.add('hidden'); loginFormContainer.classList.remove('hidden'); } });
         
@@ -431,7 +466,6 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
         
-        // --- ÉCOUTEURS POUR LE NOUVEAU FORMULAIRE DE RESSOURCES ---
         if (openQuizModalBtn) {
             openQuizModalBtn.addEventListener('click', () => { 
                 if (quizModal) quizModal.classList.remove('hidden');
