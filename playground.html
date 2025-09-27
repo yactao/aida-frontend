@@ -195,16 +195,24 @@
                 resetSelect(subjectSelect, "-- D'abord choisir une classe --");
                 resetSelect(notionSelect, "-- D'abord choisir une matière --");
                 if (!cycle) return;
+                
+                // --- BUG FIX: Using correct filenames ---
                 const fileMap = {
-                    primaire: 'Programmes Scolaires - Primaire.json',
-                    college: 'Programmes Scolaires - Collège.json',
-                    lycee: 'Programmes Scolaires - Lycée.json'
+                    primaire: 'programmes-primaire.json',
+                    college: 'programmes-college.json',
+                    lycee: 'programmes-lycee.json'
                 };
                 try {
                     const response = await fetch(fileMap[cycle]);
+                    if (!response.ok) {
+                         throw new Error(`Le fichier ${fileMap[cycle]} est introuvable.`);
+                    }
                     programmesData = await response.json();
                     populateSelect(levelSelect, Object.keys(programmesData), "-- Choisir --");
-                } catch (e) { console.error("Erreur de chargement des programmes"); }
+                } catch (e) { 
+                    console.error("Erreur de chargement des programmes :", e);
+                    alert("Impossible de charger les programmes pour ce cycle. Veuillez vérifier que les fichiers existent.");
+                }
             });
 
             levelSelect.addEventListener('change', () => {
@@ -246,10 +254,13 @@
                 const subject = subjectSelect.options[subjectSelect.selectedIndex].text;
                 const notionName = notionSelect.options[notionSelect.selectedIndex].text;
                 
-                // --- CORRECTION LOGIQUE POUR AGRÉGER LES COMPÉTENCES ---
+                // --- BUG FIX: Correctly gathering competences ---
                 const notionObject = programmesData[levelSelect.value][subjectSelect.value][notionSelect.value];
                 let allCompetences = [];
-                if (notionObject) {
+                if (notionObject && Array.isArray(notionObject.competences)) {
+                    allCompetences = notionObject.competences;
+                } else if (notionObject) {
+                     // Fallback for more complex structures
                     Object.values(notionObject).forEach(subNotion => {
                         if (typeof subNotion === 'object' && subNotion !== null && Array.isArray(subNotion.competences)) {
                             allCompetences = allCompetences.concat(subNotion.competences);
@@ -258,10 +269,9 @@
                 }
 
                 if (allCompetences.length === 0) {
-                    alert("Désolé, aucune compétence spécifique n'a été trouvée pour cette notion. L'assistant AIDA fonctionnera avec le nom de la notion générale.");
                     allCompetences.push(`Savoir expliquer et donner des exemples sur la notion de "${notionName}"`);
                 }
-                // --- FIN DE LA CORRECTION ---
+                // --- END OF FIX ---
 
                 selectedNotion = `Niveau: ${level}, Matière: ${subject}, Notion: ${notionName}. Compétences clés: "${allCompetences.join(', ')}"`;
                 chatHeaderTitle.textContent = `Aide sur : ${notionName}`;
