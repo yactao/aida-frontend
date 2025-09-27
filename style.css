@@ -51,13 +51,13 @@ body.dark-mode .logo span { color: var(--text-color-dark); }
 .nav-actions { display: flex; align-items: center; }
 .user-menu { position: relative; }
 .user-menu-btn { background-color: var(--primary-color); color: white; border: none; border-radius: 50%; width: 40px; height: 40px; font-size: 1.2rem; cursor: pointer; display: grid; place-items: center; }
-.user-menu-dropdown { position: absolute; top: 50px; right: 0; background-color: var(--card-bg-color); border-radius: 10px; box-shadow: var(--shadow); width: 250px; padding: 0.5rem; z-index: 110; opacity: 0; transform: translateY(-10px); transition: opacity 0.2s, transform 0.2s; pointer-events: none; }
+.user-menu-dropdown { position: absolute; top: 55px; right: 0; background-color: var(--card-bg-color); border-radius: 10px; box-shadow: var(--shadow); width: 250px; padding: 0.5rem; z-index: 110; opacity: 0; transform: translateY(-10px); transition: opacity 0.2s, transform 0.2s; pointer-events: none; }
 .user-menu-dropdown.active { opacity: 1; transform: translateY(0); pointer-events: auto; }
 .user-info { padding: 0.75rem 1rem; border-bottom: 1px solid #eee; }
 body.dark-mode .user-info { border-bottom-color: #333; }
 #user-email-display { font-weight: 600; font-size: 0.9rem; }
 .menu-item { display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 1rem; width: 100%; }
-.logout-btn { background: none; border: none; color: #E53935; font-size: 1rem; font-weight: 600; cursor: pointer; text-align: left; }
+.logout-btn { background: none; border: none; color: #E53935; font-size: 1rem; font-weight: 600; cursor: pointer; text-align: left; width: 100%; }
 .logout-btn i { margin-right: 10px; }
 .theme-switch { position: relative; display: inline-block; width: 50px; height: 26px; }
 .theme-switch input { opacity: 0; width: 0; height: 0; }
@@ -87,9 +87,10 @@ main { padding: 2rem 5%; }
 .auth-container, .dashboard-main-panel, .dashboard-side-panel, .quiz-container, .modal-content, .class-details-container { background: var(--card-bg-color); padding: 2rem; border-radius: 12px; box-shadow: var(--shadow); transition: background-color 0.3s; }
 .auth-container { max-width: 450px; margin: 2rem auto; }
 .class-details-container { max-width: 900px; margin: 2rem auto; }
-.form-group { margin-bottom: 1rem; }
+.form-group { margin-bottom: 1.2rem; }
 .form-group label { display: block; margin-bottom: 0.5rem; font-weight: 600; }
 input, select { width: 100%; padding: 12px; border: 1px solid #EAEAEA; border-radius: 8px; font-size: 1rem; background-color: var(--input-bg-color); color: var(--text-color); }
+body.dark-mode input, body.dark-mode select { border-color: #333; }
 .auth-switch { text-align: center; margin-top: 1rem; }
 .auth-switch a { color: var(--primary-color); font-weight: 600; text-decoration: none; }
 .dashboard-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 2rem; }
@@ -101,7 +102,7 @@ input, select { width: 100%; padding: 12px; border: 1px solid #EAEAEA; border-ra
 .quiz-result-card { background-color: var(--card-bg-color); padding: 1.5rem; border-radius: 10px; box-shadow: var(--shadow); }
 .quiz-result-card h3 { border-bottom: 1px solid #eee; padding-bottom: 0.5rem; margin-bottom: 1rem; }
 body.dark-mode .quiz-result-card h3 { border-bottom-color: #333; }
-.quiz-result-card ul { list-style: none; }
+.quiz-result-card ul { list-style: none; padding:0; }
 .result-link { background: none; border: none; color: var(--primary-color); text-decoration: underline; cursor: pointer; padding: 0; font-size: 1rem; text-align: left; }
 .result-link:hover { color: var(--secondary-color); }
 .btn-small { padding: 8px 16px; font-size: 0.9rem; }
@@ -120,7 +121,7 @@ body.dark-mode .quiz-feedback .quiz-options label.wrong-answer { background-colo
 body.dark-mode .quiz-feedback-header { border-bottom-color: #333; }
 .aida-feedback { background-color: #e9f2ff; border-left: 4px solid var(--primary-color); padding: 1rem; margin-top: 1rem; border-radius: 4px; font-size: 0.9rem; }
 body.dark-mode .aida-feedback { background-color: #2a3b4d; }
-.modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); display: flex; justify-content: center; align-items: center; z-index: 1000; opacity: 0; pointer-events: none; transition: opacity 0.3s; }
+.modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(5px); display: flex; justify-content: center; align-items: center; z-index: 1000; opacity: 0; pointer-events: none; transition: opacity 0.3s; }
 .modal-overlay:not(.hidden) { opacity: 1; pointer-events: auto; }
 .modal-content { background-color: var(--card-bg-color); padding: 2rem; border-radius: 12px; width: 90%; max-width: 500px; position: relative; }
 .close-modal { position: absolute; top: 1rem; right: 1rem; font-size: 1.5rem; cursor: pointer; color: #aaa; background: none; border: none; }
