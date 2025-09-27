@@ -131,4 +131,6 @@ body.dark-mode .aida-feedback { background-color: #2a3b4d; }
 @keyframes spin { to { transform: rotate(360deg); } }
 .hidden { display: none !important; }
 .error-message { color: #D0021B; text-align: center; margin-top: 10px; font-size: 0.9rem; }
+.hero-buttons { display: flex; justify-content: center; gap: 1rem; margin-top: 2rem; }
+
 
