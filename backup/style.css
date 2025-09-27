@@ -1,0 +1,134 @@
+/* --- IMPORTATION DE LA POLICE ET VARIABLES --- */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
+
+:root {
+    --primary-color: #4A90E2;
+    --secondary-color: #50E3C2;
+    /* Mode Clair */
+    --background-color: #F4F7FC;
+    --text-color: #333;
+    --card-bg-color: #FFFFFF;
+    --header-bg-color: #FFFFFF;
+    --input-bg-color: #FFFFFF;
+    --shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+    /* Mode Sombre */
+    --background-color-dark: #121212;
+    --text-color-dark: #E0E0E0;
+    --card-bg-color-dark: #1E1E1E;
+    --input-bg-color-dark: #2C2C2C;
+    --shadow-dark: 0 4px 20px rgba(0, 0, 0, 0.25);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+    font-family: 'Poppins', sans-serif;
+    background-color: var(--background-color);
+    color: var(--text-color);
+    line-height: 1.6;
+    transition: background-color 0.3s, color 0.3s;
+}
+
+body.dark-mode {
+    --background-color: var(--background-color-dark);
+    --text-color: var(--text-color-dark);
+    --card-bg-color: var(--card-bg-color-dark);
+    --input-bg-color: var(--input-bg-color-dark);
+    --shadow: var(--shadow-dark);
+}
+body.dark-mode header { background-color: var(--card-bg-color-dark); }
+body.dark-mode .dashboard-card, body.dark-mode .module-card, body.dark-mode .quiz-options label { background: #252525; border-color: #333; }
+body.dark-mode .btn-secondary { background-color: #2A3B4D; color: #A6C8FF; }
+
+/* --- EN-TÊTE ET NAVIGATION --- */
+header { padding: 1rem 5%; background-color: var(--header-bg-color); box-shadow: var(--shadow); position: sticky; top: 0; z-index: 100; }
+/* CORRECTION ICI : On applique flexbox à la navbar pour aligner les éléments */
+.navbar { display: flex; justify-content: space-between; align-items: center; width: 100%; }
+.logo a { display: flex; align-items: center; text-decoration: none; }
+.logo-icon { width: 40px; height: 40px; background: linear-gradient(45deg, var(--primary-color), var(--secondary-color)); color: white; display: grid; place-items: center; border-radius: 10px; font-weight: 700; font-size: 1.5rem; margin-right: 10px; }
+.logo span { font-size: 1.5rem; font-weight: 700; color: var(--text-color); }
+body.dark-mode .logo span { color: var(--text-color-dark); }
+
+/* --- MENU UTILISATEUR --- */
+.nav-actions { display: flex; align-items: center; }
+.user-menu { position: relative; }
+.user-menu-btn { background-color: var(--primary-color); color: white; border: none; border-radius: 50%; width: 40px; height: 40px; font-size: 1.2rem; cursor: pointer; display: grid; place-items: center; }
+.user-menu-dropdown { position: absolute; top: 55px; right: 0; background-color: var(--card-bg-color); border-radius: 10px; box-shadow: var(--shadow); width: 250px; padding: 0.5rem; z-index: 110; opacity: 0; transform: translateY(-10px); transition: opacity 0.2s, transform 0.2s; pointer-events: none; }
+.user-menu-dropdown.active { opacity: 1; transform: translateY(0); pointer-events: auto; }
+.user-info { padding: 0.75rem 1rem; border-bottom: 1px solid #eee; }
+body.dark-mode .user-info { border-bottom-color: #333; }
+#user-email-display { font-weight: 600; font-size: 0.9rem; }
+.menu-item { display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 1rem; width: 100%; }
+.logout-btn { background: none; border: none; color: #E53935; font-size: 1rem; font-weight: 600; cursor: pointer; text-align: left; width: 100%; }
+.logout-btn i { margin-right: 10px; }
+.theme-switch { position: relative; display: inline-block; width: 50px; height: 26px; }
+.theme-switch input { opacity: 0; width: 0; height: 0; }
+.slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 26px; }
+.slider:before { position: absolute; content: ""; height: 20px; width: 20px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
+input:checked + .slider { background-color: var(--primary-color); }
+input:checked + .slider:before { transform: translateX(24px); }
+
+/* --- BOUTONS --- */
+.btn-main, .btn-secondary, .btn-register { padding: 12px 24px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.3s ease; text-decoration: none; display: inline-block; font-size: 1rem; }
+.btn-main { background: linear-gradient(45deg, var(--primary-color), var(--secondary-color)); color: #FFF; }
+.btn-main:hover { transform: translateY(-3px); box-shadow: 0 6px 20px rgba(74, 144, 226, 0.4); }
+.btn-secondary { background-color: #E9F2FF; color: var(--primary-color); }
+.btn-register { background-color: transparent; color: var(--primary-color); border: 2px solid var(--primary-color); }
+.btn-register:hover { background-color: var(--primary-color); color: #FFF; }
+
+/* --- LE RESTE DES STYLES (GESTION DES PAGES, FORMULAIRES, DASHBOARDS, ETC.) RESTE INCHANGÉ --- */
+main { padding: 2rem 5%; }
+.page { display: none; }
+.page.active { display: block; animation: fadeIn 0.5s ease-in-out; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+#home { text-align: center; padding: 4rem 0; }
+#home h1 { font-size: 3rem; margin-bottom: 1rem; }
+.hero-content { max-width: 800px; margin: auto; }
+.gradient-text { background: linear-gradient(45deg, var(--primary-color), var(--secondary-color)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+#home p { font-size: 1.2rem; max-width: 600px; margin: 0 auto 2rem; }
+.auth-container, .dashboard-main-panel, .dashboard-side-panel, .quiz-container, .modal-content, .class-details-container { background: var(--card-bg-color); padding: 2rem; border-radius: 12px; box-shadow: var(--shadow); transition: background-color 0.3s; }
+.auth-container { max-width: 450px; margin: 2rem auto; }
+.class-details-container { max-width: 900px; margin: 2rem auto; }
+.form-group { margin-bottom: 1.2rem; }
+.form-group label { display: block; margin-bottom: 0.5rem; font-weight: 600; }
+input, select { width: 100%; padding: 12px; border: 1px solid #EAEAEA; border-radius: 8px; font-size: 1rem; background-color: var(--input-bg-color); color: var(--text-color); }
+body.dark-mode input, body.dark-mode select { border-color: #333; }
+.auth-switch { text-align: center; margin-top: 1rem; }
+.auth-switch a { color: var(--primary-color); font-weight: 600; text-decoration: none; }
+.dashboard-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 2rem; }
+.card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1rem; }
+.dashboard-card, .module-card { background: #F9FBFF; border: 1px solid #E9F2FF; padding: 1rem; border-radius: 8px; }
+.dashboard-card.clickable { cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; }
+.dashboard-card.clickable:hover { transform: translateY(-5px); box-shadow: 0 8px 25px rgba(0,0,0,0.1); }
+.results-grid, .card-grid { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); }
+.quiz-result-card { background-color: var(--card-bg-color); padding: 1.5rem; border-radius: 10px; box-shadow: var(--shadow); }
+.quiz-result-card h3 { border-bottom: 1px solid #eee; padding-bottom: 0.5rem; margin-bottom: 1rem; }
+body.dark-mode .quiz-result-card h3 { border-bottom-color: #333; }
+.quiz-result-card ul { list-style: none; padding:0; }
+.result-link { background: none; border: none; color: var(--primary-color); text-decoration: underline; cursor: pointer; padding: 0; font-size: 1rem; text-align: left; }
+.result-link:hover { color: var(--secondary-color); }
+.btn-small { padding: 8px 16px; font-size: 0.9rem; }
+.quiz-container { max-width: 800px; margin: auto; }
+.quiz-question { margin-bottom: 2rem; }
+.quiz-question p { display: flex; justify-content: space-between; align-items: center; font-weight: 600; }
+.aida-help-btn { background: none; border: none; font-size: 1.2rem; color: var(--primary-color); cursor: pointer; }
+.quiz-options label { display: block; background: #F9FBFF; padding: 10px; border-radius: 8px; margin: 0.5rem 0; cursor: pointer; border: 1px solid transparent; transition: background-color 0.3s; }
+.quiz-options label:hover { border-color: var(--primary-color); }
+.quiz-feedback .quiz-options label { pointer-events: none; opacity: 0.8; }
+.quiz-feedback .quiz-options label.correct-answer { background-color: #D4EDDA; border-color: #C3E6CB; color: #155724; opacity: 1; font-weight: 600; }
+body.dark-mode .quiz-feedback .quiz-options label.correct-answer { background-color: #1c4d29; border-color: #2c6f3f; color: #c6e3ce; }
+.quiz-feedback .quiz-options label.wrong-answer { background-color: #F8D7DA; border-color: #F5C6CB; color: #721C24; opacity: 1; text-decoration: line-through; }
+body.dark-mode .quiz-feedback .quiz-options label.wrong-answer { background-color: #5c2126; border-color: #8c323a; color: #f7d4d7; }
+.quiz-feedback-header { margin-bottom: 2rem; text-align: center; border-bottom: 1px solid #eee; padding-bottom: 1rem; }
+body.dark-mode .quiz-feedback-header { border-bottom-color: #333; }
+.aida-feedback { background-color: #e9f2ff; border-left: 4px solid var(--primary-color); padding: 1rem; margin-top: 1rem; border-radius: 4px; font-size: 0.9rem; }
+body.dark-mode .aida-feedback { background-color: #2a3b4d; }
+.modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(5px); display: flex; justify-content: center; align-items: center; z-index: 1000; opacity: 0; pointer-events: none; transition: opacity 0.3s; }
+.modal-overlay:not(.hidden) { opacity: 1; pointer-events: auto; }
+.modal-content { background-color: var(--card-bg-color); padding: 2rem; border-radius: 12px; width: 90%; max-width: 500px; position: relative; }
+.close-modal { position: absolute; top: 1rem; right: 1rem; font-size: 1.5rem; cursor: pointer; color: #aaa; background: none; border: none; }
+.spinner { border: 4px solid rgba(0,0,0,0.1); width: 36px; height: 36px; border-radius: 50%; border-left-color: var(--primary-color); animation: spin 1s ease infinite; margin: 1rem auto; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.hidden { display: none !important; }
+.error-message { color: #D0021B; text-align: center; margin-top: 10px; font-size: 0.9rem; }
+
