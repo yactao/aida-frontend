@@ -84,6 +84,10 @@
         .chat-input input { flex-grow: 1; padding: 12px; border: 1px solid #D1D5DB; border-radius: 20px; font-size: 1rem; margin-right: 0.5rem; }
         .chat-input button { background: var(--primary-color); color: white; border: none; border-radius: 50%; width: 45px; height: 45px; font-size: 1.2rem; cursor: pointer; }
         .hidden { display: none !important; }
+        .typing-indicator .message-bubble span { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background-color: #9CA3AF; margin: 0 2px; animation: bounce 1.4s infinite ease-in-out both; }
+        .typing-indicator .message-bubble span:nth-child(1) { animation-delay: -0.32s; }
+        .typing-indicator .message-bubble span:nth-child(2) { animation-delay: -0.16s; }
+        @keyframes bounce { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1.0); } }
     </style>
 </head>
 <body>
@@ -152,10 +156,7 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            // L'URL de notre backend
             const backendUrl = 'https://aida-backend-bqd0fnd2a3c7dadf.francecentral-01.azurewebsites.net/api';
-
-            // Sélecteurs
             const welcomeStep = document.getElementById('welcome-step');
             const selectionStep = document.getElementById('selection-step');
             const chatStep = document.getElementById('chat-step');
@@ -178,7 +179,6 @@
             let programmesData = null;
             let conversationHistory = [];
 
-            // Étape 1: Bienvenue
             welcomeForm.addEventListener('submit', (e) => {
                 e.preventDefault();
                 studentName = studentNameInput.value.trim();
@@ -189,15 +189,12 @@
                 }
             });
 
-            // Étape 2: Sélection du sujet
             cycleSelect.addEventListener('change', async () => {
                 const cycle = cycleSelect.value;
                 resetSelect(levelSelect, "-- D'abord choisir un cycle --");
                 resetSelect(subjectSelect, "-- D'abord choisir une classe --");
                 resetSelect(notionSelect, "-- D'abord choisir une matière --");
-
                 if (!cycle) return;
-                
                 const fileMap = {
                     primaire: 'Programmes Scolaires - Primaire.json',
                     college: 'Programmes Scolaires - Collège.json',
@@ -228,11 +225,12 @@
                 const subject = subjectSelect.value;
                  resetSelect(notionSelect, "-- D'abord choisir une matière --");
                 if (subject && programmesData[level][subject]) {
-                    const notions = Object.keys(programmesData[level][subject])
-                        .filter(key => programmesData[level][subject][key].nom)
+                    const subjectContent = programmesData[level][subject];
+                    const notions = Object.keys(subjectContent)
+                        .filter(key => typeof subjectContent[key] === 'object' && subjectContent[key] !== null && subjectContent[key].nom)
                         .map(key => ({
                             key: key,
-                            name: programmesData[level][subject][key].nom
+                            name: subjectContent[key].nom
                         }));
                     populateSelect(notionSelect, notions, "-- Choisir --", true);
                 }
@@ -246,35 +244,47 @@
                 e.preventDefault();
                 const level = levelSelect.options[levelSelect.selectedIndex].text;
                 const subject = subjectSelect.options[subjectSelect.selectedIndex].text;
-                const notion = notionSelect.options[notionSelect.selectedIndex].text;
-                const competences = programmesData[levelSelect.value][subjectSelect.value][notionSelect.value].competences;
+                const notionName = notionSelect.options[notionSelect.selectedIndex].text;
                 
-                selectedNotion = `Niveau: ${level}, Matière: ${subject}, Notion: ${notion}. Compétences clés: "${competences.join(', ')}"`;
-                chatHeaderTitle.textContent = `Aide sur : ${notion}`;
+                // --- CORRECTION LOGIQUE POUR AGRÉGER LES COMPÉTENCES ---
+                const notionObject = programmesData[levelSelect.value][subjectSelect.value][notionSelect.value];
+                let allCompetences = [];
+                if (notionObject) {
+                    Object.values(notionObject).forEach(subNotion => {
+                        if (typeof subNotion === 'object' && subNotion !== null && Array.isArray(subNotion.competences)) {
+                            allCompetences = allCompetences.concat(subNotion.competences);
+                        }
+                    });
+                }
+
+                if (allCompetences.length === 0) {
+                    alert("Désolé, aucune compétence spécifique n'a été trouvée pour cette notion. L'assistant AIDA fonctionnera avec le nom de la notion générale.");
+                    allCompetences.push(`Savoir expliquer et donner des exemples sur la notion de "${notionName}"`);
+                }
+                // --- FIN DE LA CORRECTION ---
+
+                selectedNotion = `Niveau: ${level}, Matière: ${subject}, Notion: ${notionName}. Compétences clés: "${allCompetences.join(', ')}"`;
+                chatHeaderTitle.textContent = `Aide sur : ${notionName}`;
                 
                 conversationHistory = [{
                     role: "system",
-                    content: `Tu es AIDA, une enseignante personnelle bienveillante et encourageante. Tu aides un élève nommé ${studentName}. La discussion porte sur la notion suivante : ${selectedNotion}. N'utilise que du texte simple, pas de Markdown.`
+                    content: `Tu es AIDA, une enseignante personnelle bienveillante et encourageante. Tu aides un élève nommé ${studentName}. La discussion porte sur la notion suivante : ${selectedNotion}. N'utilise que du texte simple et des phrases courtes, pas de Markdown.`
                 }];
 
-                addMessage("Bonjour " + studentName + "! Je suis là pour t'aider avec '" + notion + "'. Pose-moi ta première question !", "aida");
+                addMessage("Bonjour " + studentName + "! Je suis là pour t'aider avec '" + notionName + "'. Pose-moi ta première question !", "aida");
 
                 selectionStep.classList.add('hidden');
                 chatStep.classList.remove('hidden');
             });
 
-            // Étape 3: Chat
             chatForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
                 const userMessage = userInput.value.trim();
                 if (!userMessage) return;
-
                 addMessage(userMessage, "user");
                 conversationHistory.push({ role: "user", content: userMessage });
                 userInput.value = '';
-                
                 addTypingIndicator();
-
                 try {
                     const response = await fetch(`${backendUrl}/aida/chat`, {
                         method: 'POST',
@@ -282,20 +292,18 @@
                         body: JSON.stringify({ history: conversationHistory })
                     });
                     const data = await response.json();
-                    
+                    if (!response.ok) throw new Error(data.error || "Une erreur est survenue.");
                     removeTypingIndicator();
                     addMessage(data.reply, "aida");
                     conversationHistory.push({ role: "assistant", content: data.reply });
-
                 } catch(error) {
                     removeTypingIndicator();
                     addMessage("Désolée, je n'ai pas pu répondre. Peux-tu réessayer ?", "aida");
                 }
             });
             
-            // --- Fonctions Utilitaires ---
             function resetSelect(selectElement, defaultText) {
-                selectElement.innerHTML = `<option>${defaultText}</option>`;
+                selectElement.innerHTML = `<option value="">${defaultText}</option>`;
                 selectElement.disabled = true;
                 selectionButton.disabled = true;
             }
@@ -324,7 +332,7 @@
             function addTypingIndicator() {
                 const indicator = document.createElement('div');
                 indicator.classList.add('message', 'aida', 'typing-indicator');
-                indicator.innerHTML = `<div class="message-bubble"><span>.</span><span>.</span><span>.</span></div>`;
+                indicator.innerHTML = `<div class="message-bubble"><span></span><span></span><span></span></div>`;
                 chatMessages.appendChild(indicator);
                 chatMessages.scrollTop = chatMessages.scrollHeight;
             }
@@ -337,3 +345,4 @@
     </script>
 </body>
 </html>
+
