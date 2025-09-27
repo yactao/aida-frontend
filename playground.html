@@ -14,6 +14,8 @@
             --text-color: #1F2937;
             --card-bg-color: #FFFFFF;
             --shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+            --hint-bg-color: #FEF3C7;
+            --hint-text-color: #92400E;
         }
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
@@ -77,12 +79,14 @@
         .chat-messages { flex-grow: 1; padding: 1rem; overflow-y: auto; }
         .message { margin-bottom: 1rem; display: flex; }
         .message.user { justify-content: flex-end; }
-        .message-bubble { padding: 0.75rem 1rem; border-radius: 18px; max-width: 75%; }
+        .message-bubble { padding: 0.75rem 1rem; border-radius: 18px; max-width: 75%; white-space: pre-wrap; }
         .message.user .message-bubble { background: linear-gradient(45deg, var(--primary-color), var(--secondary-color)); color: white; border-bottom-right-radius: 4px; }
         .message.aida .message-bubble { background-color: #E5E7EB; color: #1F2937; border-bottom-left-radius: 4px; }
-        .chat-input { display: flex; padding: 1rem; border-top: 1px solid #E5E7EB; }
+        .message.hint .message-bubble { background-color: var(--hint-bg-color); color: var(--hint-text-color); border: 1px solid #FCD34D; }
+        .chat-input { display: flex; padding: 1rem; border-top: 1px solid #E5E7EB; align-items: center; }
         .chat-input input { flex-grow: 1; padding: 12px; border: 1px solid #D1D5DB; border-radius: 20px; font-size: 1rem; margin-right: 0.5rem; }
-        .chat-input button { background: var(--primary-color); color: white; border: none; border-radius: 50%; width: 45px; height: 45px; font-size: 1.2rem; cursor: pointer; }
+        .chat-input button { background: var(--primary-color); color: white; border: none; border-radius: 50%; width: 45px; height: 45px; font-size: 1.2rem; cursor: pointer; flex-shrink: 0; }
+        #help-btn { background: #FBBF24; margin-right: 0.5rem; }
         .hidden { display: none !important; }
         .typing-indicator .message-bubble span { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background-color: #9CA3AF; margin: 0 2px; animation: bounce 1.4s infinite ease-in-out both; }
         .typing-indicator .message-bubble span:nth-child(1) { animation-delay: -0.32s; }
@@ -147,10 +151,13 @@
         <div id="chat-step" class="chat-container hidden">
             <div class="chat-header" id="chat-header-title"></div>
             <div class="chat-messages" id="chat-messages"></div>
-            <form class="chat-input" id="chat-form">
-                <input type="text" id="user-input" placeholder="Pose ta question ici..." autocomplete="off">
-                <button type="submit"><i class="fa-solid fa-paper-plane"></i></button>
-            </form>
+            <div class="chat-input">
+                <button id="help-btn" title="Demander un indice"><i class="fa-solid fa-lightbulb"></i></button>
+                <form id="chat-form" style="display: contents;">
+                    <input type="text" id="user-input" placeholder="Pose ta question ici..." autocomplete="off">
+                    <button type="submit" title="Envoyer"><i class="fa-solid fa-paper-plane"></i></button>
+                </form>
+            </div>
         </div>
     </main>
 
@@ -163,6 +170,7 @@
             const welcomeForm = document.getElementById('welcome-form');
             const selectionForm = document.getElementById('selection-form');
             const chatForm = document.getElementById('chat-form');
+            const helpBtn = document.getElementById('help-btn');
             const studentNameInput = document.getElementById('student-name');
             const selectionTitle = document.getElementById('selection-title');
             const cycleSelect = document.getElementById('cycle-select');
@@ -196,7 +204,6 @@
                 resetSelect(notionSelect, "-- D'abord choisir une matière --");
                 if (!cycle) return;
                 
-                // --- BUG FIX: Using correct filenames ---
                 const fileMap = {
                     primaire: 'programmes-primaire.json',
                     college: 'programmes-college.json',
@@ -204,14 +211,12 @@
                 };
                 try {
                     const response = await fetch(fileMap[cycle]);
-                    if (!response.ok) {
-                         throw new Error(`Le fichier ${fileMap[cycle]} est introuvable.`);
-                    }
+                    if (!response.ok) throw new Error(`Fichier ${fileMap[cycle]} introuvable.`);
                     programmesData = await response.json();
                     populateSelect(levelSelect, Object.keys(programmesData), "-- Choisir --");
                 } catch (e) { 
                     console.error("Erreur de chargement des programmes :", e);
-                    alert("Impossible de charger les programmes pour ce cycle. Veuillez vérifier que les fichiers existent.");
+                    alert("Impossible de charger les programmes pour ce cycle.");
                 }
             });
 
@@ -250,49 +255,72 @@
             
             selectionForm.addEventListener('submit', (e) => {
                 e.preventDefault();
-                const level = levelSelect.options[levelSelect.selectedIndex].text;
-                const subject = subjectSelect.options[subjectSelect.selectedIndex].text;
+                const levelName = levelSelect.options[levelSelect.selectedIndex].text;
+                const subjectName = subjectSelect.options[subjectSelect.selectedIndex].text;
                 const notionName = notionSelect.options[notionSelect.selectedIndex].text;
                 
-                // --- BUG FIX: Correctly gathering competences ---
                 const notionObject = programmesData[levelSelect.value][subjectSelect.value][notionSelect.value];
                 let allCompetences = [];
                 if (notionObject && Array.isArray(notionObject.competences)) {
                     allCompetences = notionObject.competences;
                 } else if (notionObject) {
-                     // Fallback for more complex structures
                     Object.values(notionObject).forEach(subNotion => {
                         if (typeof subNotion === 'object' && subNotion !== null && Array.isArray(subNotion.competences)) {
                             allCompetences = allCompetences.concat(subNotion.competences);
                         }
                     });
                 }
+                if (allCompetences.length === 0) allCompetences.push(`Savoir expliquer la notion de "${notionName}"`);
 
-                if (allCompetences.length === 0) {
-                    allCompetences.push(`Savoir expliquer et donner des exemples sur la notion de "${notionName}"`);
-                }
-                // --- END OF FIX ---
-
-                selectedNotion = `Niveau: ${level}, Matière: ${subject}, Notion: ${notionName}. Compétences clés: "${allCompetences.join(', ')}"`;
+                selectedNotion = `Niveau: ${levelName}, Matière: ${subjectName}, Notion: ${notionName}. Compétences clés: "${allCompetences.join(', ')}"`;
                 chatHeaderTitle.textContent = `Aide sur : ${notionName}`;
                 
                 conversationHistory = [{
                     role: "system",
-                    content: `Tu es AIDA, une enseignante personnelle bienveillante et encourageante. Tu aides un élève nommé ${studentName}. La discussion porte sur la notion suivante : ${selectedNotion}. N'utilise que du texte simple et des phrases courtes, pas de Markdown.`
+                    content: `Tu es AIDA, une enseignante personnelle bienveillante. Tu aides un élève nommé ${studentName}. La discussion porte sur : ${selectedNotion}. Tes réponses doivent être simples, courtes et formatées avec des sauts de ligne (\\n) pour les listes ou les étapes. Pas de Markdown.`
                 }];
-
-                addMessage("Bonjour " + studentName + "! Je suis là pour t'aider avec '" + notionName + "'. Pose-moi ta première question !", "aida");
+                
+                // --- MESSAGE D'ACCUEIL AMÉLIORÉ ---
+                addMessage(`Bonjour ${studentName} ! Je suis là pour t'aider avec '${notionName}' (niveau ${levelName}). Pose-moi ta première question !`, "aida");
 
                 selectionStep.classList.add('hidden');
                 chatStep.classList.remove('hidden');
             });
 
-            chatForm.addEventListener('submit', async (e) => {
+            chatForm.addEventListener('submit', (e) => {
                 e.preventDefault();
                 const userMessage = userInput.value.trim();
                 if (!userMessage) return;
-                addMessage(userMessage, "user");
-                conversationHistory.push({ role: "user", content: userMessage });
+                sendMessage(userMessage);
+            });
+
+            helpBtn.addEventListener('click', async () => {
+                const lastUserMessage = [...conversationHistory].reverse().find(m => m.role === 'user');
+                if (!lastUserMessage) {
+                    addMessage("Pose-moi d'abord une question pour que je puisse te donner un indice.", "hint");
+                    return;
+                }
+
+                addTypingIndicator();
+                try {
+                     const response = await fetch(`${backendUrl}/aida/playground-help`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ question: lastUserMessage.content, context: selectedNotion })
+                    });
+                    const data = await response.json();
+                    if (!response.ok) throw new Error(data.error);
+                    removeTypingIndicator();
+                    addMessage(data.hint, "hint");
+                } catch(error) {
+                    removeTypingIndicator();
+                    addMessage("Désolée, je n'ai pas pu trouver d'indice cette fois-ci.", "hint");
+                }
+            });
+            
+            async function sendMessage(message) {
+                addMessage(message, "user");
+                conversationHistory.push({ role: "user", content: message });
                 userInput.value = '';
                 addTypingIndicator();
                 try {
@@ -310,8 +338,8 @@
                     removeTypingIndicator();
                     addMessage("Désolée, je n'ai pas pu répondre. Peux-tu réessayer ?", "aida");
                 }
-            });
-            
+            }
+
             function resetSelect(selectElement, defaultText) {
                 selectElement.innerHTML = `<option value="">${defaultText}</option>`;
                 selectElement.disabled = true;
@@ -333,7 +361,8 @@
                 messageElement.classList.add('message', sender);
                 const bubble = document.createElement('div');
                 bubble.classList.add('message-bubble');
-                bubble.textContent = text;
+                // --- GESTION DU FORMATAGE ---
+                bubble.innerHTML = text.replace(/\n/g, '<br>');
                 messageElement.appendChild(bubble);
                 chatMessages.appendChild(messageElement);
                 chatMessages.scrollTop = chatMessages.scrollHeight;
