@@ -204,11 +204,11 @@
                 resetSelect(notionSelect, "-- D'abord choisir une matière --");
                 if (!cycle) return;
                 
-                // --- BUG FIX: Utilisation des noms de fichiers corrects ---
                 const fileMap = {
                     primaire: 'Programmes Scolaires - Primaire.json',
                     college: 'Programmes Scolaires - Collège.json',
                     lycee: 'Programmes Scolaires - Lycée.json'
+                };
                 try {
                     const response = await fetch(fileMap[cycle]);
                     if (!response.ok) throw new Error(`Fichier ${fileMap[cycle]} introuvable.`);
@@ -259,15 +259,12 @@
                 const subjectName = subjectSelect.options[subjectSelect.selectedIndex].text;
                 const notionName = notionSelect.options[notionSelect.selectedIndex].text;
                 
-                // --- BUG FIX: Logique améliorée pour récupérer les compétences ---
                 const notionObject = programmesData[levelSelect.value][subjectSelect.value][notionSelect.value];
                 let allCompetences = [];
                 if (notionObject) {
-                    // Cas 1: Les compétences sont directement dans l'objet
                     if (Array.isArray(notionObject.competences)) {
                         allCompetences = allCompetences.concat(notionObject.competences);
                     }
-                    // Cas 2: Les compétences sont dans des "sous_notions"
                     if (notionObject.sous_notions) {
                         Object.values(notionObject.sous_notions).forEach(subNotion => {
                             if (typeof subNotion === 'object' && subNotion !== null && Array.isArray(subNotion.competences)) {
@@ -280,7 +277,6 @@
                 if (allCompetences.length === 0) {
                      allCompetences.push(`Savoir expliquer la notion de "${notionName}"`);
                 }
-                // --- FIN DU FIX ---
 
                 selectedNotion = `Niveau: ${levelName}, Matière: ${subjectName}, Notion: ${notionName}. Compétences clés: "${allCompetences.join(', ')}"`;
                 chatHeaderTitle.textContent = `Aide sur : ${notionName}`;
