@@ -12,19 +12,17 @@
         <nav class="navbar">
             <div class="logo">
                 <a href="#" id="home-link">
-                    <!-- NOUVEAU LOGO -->
                     <div class="logo-icon">A</div>
                     <span>AIDA</span>
                 </a>
             </div>
-            <!-- NOUVEAU MENU UTILISATEUR -->
             <div class="nav-actions">
                 <a href="#" class="btn-main btn-register">Connexion</a>
                 <div id="user-menu" class="user-menu hidden">
                     <button id="user-menu-btn" class="user-menu-btn">
                         <i class="fa-solid fa-user"></i>
                     </button>
-                    <div id="user-menu-dropdown" class="user-menu-dropdown hidden">
+                    <div id="user-menu-dropdown" class="user-menu-dropdown">
                         <div class="user-info">
                             <span id="user-email-display"></span>
                         </div>
@@ -188,8 +186,17 @@
         <div class="modal-content">
             <button class="close-modal">&times;</button>
             <div id="modal-form-step">
-                <h3>Générer une ressource pédagogique</h3>
+                <h3>Générer un contenu pédagogique</h3>
                 <form id="resource-form">
+                    <div class="form-group">
+                        <label for="content-type-select">Type de contenu</label>
+                        <select id="content-type-select" class="form-control">
+                            <option value="quiz">Quiz (QCM)</option>
+                            <option value="exercices">Exercices d'application</option>
+                            <option value="questions_ouvertes">Questions ouvertes</option>
+                            <option value="fiche_revision">Fiche de révision</option>
+                        </select>
+                    </div>
                     <div class="form-group">
                         <label for="cycle-select">Cycle Éducatif</label>
                         <select id="cycle-select" class="form-control">
@@ -217,16 +224,16 @@
                             <option value="">-- D'abord choisir une matière --</option>
                         </select>
                     </div>
-                    <button type="submit" class="btn-main" disabled>Générer le quiz</button>
+                    <button type="submit" class="btn-main" disabled>Générer le contenu</button>
                 </form>
             </div>
             <div id="modal-loading-step" class="hidden">
                 <h3>Génération en cours...</h3>
                 <div class="spinner"></div>
-                <p>AIDA prépare votre ressource, veuillez patienter.</p>
+                <p>AIDA prépare votre contenu, veuillez patienter.</p>
             </div>
             <div id="modal-result-step" class="hidden">
-                 <h3>Quiz généré avec succès !</h3>
+                 <h3>Contenu généré avec succès !</h3>
                 <div class="generated-content"></div>
                 <div class="form-group">
                     <label for="assign-class-select">Assigner à une classe :</label>
@@ -234,7 +241,7 @@
                         <!-- Options de classes insérées dynamiquement -->
                     </select>
                 </div>
-                <button class="btn-main use-resource-btn">Utiliser cette ressource</button>
+                <button class="btn-main use-content-btn">Utiliser ce contenu</button>
             </div>
         </div>
     </div>

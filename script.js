@@ -29,7 +29,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const modalLoadingStep = document.getElementById('modal-loading-step');
     const modalResultStep = document.getElementById('modal-result-step');
     const assignClassSelect = document.getElementById('assign-class-select');
-    const useQuizBtn = quizModal ? quizModal.querySelector('.use-resource-btn') : null;
+    const useContentBtn = quizModal ? quizModal.querySelector('.use-content-btn') : null;
     const studentWelcome = document.getElementById('student-welcome');
     const joinClassPanel = document.getElementById('join-class-panel');
     const joinClassForm = document.getElementById('join-class-form');
@@ -47,12 +47,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const classResultsContainer = document.getElementById('class-results-container');
     const backToTeacherDashboardBtn = document.getElementById('back-to-teacher-dashboard');
     const quizContainer = document.querySelector('.quiz-container');
+    const contentTypeSelect = document.getElementById('content-type-select');
     const cycleSelect = document.getElementById('cycle-select');
     const levelSelect = document.getElementById('level-select');
     const subjectSelect = document.getElementById('subject-select');
     const notionSelect = document.getElementById('notion-select');
     const resourceFormButton = document.querySelector('#resource-form button');
-    // NOUVEAUX SÉLECTEURS POUR LE MENU UTILISATEUR
     const userMenu = document.getElementById('user-menu');
     const userMenuBtn = document.getElementById('user-menu-btn');
     const userMenuDropdown = document.getElementById('user-menu-dropdown');
@@ -63,7 +63,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- VARIABLES GLOBALES ---
     let currentUser = null;
-    let generatedQuizData = null;
+    let generatedContentData = null;
     let currentQuizData = null;
     let currentClassId = null;
     let programmesData = null;
@@ -102,7 +102,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     
-    // MISE À JOUR pour gérer le nouveau menu utilisateur
     async function setupUIForUser() {
         if (!currentUser) return;
 
@@ -121,12 +120,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // MISE À JOUR pour gérer le nouveau menu utilisateur
     function logout() {
         currentUser = null;
         registerBtn.classList.remove('hidden');
         userMenu.classList.add('hidden');
-        userMenuDropdown.classList.add('hidden');
+        userMenuDropdown.classList.remove('active');
         initializeAppState();
     }
     
@@ -141,7 +139,7 @@ document.addEventListener('DOMContentLoaded', () => {
             classes.forEach(cls => {
                 const classCard = document.createElement('div');
                 classCard.className = 'dashboard-card clickable';
-                classCard.innerHTML = `<h4><i class="fa-solid fa-users"></i> ${cls.className}</h4><p>${cls.students.length} élève(s)</p><p>${cls.quizzes.length} quiz</p>`;
+                classCard.innerHTML = `<h4><i class="fa-solid fa-users"></i> ${cls.className}</h4><p>${cls.students.length} élève(s)</p><p>${(cls.quizzes || []).length} contenu(s)</p>`;
                 classCard.addEventListener('click', () => showClassDetails(cls.id, cls.className));
                 classListContainer.appendChild(classCard);
                 if (assignClassSelect) {
@@ -201,7 +199,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function displayDetailedResult(resultId, classId, className) {
         const result = currentClassDataForTeacher.results.find(r => r.resultId === resultId);
-        const quiz = currentClassDataForTeacher.quizzes.find(q => q.id === result.quizId);
+        const quiz = (currentClassDataForTeacher.quizzes || []).find(q => q.id === result.quizId);
 
         if (!result || !quiz) { alert("Impossible de trouver les détails."); return; }
 
@@ -261,12 +259,13 @@ document.addEventListener('DOMContentLoaded', () => {
             
             let hasPendingQuizzes = false;
             classes.forEach(cls => {
-                if (cls.quizzes && cls.quizzes.length > 0) {
+                const classQuizzes = cls.quizzes || [];
+                if (classQuizzes.length > 0) {
                     const completedQuizIds = (cls.results || [])
                         .filter(result => result.studentEmail === currentUser.email)
                         .map(result => result.quizId);
 
-                    const pendingQuizzes = cls.quizzes.filter(quiz => !completedQuizIds.includes(quiz.id));
+                    const pendingQuizzes = classQuizzes.filter(quiz => !completedQuizIds.includes(quiz.id) && quiz.type === 'quiz');
 
                     if (pendingQuizzes.length > 0) {
                         hasPendingQuizzes = true;
@@ -344,7 +343,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     function initializeResourceModal() {
-        cycleSelect.value = '';
+        if(modalFormStep) modalFormStep.classList.remove('hidden');
+        if(modalLoadingStep) modalLoadingStep.classList.add('hidden');
+        if(modalResultStep) modalResultStep.classList.add('hidden');
+        if(resourceForm) resourceForm.reset();
         levelSelect.innerHTML = '<option value="">-- D\'abord choisir un cycle --</option>';
         levelSelect.disabled = true;
         subjectSelect.innerHTML = '<option value="">-- D\'abord choisir un niveau --</option>';
@@ -355,7 +357,6 @@ document.addEventListener('DOMContentLoaded', () => {
         programmesData = null;
     }
 
-    // CORRECTION du bug de chargement
     async function loadProgrammesForCycle(cycle) {
         levelSelect.innerHTML = '<option value="">Chargement...</option>';
         subjectSelect.innerHTML = '<option value="">-- D\'abord choisir un niveau --</option>';
@@ -369,16 +370,14 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // Dictionnaire pour faire correspondre la valeur du select au nom du fichier
         const fileMap = {
-            primaire: 'programmes-primaire.json',
-            college: 'programmes-college.json',
-            lycee: 'programmes-lycee.json'
+            primaire: 'Programmes Scolaires - Primaire.json',
+            college: 'Programmes Scolaires - Collège.json',
+            lycee: 'Programmes Scolaires - Lycée.json'
         };
         const fileName = fileMap[cycle];
 
         if (!fileName) {
-            console.error("Cycle inconnu:", cycle);
             levelSelect.innerHTML = '<option value="">Erreur de cycle</option>';
             return;
         }
@@ -398,15 +397,47 @@ document.addEventListener('DOMContentLoaded', () => {
             levelSelect.innerHTML = '<option value="">Erreur de chargement</option>';
         }
     }
+    
+    function renderGeneratedContent(content) {
+        const container = quizModal.querySelector('#modal-result-step .generated-content');
+        if (!container) return;
+
+        let html = `<h4>${content.title}</h4>`;
+        switch(content.type) {
+            case 'quiz':
+                html += `<p>${content.questions.length} questions à choix multiples.</p>`;
+                break;
+            case 'exercices':
+                html += '<ul>';
+                content.content.forEach(exo => {
+                    html += `<li><strong>Exercice :</strong> ${exo.enonce}</li>`;
+                });
+                html += '</ul>';
+                break;
+            case 'questions_ouvertes':
+                html += '<ul>';
+                content.content.forEach(q => {
+                    html += `<li>${q}</li>`;
+                });
+                html += '</ul>';
+                break;
+            case 'fiche_revision':
+                html += `<p>${content.content.replace(/\n/g, '<br>')}</p>`;
+                break;
+            default:
+                html += `<p>Type de contenu non reconnu.</p>`;
+        }
+        container.innerHTML = html;
+    }
 
     function setupEventListeners() {
         if (startButton) startButton.addEventListener('click', (e) => { e.preventDefault(); changePage(startButton.getAttribute('data-target')); });
         if (registerBtn) registerBtn.addEventListener('click', goToAuthPage);
         if (homeLink) homeLink.addEventListener('click', (e) => { e.preventDefault(); changePage('home'); });
         
-        // Logique pour le nouveau menu utilisateur
         if (userMenuBtn) {
-            userMenuBtn.addEventListener('click', () => {
+            userMenuBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
                 userMenuDropdown.classList.toggle('active');
             });
         }
@@ -418,13 +449,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 applyTheme(newTheme);
             });
         }
-        // Fermer le dropdown si on clique ailleurs
-        document.addEventListener('click', (e) => {
-            if (userMenu && !userMenu.contains(e.target)) {
+        document.addEventListener('click', () => {
+            if (userMenuDropdown.classList.contains('active')) {
                 userMenuDropdown.classList.remove('active');
             }
         });
-
 
         if (showSignupLink) showSignupLink.addEventListener('click', (e) => { e.preventDefault(); if(loginFormContainer && signupFormContainer) { loginFormContainer.classList.add('hidden'); signupFormContainer.classList.remove('hidden'); } });
         if (showLoginLink) showLoginLink.addEventListener('click', (e) => { e.preventDefault(); if(signupFormContainer && loginFormContainer) { signupFormContainer.classList.add('hidden'); loginFormContainer.classList.remove('hidden'); } });
@@ -432,20 +461,13 @@ document.addEventListener('DOMContentLoaded', () => {
         if (signupForm) {
             signupForm.addEventListener('submit', (e) => {
                 e.preventDefault();
-                handleAuth('/auth/signup', {
-                    email: e.target.elements['signup-email'].value,
-                    password: e.target.elements['signup-password'].value,
-                    role: e.target.elements['signup-role'].value
-                });
+                handleAuth('/auth/signup', { email: e.target.elements['signup-email'].value, password: e.target.elements['signup-password'].value, role: e.target.elements['signup-role'].value });
             });
         }
         if (loginForm) {
             loginForm.addEventListener('submit', (e) => {
                 e.preventDefault();
-                handleAuth('/auth/login', {
-                    email: e.target.elements['login-email'].value,
-                    password: e.target.elements['login-password'].value
-                });
+                handleAuth('/auth/login', { email: e.target.elements['login-email'].value, password: e.target.elements['login-password'].value });
             });
         }
         if (openClassModalBtn) openClassModalBtn.addEventListener('click', () => { if (classModal) classModal.classList.remove('hidden'); });
@@ -473,9 +495,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
         if (cycleSelect) {
-            cycleSelect.addEventListener('change', () => {
-                loadProgrammesForCycle(cycleSelect.value);
-            });
+            cycleSelect.addEventListener('change', () => { loadProgrammesForCycle(cycleSelect.value); });
         }
         if (levelSelect) {
             levelSelect.addEventListener('change', () => {
@@ -524,6 +544,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (resourceForm) {
             resourceForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
+                const contentType = contentTypeSelect.value;
                 const level = levelSelect.value;
                 const subject = subjectSelect.value;
                 const notion = notionSelect.value;
@@ -534,16 +555,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (modalResultStep) modalResultStep.classList.add('hidden');
 
                 try {
-                    const response = await fetch(`${backendUrl}/generate/quiz`, { 
+                    const response = await fetch(`${backendUrl}/generate/content`, { 
                         method: 'POST', 
                         headers: { 'Content-Type': 'application/json' }, 
-                        body: JSON.stringify({ competences })
+                        body: JSON.stringify({ competences, contentType })
                     });
-                    generatedQuizData = await response.json();
-                    if (!response.ok) throw new Error(generatedQuizData.error);
+                    generatedContentData = await response.json();
+                    if (!response.ok) throw new Error(generatedContentData.error);
                     
-                    const resultContainer = quizModal ? quizModal.querySelector('#modal-result-step .generated-content') : null;
-                    if (resultContainer) resultContainer.innerHTML = `<p><strong>Titre :</strong> ${generatedQuizData.title}</p>`;
+                    renderGeneratedContent(generatedContentData);
+
                 } catch (err) {
                     alert(err.message);
                 } finally {
@@ -552,17 +573,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
         }
-        if (useQuizBtn) {
-            useQuizBtn.addEventListener('click', async () => {
+        if (useContentBtn) {
+            useContentBtn.addEventListener('click', async () => {
                 const classId = assignClassSelect.value;
                 if (!classId) return alert("Veuillez sélectionner une classe.");
                 try {
-                    const response = await fetch(`${backendUrl}/class/assign-quiz`, {
+                    const response = await fetch(`${backendUrl}/class/assign-content`, {
                         method: 'POST', headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ quizData: generatedQuizData, classId, teacherEmail: currentUser.email })
+                        body: JSON.stringify({ contentData: generatedContentData, classId, teacherEmail: currentUser.email })
                     });
                     if (!response.ok) throw new Error((await response.json()).error);
-                    alert("Quiz assigné avec succès !");
+                    alert("Contenu assigné avec succès !");
                     if (quizModal) quizModal.classList.add('hidden');
                     await fetchAndDisplayClasses();
                 } catch (error) { alert(`Erreur: ${error.message}`); }
@@ -598,13 +619,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     const selectedInput = document.querySelector(`input[name="question-${index}"]:checked`);
                     const answerIndex = selectedInput ? parseInt(selectedInput.value) : -1;
                     userAnswers.push(answerIndex);
-                    if (answerIndex === q.correct_answer_index) {
-                        score++;
-                    }
+                    if (answerIndex === q.correct_answer_index) score++;
                 });
 
                 const resultData = { classId: currentClassId, quizId: currentQuizData.id, quizTitle: currentQuizData.title, studentEmail: currentUser.email, score: score, totalQuestions: currentQuizData.questions.length, answers: userAnswers };
-    
                 try {
                     await fetch(`${backendUrl}/quiz/submit`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(resultData) });
                 } catch (error) { console.error("Le score n'a pas pu être envoyé.", error); }
