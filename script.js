@@ -1,5 +1,5 @@
 // On pointe vers le proxy local. Netlify s'occupera du reste.
-const backendUrl = '/api';
+const backendUrl = 'https://aida-backend-bqd0fnd2a3c7dadf.francecentral-01.azurewebsites.net/api';
 
 document.addEventListener('DOMContentLoaded', () => {
     // --- SÉLECTEURS (inchangés) ---
