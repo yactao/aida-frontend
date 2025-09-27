@@ -1,0 +1,114 @@
+{
+    "6eme": {
+        "francais": {
+            "etude_de_la_langue": {
+                "nom": "Étude de la langue",
+                "competences": "L'élève doit maîtriser les classes grammaticales (nom, verbe, adjectif, etc.) et les fonctions essentielles (sujet, compléments). Il étudie la conjugaison au présent, futur, imparfait, passé simple et passé composé de l'indicatif."
+            },
+            "lecture": {
+                "nom": "Lecture",
+                "competences": "L'élève doit lire et analyser des textes variés, notamment des récits d'aventures et des contes. Il apprend à identifier le schéma narratif et les caractéristiques des personnages."
+            }
+        },
+        "mathematiques": {
+            "nombres_et_calculs": {
+                "nom": "Nombres et Calculs",
+                "competences": "L'élève travaille avec les nombres décimaux et les fractions. Il approfondit les quatre opérations et aborde la proportionnalité."
+            },
+            "geometrie": {
+                "nom": "Géométrie",
+                "competences": "L'élève étudie les figures planes (triangles, quadrilatères, cercle) et les solides (cube, pavé droit). Il apprend à construire des figures et à utiliser les propriétés géométriques (parallélisme, perpendicularité)."
+            }
+        },
+        "histoire_geographie_emc": {
+            "histoire": {
+                "nom": "Histoire",
+                "competences": "L'élève étudie les débuts de l'humanité, l'Orient ancien, la Grèce et Rome. Il apprend à se repérer dans le temps et à analyser des documents historiques."
+            }
+        }
+    },
+    "5eme": {
+        "francais": {
+            "etude_de_la_langue": {
+                "nom": "Étude de la langue",
+                "competences": "L'élève approfondit l'analyse de la phrase complexe (propositions subordonnées). Il étudie le conditionnel et le subjonctif présent."
+            },
+            "lecture": {
+                "nom": "Lecture",
+                "competences": "L'élève découvre la poésie du Moyen Âge à la Renaissance et le théâtre de Molière. Il apprend à analyser les procédés stylistiques."
+            }
+        },
+        "mathematiques": {
+            "nombres_et_calculs": {
+                "nom": "Nombres et Calculs",
+                "competences": "L'élève travaille avec les nombres relatifs (addition, soustraction). Il aborde le calcul littéral simple."
+            },
+            "geometrie": {
+                "nom": "Géométrie",
+                "competences": "L'élève étudie la symétrie centrale, les angles et les triangles. Il commence à utiliser le raisonnement déductif."
+            }
+        },
+        "svt": {
+            "biologie": {
+                "nom": "Biologie",
+                "competences": "L'élève étudie la respiration et la digestion chez l'être humain, ainsi que la production de matière par les êtres vivants (photosynthèse)."
+            }
+        }
+    },
+    "4eme": {
+        "francais": {
+            "lecture": {
+                "nom": "Lecture",
+                "competences": "L'élève étudie le roman au XIXe siècle (réalisme, naturalisme) et la poésie engagée. Il apprend à argumenter et à développer une pensée critique."
+            },
+            "etude_de_la_langue": {
+                "nom": "Étude de la langue",
+                "competences": "L'élève maîtrise l'analyse de la phrase complexe et la concordance des temps. Il enrichit son vocabulaire."
+            }
+        },
+        "mathematiques": {
+            "nombres_et_calculs": {
+                "nom": "Nombres et Calculs",
+                "competences": "L'élève maîtrise les opérations sur les nombres relatifs et le calcul littéral (développement, factorisation). Il résout des équations du premier degré."
+            },
+            "geometrie": {
+                "nom": "Géométrie",
+                "competences": "L'élève étudie le théorème de Pythagore et sa réciproque, ainsi que la trigonométrie dans le triangle rectangle (cosinus)."
+            }
+        },
+        "physique_chimie": {
+            "chimie": {
+                "nom": "Chimie",
+                "competences": "L'élève découvre le modèle de l'atome, les ions et les transformations chimiques (réactions acido-basiques)."
+            }
+        }
+    },
+    "3eme": {
+        "francais": {
+            "lecture": {
+                "nom": "Lecture",
+                "competences": "L'élève étudie des œuvres autobiographiques et des textes engagés du XXe siècle. Il prépare l'épreuve du Diplôme National du Brevet (DNB) en développant sa capacité d'analyse et d'argumentation."
+            },
+            "etude_de_la_langue": {
+                "nom": "Étude de la langue",
+                "competences": "L'élève révise et approfondit toutes les notions de grammaire, conjugaison et orthographe en vue du DNB."
+            }
+        },
+        "mathematiques": {
+            "nombres_et_calculs": {
+                "nom": "Nombres et Calculs",
+                "competences": "L'élève travaille sur les puissances, les racines carrées et la résolution de systèmes d'équations. Il aborde les fonctions linéaires et affines."
+            },
+            "geometrie": {
+                "nom": "Géométrie",
+                "competences": "L'élève étudie le théorème de Thalès et la trigonométrie (sinus, tangente). Il travaille sur les sections de solides et les agrandissements/réductions."
+            }
+        },
+        "histoire_geographie_emc": {
+            "histoire": {
+                "nom": "Histoire",
+                "competences": "L'élève étudie le XXe siècle : les deux guerres mondiales, la guerre froide, la décolonisation et la construction européenne. Il analyse les grands enjeux du monde contemporain."
+            }
+        }
+    }
+}

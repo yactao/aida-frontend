@@ -1,8 +1,8 @@
-// On pointe vers le proxy local. Netlify s'occupera du reste.
+// On utilise l'URL complète du backend Azure. C'est la connexion directe.
 const backendUrl = 'https://aida-backend-bqd0fnd2a3c7dadf.francecentral-01.azurewebsites.net/api';
 
 document.addEventListener('DOMContentLoaded', () => {
-    // --- SÉLECTEURS (inchangés) ---
+    // --- SÉLECTEURS ---
     const pages = document.querySelectorAll('.page');
     const startButton = document.querySelector('#home .btn-main');
     const registerBtn = document.querySelector('.btn-register');
@@ -48,12 +48,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const classResultsContainer = document.getElementById('class-results-container');
     const backToTeacherDashboardBtn = document.getElementById('back-to-teacher-dashboard');
     const quizContainer = document.querySelector('.quiz-container');
+    const cycleSelect = document.getElementById('cycle-select');
     const levelSelect = document.getElementById('level-select');
     const subjectSelect = document.getElementById('subject-select');
     const notionSelect = document.getElementById('notion-select');
     const resourceFormButton = document.querySelector('#resource-form button');
 
-    // --- VARIABLES GLOBALES (inchangées) ---
+    // --- VARIABLES GLOBALES ---
     let currentUser = null;
     let generatedQuizData = null;
     let currentQuizData = null;
@@ -63,20 +64,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const goToAuthPage = (e) => { e.preventDefault(); changePage('auth-page'); };
 
-    // --- FONCTIONS (inchangées) ---
     function applyTheme(theme) {
         document.body.classList.toggle('dark-mode', theme === 'dark');
         if (themeToggleBtn) {
             themeToggleBtn.innerHTML = theme === 'dark' ? '<i class="fa-solid fa-sun"></i>' : '<i class="fa-solid fa-moon"></i>';
         }
     }
+
     function changePage(targetId) {
         pages.forEach(page => page.classList.remove('active'));
         const targetPage = document.getElementById(targetId);
         if (targetPage) targetPage.classList.add('active');
     }
 
-    // --- Fonctions d'API appelant le proxy ---
     async function handleAuth(url, body) {
         const errorEl = body.role ? signupError : loginError;
         if (errorEl) errorEl.textContent = '';
@@ -86,11 +86,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(body)
             });
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({ error: 'Réponse invalide du serveur' }));
-                throw new Error(errorData.error);
-            }
             const data = await response.json();
+            if (!response.ok) throw new Error(data.error);
             currentUser = data.user;
             await setupUIForUser();
         } catch (error) {
@@ -307,29 +304,13 @@ document.addEventListener('DOMContentLoaded', () => {
             if (aidaHelpResult) aidaHelpResult.classList.remove('hidden');
         }
     }
-
-    async function loadProgrammesIntoModal() {
-        if (programmesData) return;
-        try {
-            const response = await fetch(`/programmes.json`);
-            programmesData = await response.json();
-            
-            levelSelect.innerHTML = '<option value="">-- Choisir le niveau --</option>';
-            Object.keys(programmesData).forEach(level => {
-                levelSelect.add(new Option(level, level));
-            });
-        } catch (error) {
-            console.error("Impossible de charger les programmes.", error);
-        }
-    }
-
+    
     function startQuiz(quizData, classId) {
         currentQuizData = quizData;
         currentClassId = classId;
 
         if (!quizData || !Array.isArray(quizData.questions)) {
             alert("Désolé, ce quiz ne peut pas être chargé car ses questions sont manquantes.");
-            console.error("Erreur de données de quiz :", quizData);
             return;
         }
 
@@ -356,6 +337,49 @@ document.addEventListener('DOMContentLoaded', () => {
         changePage('home');
     }
     
+    // --- NOUVELLE LOGIQUE POUR LE MODAL DE RESSOURCES ---
+
+    function initializeResourceModal() {
+        cycleSelect.value = '';
+        levelSelect.innerHTML = '<option value="">-- D\'abord choisir un cycle --</option>';
+        levelSelect.disabled = true;
+        subjectSelect.innerHTML = '<option value="">-- D\'abord choisir un niveau --</option>';
+        subjectSelect.disabled = true;
+        notionSelect.innerHTML = '<option value="">-- D\'abord choisir une matière --</option>';
+        notionSelect.disabled = true;
+        resourceFormButton.disabled = true;
+        programmesData = null;
+    }
+
+    async function loadProgrammesForCycle(cycle) {
+        levelSelect.innerHTML = '<option value="">Chargement...</option>';
+        subjectSelect.innerHTML = '<option value="">-- D\'abord choisir un niveau --</option>';
+        notionSelect.innerHTML = '<option value="">-- D\'abord choisir une matière --</option>';
+        levelSelect.disabled = true;
+        subjectSelect.disabled = true;
+        notionSelect.disabled = true;
+
+        if (!cycle) {
+            levelSelect.innerHTML = '<option value="">-- D\'abord choisir un cycle --</option>';
+            return;
+        }
+
+        try {
+            const response = await fetch(`programmes-${cycle}.json`);
+            if (!response.ok) throw new Error(`Fichier programmes-${cycle}.json non trouvé.`);
+            programmesData = await response.json();
+            
+            levelSelect.innerHTML = '<option value="">-- Choisir le niveau --</option>';
+            Object.keys(programmesData).forEach(level => {
+                levelSelect.add(new Option(level, level));
+            });
+            levelSelect.disabled = false;
+        } catch (error) {
+            console.error("Impossible de charger les programmes:", error);
+            levelSelect.innerHTML = '<option value="">Erreur de chargement</option>';
+        }
+    }
+
     function setupEventListeners() {
         if (startButton) startButton.addEventListener('click', (e) => { e.preventDefault(); changePage(startButton.getAttribute('data-target')); });
         if (registerBtn) registerBtn.addEventListener('click', goToAuthPage);
@@ -406,10 +430,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
         }
+        
+        // --- ÉCOUTEURS POUR LE NOUVEAU FORMULAIRE DE RESSOURCES ---
         if (openQuizModalBtn) {
             openQuizModalBtn.addEventListener('click', () => { 
                 if (quizModal) quizModal.classList.remove('hidden');
-                loadProgrammesIntoModal();
+                initializeResourceModal(); 
+            });
+        }
+        if (cycleSelect) {
+            cycleSelect.addEventListener('change', () => {
+                loadProgrammesForCycle(cycleSelect.value);
             });
         }
         if (levelSelect) {
@@ -423,7 +454,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 const selectedLevel = levelSelect.value;
                 if (selectedLevel && programmesData[selectedLevel]) {
                     Object.keys(programmesData[selectedLevel]).forEach(subjectKey => {
-                        const subjectName = subjectKey.charAt(0).toUpperCase() + subjectKey.slice(1);
+                        const subjectData = programmesData[selectedLevel][subjectKey];
+                        const subjectName = subjectData.nom || subjectKey.charAt(0).toUpperCase() + subjectKey.slice(1);
                         subjectSelect.add(new Option(subjectName, subjectKey));
                     });
                     subjectSelect.disabled = false;
@@ -438,10 +470,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 const selectedLevel = levelSelect.value;
                 const selectedSubject = subjectSelect.value;
-                if (selectedSubject && programmesData[selectedLevel][selectedSubject]) {
-                    Object.keys(programmesData[selectedLevel][selectedSubject]).forEach(notionKey => {
-                        const notionName = programmesData[selectedLevel][selectedSubject][notionKey].nom;
-                        notionSelect.add(new Option(notionName, notionKey));
+                if (selectedSubject && programmesData[selectedLevel] && programmesData[selectedLevel][selectedSubject]) {
+                    const subjectContent = programmesData[selectedLevel][selectedSubject];
+                    Object.keys(subjectContent).forEach(notionKey => {
+                        if (subjectContent[notionKey] && subjectContent[notionKey].nom) {
+                            const notionName = subjectContent[notionKey].nom;
+                            notionSelect.add(new Option(notionName, notionKey));
+                        }
                     });
                     notionSelect.disabled = false;
                 }
@@ -462,6 +497,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 if (modalFormStep) modalFormStep.classList.add('hidden');
                 if (modalLoadingStep) modalLoadingStep.classList.remove('hidden');
+                if (modalResultStep) modalResultStep.classList.add('hidden');
+
                 try {
                     const response = await fetch(`${backendUrl}/generate/quiz`, { 
                         method: 'POST', 
@@ -497,6 +534,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 } catch (error) { alert(`Erreur: ${error.message}`); }
             });
         }
+
         if (joinClassForm) {
             joinClassForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
@@ -531,30 +569,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 });
 
-                const resultData = {
-                    classId: currentClassId,
-                    quizId: currentQuizData.id,
-                    quizTitle: currentQuizData.title,
-                    studentEmail: currentUser.email,
-                    score: score,
-                    totalQuestions: currentQuizData.questions.length,
-                    answers: userAnswers
-                };
+                const resultData = { classId: currentClassId, quizId: currentQuizData.id, quizTitle: currentQuizData.title, studentEmail: currentUser.email, score: score, totalQuestions: currentQuizData.questions.length, answers: userAnswers };
     
                 try {
-                    await fetch(`${backendUrl}/quiz/submit`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(resultData)
-                    });
-                } catch (error) {
-                    console.error("Le score n'a pas pu être envoyé.", error);
-                }
+                    await fetch(`${backendUrl}/quiz/submit`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(resultData) });
+                } catch (error) { console.error("Le score n'a pas pu être envoyé.", error); }
 
                 if (quizContainer) quizContainer.classList.add('quiz-feedback');
-                if (quizQuestionsContainer) {
-                     quizQuestionsContainer.innerHTML = `<div class="quiz-feedback-header"><h3>Correction - Votre score : ${score}/${currentQuizData.questions.length}</h3><div class="spinner"></div><p>AIDA prépare les explications...</p></div>`;
-                }
+                if (quizQuestionsContainer) quizQuestionsContainer.innerHTML = `<div class="quiz-feedback-header"><h3>Correction - Votre score : ${score}/${currentQuizData.questions.length}</h3><div class="spinner"></div><p>AIDA prépare les explications...</p></div>`;
                 if (submitQuizBtn) submitQuizBtn.classList.add('hidden');
 
                 const feedbackPromises = currentQuizData.questions.map((q, index) => {
@@ -563,39 +585,29 @@ document.addEventListener('DOMContentLoaded', () => {
                         return fetch(`${backendUrl}/aida/feedback`, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                question: q.question_text,
-                                wrongAnswer: q.options[userAnswerIndex],
-                                correctAnswer: q.options[q.correct_answer_index]
-                            })
+                            body: JSON.stringify({ question: q.question_text, wrongAnswer: q.options[userAnswerIndex], correctAnswer: q.options[q.correct_answer_index] })
                         }).then(res => res.json());
                     }
                     return Promise.resolve(null);
                 });
 
                 const feedbacks = await Promise.all(feedbackPromises);
-
-                if (quizQuestionsContainer) {
-                     quizQuestionsContainer.innerHTML = `<div class="quiz-feedback-header"><h3>Correction - Votre score : ${score}/${currentQuizData.questions.length}</h3></div>`;
-                }
+                if (quizQuestionsContainer) quizQuestionsContainer.innerHTML = `<div class="quiz-feedback-header"><h3>Correction - Votre score : ${score}/${currentQuizData.questions.length}</h3></div>`;
 
                 currentQuizData.questions.forEach((q, index) => {
                     const questionElement = document.createElement('div');
                     questionElement.className = 'quiz-question';
                     const userAnswerIndex = userAnswers[index];
-                    
                     let feedbackHTML = '';
                     if (feedbacks[index] && feedbacks[index].feedback) {
                         feedbackHTML = `<div class="aida-feedback">${feedbacks[index].feedback}</div>`;
                     }
-
                     const optionsHTML = q.options.map((option, i) => {
                         let className = '';
                         if (i === q.correct_answer_index) className = 'correct-answer';
                         else if (i === userAnswerIndex) className = 'wrong-answer';
                         return `<label class="${className}">${option}</label>`;
                     }).join('');
-        
                     questionElement.innerHTML = `<p><strong>${index + 1}. ${q.question_text}</strong></p><div class="quiz-options">${optionsHTML}</div>${feedbackHTML}`;
                     if (quizQuestionsContainer) quizQuestionsContainer.appendChild(questionElement);
                 });

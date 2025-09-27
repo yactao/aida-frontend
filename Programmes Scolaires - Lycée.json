@@ -1,0 +1,86 @@
+{
+    "Seconde": {
+        "tronc_commun": {
+            "francais": {
+                "nom": "Français",
+                "competences": "L'élève analyse des œuvres littéraires de quatre grands genres (roman, théâtre, poésie, argumentation) du Moyen Âge au XXIe siècle. Il prépare les épreuves du baccalauréat de français (commentaire, dissertation)."
+            },
+            "mathematiques": {
+                "nom": "Mathématiques",
+                "competences": "L'élève consolide les bases du collège et aborde les fonctions de référence (carré, inverse), les vecteurs, la géométrie repérée, les probabilités et les statistiques."
+            },
+            "histoire_geographie": {
+                "nom": "Histoire-Géographie",
+                "competences": "L'élève étudie les grandes étapes de l'histoire du monde du XVIIe au XIXe siècle et les grands enjeux géographiques (environnement, mondialisation)."
+            },
+            "physique_chimie": {
+                "nom": "Physique-Chimie",
+                "competences": "L'élève étudie la constitution de la matière, les transformations chimiques, le mouvement, les ondes et les signaux."
+            },
+            "svt": {
+                "nom": "Sciences de la Vie et de la Terre",
+                "competences": "L'élève étudie la biodiversité, l'ADN, la tectonique des plaques et les enjeux contemporains en santé et environnement."
+            }
+        }
+    },
+    "Premiere": {
+        "tronc_commun": {
+            "francais": {
+                "nom": "Français",
+                "competences": "L'élève approfondit l'analyse littéraire en vue du baccalauréat. Le programme se concentre sur des œuvres et des parcours littéraires spécifiques."
+            },
+            "histoire_geographie": {
+                "nom": "Histoire-Géographie",
+                "competences": "L'élève étudie la France et l'Europe de 1789 à 1914 et les dynamiques territoriales de la France contemporaine."
+            },
+            "enseignement_scientifique": {
+                "nom": "Enseignement Scientifique",
+                "competences": "L'élève acquiert une culture scientifique commune en abordant des thèmes comme l'énergie, le climat et l'histoire des sciences."
+            }
+        },
+        "specialites": {
+            "mathematiques": {
+                "nom": "Mathématiques",
+                "competences": "L'élève étudie l'analyse (suites, fonctions dérivées, exponentielle), l'algèbre (second degré), la géométrie (produit scalaire) et les probabilités conditionnelles."
+            },
+            "physique_chimie": {
+                "nom": "Physique-Chimie",
+                "competences": "L'élève approfondit l'étude des interactions fondamentales, de l'énergie, des ondes et de la chimie organique."
+            },
+            "svt": {
+                "nom": "SVT",
+                "competences": "L'élève étudie la transmission de l'information génétique, la dynamique interne de la Terre et les écosystèmes."
+            }
+        }
+    },
+    "Terminale": {
+        "tronc_commun": {
+            "philosophie": {
+                "nom": "Philosophie",
+                "competences": "L'élève apprend à problématiser, à argumenter et à analyser des notions fondamentales (la conscience, la liberté, l'État, etc.) en s'appuyant sur des auteurs de référence."
+            },
+            "histoire_geographie": {
+                "nom": "Histoire-Géographie",
+                "competences": "L'élève étudie les relations entre les puissances et les conflits dans le monde de 1945 à nos jours, ainsi que les enjeux de la mondialisation."
+            },
+            "enseignement_scientifique": {
+                "nom": "Enseignement Scientifique",
+                "competences": "L'élève explore des thèmes comme le futur des énergies, l'intelligence artificielle et la biologie de synthèse."
+            }
+        },
+        "specialites": {
+            "mathematiques": {
+                "nom": "Mathématiques",
+                "competences": "L'élève étudie les limites, la continuité, la convexité, la fonction logarithme, le calcul intégral, les lois de probabilités et la géométrie dans l'espace."
+            },
+            "physique_chimie": {
+                "nom": "Physique-Chimie",
+                "competences": "L'élève approfondit la mécanique newtonienne, la thermodynamique, les phénomènes ondulatoires et la chimie organique (synthèse, analyse spectrale)."
+            },
+            "svt": {
+                "nom": "SVT",
+                "competences": "L'élève étudie la génétique et l'évolution, le fonctionnement du système immunitaire, le cerveau et les écosystèmes complexes."
+            }
+        }
+    }
+}
