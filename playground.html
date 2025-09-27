@@ -204,6 +204,7 @@
                 resetSelect(notionSelect, "-- D'abord choisir une matière --");
                 if (!cycle) return;
                 
+                // --- BUG FIX: Utilisation des noms de fichiers corrects ---
                 const fileMap = {
                     primaire: 'programmes-primaire.json',
                     college: 'programmes-college.json',
@@ -216,7 +217,7 @@
                     populateSelect(levelSelect, Object.keys(programmesData), "-- Choisir --");
                 } catch (e) { 
                     console.error("Erreur de chargement des programmes :", e);
-                    alert("Impossible de charger les programmes pour ce cycle.");
+                    alert("Impossible de charger les programmes pour ce cycle. Assurez-vous que les fichiers 'programmes-primaire.json', 'programmes-college.json' et 'programmes-lycee.json' sont bien présents.");
                 }
             });
 
@@ -259,18 +260,28 @@
                 const subjectName = subjectSelect.options[subjectSelect.selectedIndex].text;
                 const notionName = notionSelect.options[notionSelect.selectedIndex].text;
                 
+                // --- BUG FIX: Logique améliorée pour récupérer les compétences ---
                 const notionObject = programmesData[levelSelect.value][subjectSelect.value][notionSelect.value];
                 let allCompetences = [];
-                if (notionObject && Array.isArray(notionObject.competences)) {
-                    allCompetences = notionObject.competences;
-                } else if (notionObject) {
-                    Object.values(notionObject).forEach(subNotion => {
-                        if (typeof subNotion === 'object' && subNotion !== null && Array.isArray(subNotion.competences)) {
-                            allCompetences = allCompetences.concat(subNotion.competences);
-                        }
-                    });
+                if (notionObject) {
+                    // Cas 1: Les compétences sont directement dans l'objet
+                    if (Array.isArray(notionObject.competences)) {
+                        allCompetences = allCompetences.concat(notionObject.competences);
+                    }
+                    // Cas 2: Les compétences sont dans des "sous_notions"
+                    if (notionObject.sous_notions) {
+                        Object.values(notionObject.sous_notions).forEach(subNotion => {
+                            if (typeof subNotion === 'object' && subNotion !== null && Array.isArray(subNotion.competences)) {
+                                allCompetences = allCompetences.concat(subNotion.competences);
+                            }
+                        });
+                    }
                 }
-                if (allCompetences.length === 0) allCompetences.push(`Savoir expliquer la notion de "${notionName}"`);
+
+                if (allCompetences.length === 0) {
+                     allCompetences.push(`Savoir expliquer la notion de "${notionName}"`);
+                }
+                // --- FIN DU FIX ---
 
                 selectedNotion = `Niveau: ${levelName}, Matière: ${subjectName}, Notion: ${notionName}. Compétences clés: "${allCompetences.join(', ')}"`;
                 chatHeaderTitle.textContent = `Aide sur : ${notionName}`;
@@ -280,7 +291,6 @@
                     content: `Tu es AIDA, une enseignante personnelle bienveillante. Tu aides un élève nommé ${studentName}. La discussion porte sur : ${selectedNotion}. Tes réponses doivent être simples, courtes et formatées avec des sauts de ligne (\\n) pour les listes ou les étapes. Pas de Markdown.`
                 }];
                 
-                // --- MESSAGE D'ACCUEIL AMÉLIORÉ ---
                 addMessage(`Bonjour ${studentName} ! Je suis là pour t'aider avec '${notionName}' (niveau ${levelName}). Pose-moi ta première question !`, "aida");
 
                 selectionStep.classList.add('hidden');
@@ -361,7 +371,6 @@
                 messageElement.classList.add('message', sender);
                 const bubble = document.createElement('div');
                 bubble.classList.add('message-bubble');
-                // --- GESTION DU FORMATAGE ---
                 bubble.innerHTML = text.replace(/\n/g, '<br>');
                 messageElement.appendChild(bubble);
                 chatMessages.appendChild(messageElement);
