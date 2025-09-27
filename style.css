@@ -40,14 +40,16 @@ body.dark-mode header { background-color: var(--card-bg-color-dark); }
 body.dark-mode .dashboard-card, body.dark-mode .module-card, body.dark-mode .quiz-options label { background: #252525; border-color: #333; }
 body.dark-mode .btn-secondary { background-color: #2A3B4D; color: #A6C8FF; }
 
-/* --- EN-TÊTE ET NOUVEAU LOGO --- */
-header { display: flex; justify-content: space-between; align-items: center; padding: 1rem 5%; background-color: var(--header-bg-color); box-shadow: var(--shadow); position: sticky; top: 0; z-index: 100; }
+/* --- EN-TÊTE ET NAVIGATION --- */
+header { padding: 1rem 5%; background-color: var(--header-bg-color); box-shadow: var(--shadow); position: sticky; top: 0; z-index: 100; }
+/* CORRECTION ICI : On applique flexbox à la navbar pour aligner les éléments */
+.navbar { display: flex; justify-content: space-between; align-items: center; width: 100%; }
 .logo a { display: flex; align-items: center; text-decoration: none; }
 .logo-icon { width: 40px; height: 40px; background: linear-gradient(45deg, var(--primary-color), var(--secondary-color)); color: white; display: grid; place-items: center; border-radius: 10px; font-weight: 700; font-size: 1.5rem; margin-right: 10px; }
 .logo span { font-size: 1.5rem; font-weight: 700; color: var(--text-color); }
 body.dark-mode .logo span { color: var(--text-color-dark); }
 
-/* --- NOUVEAU MENU UTILISATEUR --- */
+/* --- MENU UTILISATEUR --- */
 .nav-actions { display: flex; align-items: center; }
 .user-menu { position: relative; }
 .user-menu-btn { background-color: var(--primary-color); color: white; border: none; border-radius: 50%; width: 40px; height: 40px; font-size: 1.2rem; cursor: pointer; display: grid; place-items: center; }
