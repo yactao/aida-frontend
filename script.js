@@ -60,23 +60,23 @@ document.addEventListener('DOMContentLoaded', () => {
     function changePage(targetId) {
         pages.forEach(page => page.classList.remove('active'));
         const targetPage = document.getElementById(targetId);
-        if(targetPage) {
+        if (targetPage) {
             targetPage.classList.add('active');
         } else {
             console.error(`La page avec l'ID '${targetId}' n'a pas été trouvée.`);
         }
     }
-    
+
     function applyTheme(theme) {
         document.body.classList.toggle('dark-mode', theme === 'dark');
         if (themeToggleBtn) {
-             themeToggleBtn.innerHTML = theme === 'dark' ? '<i class="fa-solid fa-sun"></i>' : '<i class="fa-solid fa-moon"></i>';
+            themeToggleBtn.innerHTML = theme === 'dark' ? '<i class="fa-solid fa-sun"></i>' : '<i class="fa-solid fa-moon"></i>';
         }
     }
 
     async function handleAuth(url, body) {
         const errorEl = body.role ? document.getElementById('signup-error') : document.getElementById('login-error');
-        if(errorEl) errorEl.textContent = '';
+        if (errorEl) errorEl.textContent = '';
         try {
             const response = await fetch(`${backendUrl}${url}`, {
                 method: 'POST',
@@ -87,27 +87,26 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!response.ok) throw new Error(data.error);
             currentUser = data.user;
             await setupUIForUser();
-        } catch (error) { 
-            if(errorEl) errorEl.textContent = error.message; 
+        } catch (error) {
+            if (errorEl) errorEl.textContent = error.message;
         }
     }
 
     async function setupUIForUser() {
         if (!currentUser) return;
-        
         registerBtn?.classList.add('hidden');
         userMenuContainer?.classList.remove('hidden');
-        if(userEmailDisplay) userEmailDisplay.textContent = currentUser.email;
-        if(userDropdown) userDropdown.classList.add('hidden');
-
+        if (userEmailDisplay) userEmailDisplay.textContent = currentUser.email;
+        if (userDropdown) userDropdown.classList.add('hidden');
+        
+        // Simuler le chargement des données pour le tableau de bord
+        // En réalité, vous feriez des appels fetch ici
         if (currentUser.role === 'teacher') {
-            if(teacherWelcome) teacherWelcome.textContent = `Tableau de bord de ${currentUser.email.split('@')[0]}`;
-            await fetchAndDisplayClasses();
             changePage('teacher-dashboard');
+            // await fetchAndDisplayClasses(); // Décommentez quand la fonction sera prête
         } else {
-            if(studentWelcome) studentWelcome.textContent = `Bonjour ${currentUser.email.split('@')[0]} !`;
-            await fetchAndDisplayStudentContent();
             changePage('student-dashboard');
+            // await fetchAndDisplayStudentContent(); // Décommentez quand la fonction sera prête
         }
     }
 
@@ -117,30 +116,7 @@ document.addEventListener('DOMContentLoaded', () => {
         registerBtn?.classList.remove('hidden');
         initializeAppState();
     }
-    
-    async function fetchAndDisplayClasses() {
-        if (!currentUser) return;
-        try {
-            const response = await fetch(`${backendUrl}/classes/${currentUser.email}`);
-            const classes = await response.json();
-            if(classListContainer) classListContainer.innerHTML = '';
-            if(assignClassSelect) assignClassSelect.innerHTML = '<option value="">-- Sélectionnez --</option>';
-            if(noClassesMessage) noClassesMessage.style.display = classes.length === 0 ? 'block' : 'none';
-            
-            classes.forEach(cls => {
-                const classCard = document.createElement('div');
-                classCard.className = 'dashboard-card';
-                classCard.innerHTML = `<h4><i class="fa-solid fa-users"></i> ${cls.className}</h4><p>${cls.students.length} élève(s)</p><p>${(cls.quizzes || []).length} contenu(s)</p>`;
-                classCard.addEventListener('click', () => showClassDetails(cls.id, cls.className));
-                classListContainer?.appendChild(classCard);
-                assignClassSelect?.add(new Option(cls.className, cls.id));
-            });
-        } catch (error) { console.error("Erreur de récupération des classes:", error); }
-    }
 
-    async function showClassDetails(classId, className) { /* ... (Cette fonction reste la même que dans les versions précédentes) ... */ }
-    async function fetchAndDisplayStudentContent() { /* ... (Cette fonction reste la même) ... */ }
-    
     function initializeAppState() {
         changePage('home');
     }
@@ -148,7 +124,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function setupEventListeners() {
         homeLink?.addEventListener('click', (e) => { e.preventDefault(); initializeAppState(); });
         registerBtn?.addEventListener('click', (e) => { e.preventDefault(); changePage('auth-page'); });
-        
+
         document.querySelectorAll('#home .selection-card').forEach(card => {
             if (card.tagName !== 'A') {
                 card.addEventListener('click', () => {
@@ -157,7 +133,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
             }
         });
-        
+
         themeToggleBtn?.addEventListener('click', () => {
             const newTheme = document.body.classList.contains('dark-mode') ? 'light' : 'dark';
             localStorage.setItem('theme', newTheme);
@@ -166,7 +142,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         showSignupLink?.addEventListener('click', (e) => { e.preventDefault(); document.getElementById('login-form-container')?.classList.add('hidden'); document.getElementById('signup-form-container')?.classList.remove('hidden'); });
         showLoginLink?.addEventListener('click', (e) => { e.preventDefault(); document.getElementById('signup-form-container')?.classList.add('hidden'); document.getElementById('login-form-container')?.classList.remove('hidden'); });
-        
+
         loginForm?.addEventListener('submit', (e) => {
             e.preventDefault();
             handleAuth('/auth/login', {
@@ -185,15 +161,13 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         logoutBtn?.addEventListener('click', logout);
-
+        
         userInfoClickable?.addEventListener('click', () => userDropdown?.classList.toggle('hidden'));
         window.addEventListener('click', (e) => {
             if (userMenuContainer && !userMenuContainer.contains(e.target)) {
                 userDropdown?.classList.add('hidden');
             }
         });
-
-        // ... (Ajoutez ici les autres listeners pour les modales, la création de classe, etc.)
     }
 
     // --- POINT D'ENTRÉE ---
