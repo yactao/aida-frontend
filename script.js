@@ -235,21 +235,17 @@ document.addEventListener('DOMContentLoaded', () => {
     function findCompetences(data, path) {
         let current = data;
         for (const key of path) {
-            current = current[key];
-            if (!current) return [];
-        }
-
-        let competences = [];
-        function recurse(obj) {
-            if (obj.competences) {
-                competences = competences.concat(obj.competences);
-            }
-            if (obj.sous_notions) {
-                Object.values(obj.sous_notions).forEach(recurse);
+            if (current && typeof current === 'object' && key in current) {
+                current = current[key];
+            } else {
+                console.error("Invalid path in findCompetences:", path);
+                return [];
             }
         }
-        recurse(current);
-        return [...new Set(competences)]; // Retourne des compétences uniques
+        if (current && Array.isArray(current.competences)) {
+            return current.competences;
+        }
+        return [];
     }
 
 
@@ -299,14 +295,45 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Logique des menus déroulants pour la création
         cycleSelect.addEventListener('change', () => loadProgrammesForCycle(cycleSelect.value));
+        
         levelSelect.addEventListener('change', () => {
-            const path = [levelSelect.value];
-            populateSelect(subjectSelect, Object.keys(programmesData[path[0]]).map(k => ({ key: k, name: programmesData[path[0]][k].nom })), "-- Choisir la matière --", true);
+            notionSelect.innerHTML = '<option value="">-- D\'abord choisir une matière --</option>';
+            notionSelect.disabled = true;
+            const level = levelSelect.value;
+            if (level && programmesData[level]) {
+                const subjects = Object.keys(programmesData[level]).map(key => ({ key: key, name: programmesData[level][key].nom }));
+                populateSelect(subjectSelect, subjects, "-- Choisir la matière --", true);
+            }
         });
+        
         subjectSelect.addEventListener('change', () => {
-            const path = [levelSelect.value, subjectSelect.value, 'sous_notions'];
-            populateSelect(notionSelect, Object.keys(programmesData[path[0]][path[1]][path[2]]).map(k => ({ key: k, name: programmesData[path[0]][path[1]][path[2]][k].nom })), "-- Choisir la notion --", true);
+            const selectedLevel = levelSelect.value;
+            const selectedSubject = subjectSelect.value;
+            if (selectedLevel && selectedSubject && programmesData[selectedLevel] && programmesData[selectedLevel][selectedSubject]) {
+                const subjectData = programmesData[selectedLevel][selectedSubject];
+                let allNotions = [];
+                Object.keys(subjectData).forEach(mainNotionKey => {
+                    if (mainNotionKey === 'nom') return;
+                    const mainNotion = subjectData[mainNotionKey];
+                    if (mainNotion && mainNotion.sous_notions) {
+                        Object.keys(mainNotion.sous_notions).forEach(subNotionKey => {
+                            const subNotion = mainNotion.sous_notions[subNotionKey];
+                            if (subNotion && subNotion.nom) {
+                                const notionValue = `${mainNotionKey},${subNotionKey}`;
+                                allNotions.push({ key: notionValue, name: subNotion.nom });
+                            }
+                        });
+                    }
+                });
+                if (allNotions.length > 0) {
+                    populateSelect(notionSelect, allNotions, "-- Choisir la notion --", true);
+                } else {
+                    notionSelect.innerHTML = '<option value="">-- Aucune notion trouvée --</option>';
+                    notionSelect.disabled = true;
+                }
+            }
         });
+
         notionSelect.addEventListener('change', () => {
             resourceFormButton.disabled = !notionSelect.value;
         });
@@ -316,9 +343,19 @@ document.addEventListener('DOMContentLoaded', () => {
             modalFormStep.classList.add('hidden');
             modalLoadingStep.classList.remove('hidden');
 
-            const path = [levelSelect.value, subjectSelect.value, 'sous_notions', notionSelect.value];
+            const notionPathParts = notionSelect.value.split(',');
+            const mainNotionKey = notionPathParts[0];
+            const subNotionKey = notionPathParts[1];
+
+            const path = [levelSelect.value, subjectSelect.value, mainNotionKey, 'sous_notions', subNotionKey];
             const competences = findCompetences(programmesData, path);
             const contentType = contentTypeSelect.value;
+
+            if (competences.length === 0) {
+                 alert("Aucune compétence n'a été trouvée pour cette notion. Impossible de générer le contenu.");
+                 initializeResourceModal();
+                 return;
+            }
             
             try {
                 const response = await fetch(`${backendUrl}/generate/content`, {
