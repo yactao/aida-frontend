@@ -368,17 +368,20 @@ document.addEventListener('DOMContentLoaded', () => {
             levelSelect.disabled = true;
             return;
         }
-        // CORRECTION: Assurer la correspondance exacte des noms de fichiers
         const fileMap = {
-            primaire: 'Programmes Scolaires - Primaire.json',
-            college: 'Programmes Scolaires - Collège.json',
-            lycee: 'Programmes Scolaires - Lycée.json' 
+            primaire: 'programmes-primaire.json',
+            college: 'programmes-college.json',
+            lycee: 'programmes-lycee.json'
         };
         try {
             const response = await fetch(fileMap[cycle]);
+            if (!response.ok) throw new Error(`Fichier non trouvé: ${fileMap[cycle]}`);
             programmesData = await response.json();
             populateSelect(levelSelect, Object.keys(programmesData), "-- Choisir la classe --");
-        } catch (e) { console.error("Erreur chargement programmes pour le cycle:", cycle, e); }
+        } catch (e) { 
+            console.error("Erreur chargement programmes pour le cycle:", cycle, e); 
+            alert(`Impossible de charger le programme pour le cycle "${cycle}". Vérifiez que le fichier "${fileMap[cycle]}" existe et est accessible.`);
+        }
     }
 
     function setupEventListeners() {
