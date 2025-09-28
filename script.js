@@ -567,5 +567,117 @@ document.addEventListener('DOMContentLoaded', () => {
     applyTheme(savedTheme);
     initializeAppState();
     setupEventListeners();
+
+
+// --- NOUVELLE SECTION : ANIMATION DE LA PAGE D'ACCUEIL ---
+function setupHeroAnimation() {
+    const canvas = document.getElementById('hero-animation');
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    let particles = [];
+    let mouse = { x: null, y: null };
+
+    const setCanvasSize = () => {
+        canvas.width = window.innerWidth;
+        canvas.height = canvas.parentElement.offsetHeight;
+    };
+
+    class Particle {
+        constructor(x, y, size, color, speedX, speedY) {
+            this.x = x; this.y = y; this.size = size; this.color = color;
+            this.speedX = speedX; this.speedY = speedY;
+        }
+        draw() {
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+            ctx.fillStyle = this.color;
+            ctx.fill();
+        }
+        update() {
+            if (this.x > canvas.width || this.x < 0) this.speedX = -this.speedX;
+            if (this.y > canvas.height || this.y < 0) this.speedY = -this.speedY;
+            this.x += this.speedX;
+            this.y += this.speedY;
+        }
+    }
+
+    function init() {
+        setCanvasSize();
+        particles = [];
+        const particleCount = (canvas.width * canvas.height) / 9000;
+        for (let i = 0; i < particleCount; i++) {
+            let size = Math.random() * 2 + 1;
+            let x = Math.random() * (canvas.width - size * 2) + size;
+            let y = Math.random() * (canvas.height - size * 2) + size;
+            let speedX = (Math.random() - 0.5) * 0.5;
+            let speedY = (Math.random() - 0.5) * 0.5;
+            particles.push(new Particle(x, y, size, '#888', speedX, speedY));
+        }
+    }
+
+    function connect() {
+        let opacityValue = 1;
+        for (let a = 0; a < particles.length; a++) {
+            for (let b = a; b < particles.length; b++) {
+                let distance = Math.sqrt(
+                    Math.pow(particles[a].x - particles[b].x, 2) +
+                    Math.pow(particles[a].y - particles[b].y, 2)
+                );
+                if (distance < 120) {
+                    opacityValue = 1 - (distance / 120);
+                    ctx.strokeStyle = `rgba(140, 140, 140, ${opacityValue})`;
+                    ctx.lineWidth = 1;
+                    ctx.beginPath();
+                    ctx.moveTo(particles[a].x, particles[a].y);
+                    ctx.lineTo(particles[b].x, particles[b].y);
+                    ctx.stroke();
+                }
+            }
+        }
+    }
+
+    function animate() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        for (const particle of particles) {
+            particle.update();
+            particle.draw();
+        }
+        connect();
+        requestAnimationFrame(animate);
+    }
+
+    window.addEventListener('resize', () => {
+        init();
+    });
+
+    canvas.addEventListener('mousemove', (e) => {
+        mouse.x = e.x;
+        mouse.y = e.y;
+    });
+
+    init();
+    animate();
+}
+
+// --- INITIALISATION ---
+// ... (La fonction `initializeAppState` reste la même) ...
+
+function setupEventListeners() {
+    // ... (Le reste des listeners est inchangé) ...
+}
+
+function init() {
+    const savedTheme = localStorage.getItem('theme') || 'light';
+    applyTheme(savedTheme);
+    initializeAppState();
+    setupEventListeners();
+    setupModals();
+    setupHeroAnimation(); // On lance l'animation
+}
+
+init();
+
 });
+
 
