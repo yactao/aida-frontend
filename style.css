@@ -34,7 +34,7 @@ header { display: flex; justify-content: space-between; align-items: center; pad
 .logo span { font-size: 1.5rem; font-weight: 700; color: var(--text-color); }
 
 /* --- GESTION DES PAGES --- */
-main { padding: 2rem 5%; }
+main { padding: 0; /* Le padding sera sur les sections internes */ }
 .page { display: none; }
 .page.active { display: block; animation: fadeIn 0.5s ease-in-out; }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
@@ -63,6 +63,5 @@ body.dark-mode .selection-card:hover { box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3
 .selection-card:nth-child(3):hover { border-top-color: #F5A623; } 
 .playground-card:hover { border-top-color: #7ED321; }
 
-/* --- ... (Le reste des styles pour les autres pages et modales est ici) ... --- */
 .hidden { display: none !important; }
 
