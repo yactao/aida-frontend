@@ -100,11 +100,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (userDropdown) userDropdown.classList.add('hidden');
         
         if (currentUser.role === 'teacher') {
-            changePage('teacher-dashboard');
             await fetchAndDisplayClasses();
+            changePage('teacher-dashboard');
         } else {
-            changePage('student-dashboard');
             await fetchAndDisplayStudentContent();
+            changePage('student-dashboard');
         }
     }
 
@@ -116,11 +116,60 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     async function fetchAndDisplayClasses() {
-        // ... (Cette fonction charge les classes pour le professeur)
+        if (!currentUser || !classListContainer) return;
+        if (teacherWelcome) teacherWelcome.textContent = `Tableau de bord de ${currentUser.email.split('@')[0]}`;
+        try {
+            const response = await fetch(`${backendUrl}/classes/${currentUser.email}`);
+            const classes = await response.json();
+            classListContainer.innerHTML = '';
+            if (noClassesMessage) noClassesMessage.style.display = classes.length === 0 ? 'block' : 'none';
+            classes.forEach(cls => {
+                const classCard = document.createElement('div');
+                classCard.className = 'dashboard-card clickable';
+                classCard.innerHTML = `<h4><i class="fa-solid fa-users"></i> ${cls.className}</h4><p>${cls.students.length} élève(s)</p><p>${(cls.quizzes || []).length} contenu(s)</p>`;
+                classCard.addEventListener('click', () => showClassDetails(cls.id, cls.className));
+                classListContainer.appendChild(classCard);
+            });
+        } catch(e) {
+            console.error("Erreur de chargement des classes", e)
+        }
     }
     
     async function fetchAndDisplayStudentContent() {
-        // ... (Cette fonction charge les modules pour l'élève)
+        if (!currentUser || !studentModuleList) return;
+        if (studentWelcome) studentWelcome.textContent = `Bonjour ${currentUser.email.split('@')[0]} !`;
+        try {
+            const response = await fetch(`${backendUrl}/student/classes/${currentUser.email}`);
+            const classes = await response.json();
+            studentModuleList.innerHTML = '';
+            if (joinClassPanel) joinClassPanel.classList.toggle('hidden', classes.length > 0);
+
+            if (classes.length === 0) {
+                 studentModuleList.innerHTML = '<p>Rejoignez une classe pour voir les modules.</p>';
+                 return;
+            }
+
+            let hasContent = false;
+            classes.forEach(cls => {
+                if(cls.quizzes && cls.quizzes.length > 0) {
+                    hasContent = true;
+                    cls.quizzes.forEach(quiz => {
+                        const moduleCard = document.createElement('div');
+                        moduleCard.className = 'dashboard-card';
+                        moduleCard.innerHTML = `<h4>${quiz.title}</h4><p>Classe: ${cls.className}</p><button class="btn-secondary">Commencer</button>`;
+                        moduleCard.querySelector('button').addEventListener('click', () => startQuiz(quiz, cls.id));
+                        studentModuleList.appendChild(moduleCard);
+                    })
+                }
+            });
+
+            if (!hasContent) {
+                studentModuleList.innerHTML = '<p>Aucun module assigné pour le moment.</p>';
+            }
+
+        } catch(e) {
+            console.error("Erreur de chargement des modules", e);
+        }
     }
 
     function initializeAppState() {
