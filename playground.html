@@ -199,9 +199,9 @@
                 resetSelect(notionSelect, "-- D'abord choisir une matière --");
                 if (!cycle) return;
                 const fileMap = {
-                    primaire: 'Programmes Scolaires - Primaire.json',
-                    college: 'Programmes Scolaires - Collège.json',
-                    lycee: 'Programmes Scolaires - Lycée.json'
+                    primaire: 'programmes-primaire.json',
+                    college: 'programmes-college.json',
+                    lycee: 'programmes-lycee.json'
                 };
                 try {
                     const response = await fetch(fileMap[cycle]);
