@@ -14,8 +14,6 @@
             --text-color: #1F2937;
             --card-bg-color: #FFFFFF;
             --shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
-            --hint-bg-color: #FEF3C7;
-            --hint-text-color: #92400E;
         }
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
@@ -82,11 +80,9 @@
         .message-bubble { padding: 0.75rem 1rem; border-radius: 18px; max-width: 75%; white-space: pre-wrap; }
         .message.user .message-bubble { background: linear-gradient(45deg, var(--primary-color), var(--secondary-color)); color: white; border-bottom-right-radius: 4px; }
         .message.aida .message-bubble { background-color: #E5E7EB; color: #1F2937; border-bottom-left-radius: 4px; }
-        .message.hint .message-bubble { background-color: var(--hint-bg-color); color: var(--hint-text-color); border: 1px solid #FCD34D; }
-        .chat-input { display: flex; padding: 1rem; border-top: 1px solid #E5E7EB; align-items: center; }
+        .chat-input { display: flex; padding: 1rem; border-top: 1px solid #E5E7EB; }
         .chat-input input { flex-grow: 1; padding: 12px; border: 1px solid #D1D5DB; border-radius: 20px; font-size: 1rem; margin-right: 0.5rem; }
         .chat-input button { background: var(--primary-color); color: white; border: none; border-radius: 50%; width: 45px; height: 45px; font-size: 1.2rem; cursor: pointer; flex-shrink: 0; }
-        #help-btn { background: #FBBF24; margin-right: 0.5rem; }
         .hidden { display: none !important; }
         .typing-indicator .message-bubble span { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background-color: #9CA3AF; margin: 0 2px; animation: bounce 1.4s infinite ease-in-out both; }
         .typing-indicator .message-bubble span:nth-child(1) { animation-delay: -0.32s; }
@@ -151,13 +147,11 @@
         <div id="chat-step" class="chat-container hidden">
             <div class="chat-header" id="chat-header-title"></div>
             <div class="chat-messages" id="chat-messages"></div>
-            <div class="chat-input">
-                <button id="help-btn" title="Demander un indice"><i class="fa-solid fa-lightbulb"></i></button>
-                <form id="chat-form" style="display: contents;">
-                    <input type="text" id="user-input" placeholder="Pose ta question ici..." autocomplete="off">
-                    <button type="submit" title="Envoyer"><i class="fa-solid fa-paper-plane"></i></button>
-                </form>
-            </div>
+            <form class="chat-input" id="chat-form">
+                <input type="text" id="user-input" placeholder="Pose ta question ici..." autocomplete="off">
+                 <button type="button" id="hint-btn" title="Demander un indice"><i class="fa-solid fa-lightbulb"></i></button>
+                <button type="submit" id="send-btn"><i class="fa-solid fa-paper-plane"></i></button>
+            </form>
         </div>
     </main>
 
@@ -170,7 +164,6 @@
             const welcomeForm = document.getElementById('welcome-form');
             const selectionForm = document.getElementById('selection-form');
             const chatForm = document.getElementById('chat-form');
-            const helpBtn = document.getElementById('help-btn');
             const studentNameInput = document.getElementById('student-name');
             const selectionTitle = document.getElementById('selection-title');
             const cycleSelect = document.getElementById('cycle-select');
@@ -181,9 +174,11 @@
             const chatHeaderTitle = document.getElementById('chat-header-title');
             const chatMessages = document.getElementById('chat-messages');
             const userInput = document.getElementById('user-input');
-
+            const hintBtn = document.getElementById('hint-btn');
+            const sendBtn = document.getElementById('send-btn');
+            
             let studentName = '';
-            let selectedNotion = '';
+            let selectedNotionContext = '';
             let programmesData = null;
             let conversationHistory = [];
 
@@ -203,7 +198,6 @@
                 resetSelect(subjectSelect, "-- D'abord choisir une classe --");
                 resetSelect(notionSelect, "-- D'abord choisir une matière --");
                 if (!cycle) return;
-                
                 const fileMap = {
                     primaire: 'Programmes Scolaires - Primaire.json',
                     college: 'Programmes Scolaires - Collège.json',
@@ -211,41 +205,44 @@
                 };
                 try {
                     const response = await fetch(fileMap[cycle]);
-                    if (!response.ok) throw new Error(`Fichier ${fileMap[cycle]} introuvable.`);
                     programmesData = await response.json();
                     populateSelect(levelSelect, Object.keys(programmesData), "-- Choisir --");
-                } catch (e) { 
-                    console.error("Erreur de chargement des programmes :", e);
-                    alert("Impossible de charger les programmes pour ce cycle. Assurez-vous que les fichiers 'programmes-primaire.json', 'programmes-college.json' et 'programmes-lycee.json' sont bien présents.");
-                }
+                } catch (e) { alert("Impossible de charger les programmes pour ce cycle."); }
             });
 
             levelSelect.addEventListener('change', () => {
-                const level = levelSelect.value;
                 resetSelect(subjectSelect, "-- D'abord choisir une classe --");
                 resetSelect(notionSelect, "-- D'abord choisir une matière --");
+                const level = levelSelect.value;
                 if (level && programmesData[level]) {
                      const subjects = Object.keys(programmesData[level]).map(key => ({
                         key: key,
-                        name: programmesData[level][key].nom || key.charAt(0).toUpperCase() + key.slice(1)
+                        name: programmesData[level][key].nom
                     }));
                     populateSelect(subjectSelect, subjects, "-- Choisir --", true);
                 }
             });
             
             subjectSelect.addEventListener('change', () => {
+                resetSelect(notionSelect, "-- D'abord choisir une matière --");
                 const level = levelSelect.value;
                 const subject = subjectSelect.value;
-                 resetSelect(notionSelect, "-- D'abord choisir une matière --");
-                if (subject && programmesData[level][subject]) {
-                    const subjectContent = programmesData[level][subject];
-                    const notions = Object.keys(subjectContent)
-                        .filter(key => typeof subjectContent[key] === 'object' && subjectContent[key] !== null && subjectContent[key].nom)
-                        .map(key => ({
-                            key: key,
-                            name: subjectContent[key].nom
-                        }));
-                    populateSelect(notionSelect, notions, "-- Choisir --", true);
+                if (subject && programmesData[level]?.[subject]) {
+                    const subjectData = programmesData[level][subject];
+                    let allNotions = [];
+                    Object.keys(subjectData).forEach(mainNotionKey => {
+                        if (mainNotionKey === 'nom') return;
+                        const mainNotion = subjectData[mainNotionKey];
+                        if (mainNotion && mainNotion.sous_notions) {
+                             Object.keys(mainNotion.sous_notions).forEach(subNotionKey => {
+                                const subNotion = mainNotion.sous_notions[subNotionKey];
+                                if (subNotion && subNotion.nom) {
+                                    allNotions.push({ key: `${mainNotionKey},${subNotionKey}`, name: subNotion.nom });
+                                }
+                            });
+                        }
+                    });
+                    populateSelect(notionSelect, allNotions, "-- Choisir --", true);
                 }
             });
 
@@ -258,76 +255,57 @@
                 const levelName = levelSelect.options[levelSelect.selectedIndex].text;
                 const subjectName = subjectSelect.options[subjectSelect.selectedIndex].text;
                 const notionName = notionSelect.options[notionSelect.selectedIndex].text;
+
+                const [mainNotionKey, subNotionKey] = notionSelect.value.split(',');
+                const competences = programmesData[levelSelect.value][subjectSelect.value][mainNotionKey].sous_notions[subNotionKey].competences;
                 
-                const notionObject = programmesData[levelSelect.value][subjectSelect.value][notionSelect.value];
-                let allCompetences = [];
-                if (notionObject) {
-                    if (Array.isArray(notionObject.competences)) {
-                        allCompetences = allCompetences.concat(notionObject.competences);
-                    }
-                    if (notionObject.sous_notions) {
-                        Object.values(notionObject.sous_notions).forEach(subNotion => {
-                            if (typeof subNotion === 'object' && subNotion !== null && Array.isArray(subNotion.competences)) {
-                                allCompetences = allCompetences.concat(subNotion.competences);
-                            }
-                        });
-                    }
-                }
-
-                if (allCompetences.length === 0) {
-                     allCompetences.push(`Savoir expliquer la notion de "${notionName}"`);
-                }
-
-                selectedNotion = `Niveau: ${levelName}, Matière: ${subjectName}, Notion: ${notionName}. Compétences clés: "${allCompetences.join(', ')}"`;
+                selectedNotionContext = `Niveau: ${levelName}, Matière: ${subjectName}, Notion: ${notionName}. Compétences clés: "${competences.join(', ')}"`;
                 chatHeaderTitle.textContent = `Aide sur : ${notionName}`;
                 
                 conversationHistory = [{
                     role: "system",
-                    content: `Tu es AIDA, une enseignante personnelle bienveillante. Tu aides un élève nommé ${studentName}. La discussion porte sur : ${selectedNotion}. Tes réponses doivent être simples, courtes et formatées avec des sauts de ligne (\\n) pour les listes ou les étapes. Pas de Markdown.`
+                    content: `Tu es AIDA, une enseignante personnelle bienveillante. Tu aides ${studentName} (niveau ${levelName}). La discussion porte sur: ${notionName}. Réponds de manière structurée avec des retours à la ligne. N'utilise que du texte simple.`
                 }];
-                
-                addMessage(`Bonjour ${studentName} ! Je suis là pour t'aider avec '${notionName}' (niveau ${levelName}). Pose-moi ta première question !`, "aida");
+
+                addMessage(`Bonjour ${studentName} ! Je suis là pour t'aider avec la notion '${notionName}' en ${subjectName} (niveau ${levelName}). Pose-moi ta première question !`, "aida");
 
                 selectionStep.classList.add('hidden');
                 chatStep.classList.remove('hidden');
             });
 
             chatForm.addEventListener('submit', (e) => {
-                e.preventDefault();
-                const userMessage = userInput.value.trim();
-                if (!userMessage) return;
-                sendMessage(userMessage);
+                 e.preventDefault();
+                 sendMessage();
             });
 
-            helpBtn.addEventListener('click', async () => {
-                const lastUserMessage = [...conversationHistory].reverse().find(m => m.role === 'user');
-                if (!lastUserMessage) {
-                    addMessage("Pose-moi d'abord une question pour que je puisse te donner un indice.", "hint");
-                    return;
-                }
-
+            hintBtn.addEventListener('click', async () => {
+                if (conversationHistory.length <= 1) return; // Pas d'indice sans question
                 addTypingIndicator();
                 try {
-                     const response = await fetch(`${backendUrl}/aida/playground-help`, {
+                     const response = await fetch(`${backendUrl}/aida/hint`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ question: lastUserMessage.content, context: selectedNotion })
+                        body: JSON.stringify({ history: conversationHistory })
                     });
                     const data = await response.json();
                     if (!response.ok) throw new Error(data.error);
                     removeTypingIndicator();
-                    addMessage(data.hint, "hint");
+                    addMessage(data.hint, "aida");
                 } catch(error) {
                     removeTypingIndicator();
-                    addMessage("Désolée, je n'ai pas pu trouver d'indice cette fois-ci.", "hint");
+                    addMessage("Désolée, je n'ai pas trouvé d'indice pour le moment.", "aida");
                 }
             });
             
-            async function sendMessage(message) {
-                addMessage(message, "user");
-                conversationHistory.push({ role: "user", content: message });
+            async function sendMessage() {
+                const userMessage = userInput.value.trim();
+                if (!userMessage) return;
+
+                addMessage(userMessage, "user");
+                conversationHistory.push({ role: "user", content: userMessage });
                 userInput.value = '';
                 addTypingIndicator();
+
                 try {
                     const response = await fetch(`${backendUrl}/aida/chat`, {
                         method: 'POST',
@@ -335,20 +313,20 @@
                         body: JSON.stringify({ history: conversationHistory })
                     });
                     const data = await response.json();
-                    if (!response.ok) throw new Error(data.error || "Une erreur est survenue.");
+                    if (!response.ok) throw new Error(data.error);
                     removeTypingIndicator();
                     addMessage(data.reply, "aida");
                     conversationHistory.push({ role: "assistant", content: data.reply });
                 } catch(error) {
                     removeTypingIndicator();
-                    addMessage("Désolée, je n'ai pas pu répondre. Peux-tu réessayer ?", "aida");
+                    addMessage("Désolée, une erreur est survenue. Peux-tu reformuler ?", "aida");
                 }
             }
-
+            
             function resetSelect(selectElement, defaultText) {
                 selectElement.innerHTML = `<option value="">${defaultText}</option>`;
                 selectElement.disabled = true;
-                selectionButton.disabled = true;
+                if(selectionButton) selectionButton.disabled = true;
             }
 
             function populateSelect(selectElement, options, defaultText, isObjectArray = false) {
@@ -366,7 +344,7 @@
                 messageElement.classList.add('message', sender);
                 const bubble = document.createElement('div');
                 bubble.classList.add('message-bubble');
-                bubble.innerHTML = text.replace(/\n/g, '<br>');
+                bubble.textContent = text;
                 messageElement.appendChild(bubble);
                 chatMessages.appendChild(messageElement);
                 chatMessages.scrollTop = chatMessages.scrollHeight;
@@ -374,14 +352,15 @@
             
             function addTypingIndicator() {
                 const indicator = document.createElement('div');
-                indicator.classList.add('message', 'aida', 'typing-indicator');
+                indicator.id = 'typing-indicator';
+                indicator.classList.add('message', 'aida');
                 indicator.innerHTML = `<div class="message-bubble"><span></span><span></span><span></span></div>`;
                 chatMessages.appendChild(indicator);
                 chatMessages.scrollTop = chatMessages.scrollHeight;
             }
             
             function removeTypingIndicator() {
-                const indicator = document.querySelector('.typing-indicator');
+                const indicator = document.getElementById('typing-indicator');
                 if(indicator) indicator.remove();
             }
         });

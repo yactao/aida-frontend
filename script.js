@@ -87,12 +87,14 @@ document.addEventListener('DOMContentLoaded', () => {
     async function setupUIForUser() {
         if (!currentUser) {
             registerBtn.classList.remove('hidden');
-            userDropdown.classList.add('hidden');
+            userMenuContainer.classList.add('hidden'); // Cacher tout le conteneur du menu
+            userDropdown.classList.add('hidden'); // S'assurer que le dropdown est caché
             return;
         }
         registerBtn.classList.add('hidden');
-        userDropdown.classList.remove('hidden');
+        userMenuContainer.classList.remove('hidden'); // Afficher le conteneur
         dropdownUserInfo.textContent = currentUser.email;
+        userDropdown.classList.add('hidden'); // S'assurer qu'il est fermé par défaut
 
         if (currentUser.role === 'teacher') {
             teacherWelcome.textContent = `Tableau de bord de ${currentUser.email.split('@')[0]}`;
@@ -262,7 +264,20 @@ document.addEventListener('DOMContentLoaded', () => {
         showSignupLink.addEventListener('click', (e) => { e.preventDefault(); document.getElementById('login-form-container').classList.add('hidden'); document.getElementById('signup-form-container').classList.remove('hidden'); });
         showLoginLink.addEventListener('click', (e) => { e.preventDefault(); document.getElementById('signup-form-container').classList.add('hidden'); document.getElementById('login-form-container').classList.remove('hidden'); });
         registerBtn.addEventListener('click', () => changePage('auth-page'));
+        
+        // CORRECTION: Logique du menu utilisateur
+        userMenuContainer.addEventListener('click', (e) => {
+            if (e.target.closest('#dropdown-user-info')) {
+                userDropdown.classList.toggle('hidden');
+            }
+        });
+        window.addEventListener('click', (e) => {
+            if (!userMenuContainer.contains(e.target)) {
+                 userDropdown.classList.add('hidden');
+            }
+        });
         logoutBtn.addEventListener('click', logout);
+
         backToTeacherDashboardBtn.addEventListener('click', () => changePage('teacher-dashboard'));
 
         // Modales
@@ -413,7 +428,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function initializeAppState() {
         changePage('home');
-        if (currentUser) logout();
+        if (currentUser) {
+            logout();
+        } else {
+             userMenuContainer.classList.add('hidden');
+             registerBtn.classList.remove('hidden');
+        }
     }
 
     // --- INITIALISATION ---
