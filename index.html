@@ -3,265 +3,169 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AIDA - Plateforme Éducative</title>
+    <title>AIDA - Assistant Éducatif</title>
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
     <header>
-        <nav class="navbar">
-            <div class="logo">
-                <a href="#" id="home-link">
-                    <div class="logo-icon">A</div>
-                    <span>AIDA</span>
-                </a>
+        <a href="index.html" id="home-link" class="logo">
+            <div class="logo-icon">A</div>
+            <span>AIDA</span>
+        </a>
+        <div class="header-controls">
+            <button id="theme-toggle-btn" class="theme-toggle" aria-label="Changer de thème">
+                <i class="fa-solid fa-moon"></i>
+            </button>
+            <div class="user-menu-container">
+                 <a href="#" class="btn-register">Connexion</a>
+                 <div class="user-dropdown hidden">
+                     <div class="user-info" id="dropdown-user-info"></div>
+                     <button id="logout-btn" class="btn-secondary">Déconnexion</button>
+                 </div>
             </div>
-            <div class="nav-actions">
-                <a href="#" class="btn-main btn-register">Connexion</a>
-                <div id="user-menu" class="user-menu hidden">
-                    <button id="user-menu-btn" class="user-menu-btn">
-                        <i class="fa-solid fa-user"></i>
-                    </button>
-                    <div id="user-menu-dropdown" class="user-menu-dropdown">
-                        <div class="user-info">
-                            <span id="user-email-display"></span>
-                        </div>
-                        <div class="menu-item">
-                            <span>Thème</span>
-                            <label class="theme-switch">
-                                <input type="checkbox" id="theme-toggle-checkbox">
-                                <span class="slider"></span>
-                            </label>
-                        </div>
-                        <button id="logout-btn" class="menu-item logout-btn">
-                            <i class="fa-solid fa-arrow-right-from-bracket"></i>
-                            <span>Déconnexion</span>
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </nav>
+        </div>
     </header>
-
     <main>
-        <!-- Page d'accueil -->
+        <!-- PAGE 1: ACCUEIL -->
         <section id="home" class="page active">
-            <div class="hero-content">
-                <h1>Bienvenue sur AIDA, votre assistante éducative intelligente.</h1>
-                <p>Générez des ressources pédagogiques, suivez les progrès de vos élèves et offrez un soutien personnalisé, le tout grâce à l'intelligence artificielle.</p>
-                <!-- On ajoute un conteneur pour les boutons -->
-                <div class="hero-buttons">
-                    <a href="#" class="btn-main" data-target="auth-page">Espace Enseignant / Élève</a>
-                    <!-- NOUVEAU BOUTON POUR LE TERRAIN DE JEUX -->
-                    <a href="playground.html" class="btn-secondary">Terrain de Jeux (Accès libre)</a>
-                </div>
+            <h1>Bienvenue dans l'école <span class="gradient-text">2.0</span></h1>
+            <p>Le futur de l'éducation, où chaque élève a son propre tuteur AIDA pour l'aider à grandir.</p>
+            <div class="hero-buttons">
+                <a href="#" class="btn-main" data-target="auth-page">Espace Enseignant / Élève</a>
+                <a href="playground.html" class="btn-secondary">Terrain de Jeux (Accès libre)</a>
             </div>
         </section>
 
-        <!-- Page d'authentification -->
+        <!-- PAGE 2: AUTHENTIFICATION -->
         <section id="auth-page" class="page">
             <div class="auth-container">
-                <div id="login-form-container">
+                <div class="form-container" id="login-form-container">
                     <h2>Connexion</h2>
                     <form id="login-form">
-                        <div class="form-group">
-                            <label for="login-email">Email</label>
-                            <input type="email" id="login-email" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="login-password">Mot de passe</label>
-                            <input type="password" id="login-password" required>
-                        </div>
+                        <input type="email" id="login-email" placeholder="Email" required>
+                        <input type="password" id="login-password" placeholder="Mot de passe" required>
                         <button type="submit" class="btn-main">Se connecter</button>
-                        <p id="login-error" class="error-message"></p>
+                        <p class="error-message" id="login-error"></p>
+                        <p class="form-switch">Pas de compte ? <a href="#" id="show-signup">Inscrivez-vous</a></p>
                     </form>
-                    <p class="auth-switch">Pas de compte ? <a href="#" id="show-signup">Inscrivez-vous</a></p>
                 </div>
-                <div id="signup-form-container" class="hidden">
+                <div class="form-container hidden" id="signup-form-container">
                     <h2>Inscription</h2>
                     <form id="signup-form">
-                         <div class="form-group">
-                            <label for="signup-email">Email</label>
-                            <input type="email" id="signup-email" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="signup-password">Mot de passe</label>
-                            <input type="password" id="signup-password" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="signup-role">Je suis un...</label>
-                            <select id="signup-role">
-                                <option value="teacher">Enseignant</option>
-                                <option value="student">Élève</option>
-                            </select>
-                        </div>
+                        <input type="email" id="signup-email" placeholder="Email" required>
+                        <input type="password" id="signup-password" placeholder="Mot de passe" required>
+                        <select id="signup-role">
+                            <option value="student">Je suis un élève</option>
+                            <option value="teacher">Je suis un professeur</option>
+                        </select>
                         <button type="submit" class="btn-main">S'inscrire</button>
-                        <p id="signup-error" class="error-message"></p>
+                        <p class="error-message" id="signup-error"></p>
+                        <p class="form-switch">Déjà un compte ? <a href="#" id="show-login">Connectez-vous</a></p>
                     </form>
-                    <p class="auth-switch">Déjà un compte ? <a href="#" id="show-login">Connectez-vous</a></p>
                 </div>
             </div>
         </section>
-        
-        <!-- Tableau de bord Enseignant -->
+
+        <!-- PAGE 3: TABLEAU DE BORD PROFESSEUR -->
         <section id="teacher-dashboard" class="page">
-            <div class="dashboard-header">
-                <h2 id="teacher-welcome">Tableau de bord</h2>
-            </div>
+            <h2 id="teacher-welcome">Tableau de bord</h2>
             <div class="dashboard-grid">
                 <div class="dashboard-main-panel">
                     <h3>Mes Classes</h3>
-                    <div id="class-list" class="card-grid">
-                        <!-- Les cartes de classes seront insérées ici -->
+                    <div id="class-list" class="class-grid">
+                        <p id="no-classes-message">Vous n'avez pas encore de classes.</p>
                     </div>
-                    <p id="no-classes-message" style="display: none;">Vous n'avez pas encore de classe. Créez-en une pour commencer !</p>
                     <button id="open-class-modal-btn" class="btn-secondary"><i class="fa-solid fa-plus"></i> Nouvelle classe</button>
                 </div>
                 <div class="dashboard-side-panel">
                     <h3>Actions Rapides</h3>
-                    <button class="new-resource-btn"><i class="fa-solid fa-wand-magic-sparkles"></i> Créer une ressource</button>
+                    <button class="btn-main new-resource-btn"><i class="fa-solid fa-wand-magic-sparkles"></i> Créer une ressource</button>
                 </div>
             </div>
         </section>
 
-        <!-- Tableau de bord Élève -->
+        <!-- PAGE 4: TABLEAU DE BORD ÉLÈVE -->
         <section id="student-dashboard" class="page">
-             <div class="dashboard-header">
-                <h2 id="student-welcome">Bonjour !</h2>
-            </div>
-            <div id="join-class-panel" class="dashboard-card hidden">
-                <h3>Rejoindre une classe</h3>
+            <h2 id="student-welcome">Bonjour !</h2>
+            <div id="student-module-list" class="class-grid"></div>
+             <div id="join-class-panel" class="join-class-container">
+                <h3>Rejoindre une nouvelle classe</h3>
                 <form id="join-class-form">
-                    <div class="form-group">
-                        <label for="class-code-input">Nom de la classe</label>
-                        <input type="text" id="class-code-input" placeholder="Ex: CP-A" required>
-                    </div>
+                    <input type="text" id="class-code-input" placeholder="Entrez le nom de la classe" required>
                     <button type="submit" class="btn-secondary">Rejoindre</button>
-                    <p id="join-class-error" class="error-message"></p>
+                    <p class="error-message" id="join-class-error"></p>
                 </form>
             </div>
-            <h3>Mes modules à faire</h3>
-            <div id="student-module-list" class="card-grid">
-                <!-- Les cartes de quiz seront insérées ici -->
-            </div>
-        </section>
-        
-        <!-- Page de détails de la classe (pour l'enseignant) -->
-        <section id="class-details-page" class="page">
-            <div class="dashboard-header">
-                <button id="back-to-teacher-dashboard" class="btn-secondary btn-small"><i class="fa-solid fa-arrow-left"></i> Retour</button>
-                <h2 id="class-details-title">Résultats de la classe</h2>
-            </div>
-            <div id="class-results-container" class="results-grid">
-                <!-- Les résultats des élèves seront insérés ici -->
-            </div>
         </section>
 
-        <!-- Page de Quiz -->
-        <section id="quiz-page" class="page">
-            <div class="quiz-container">
-                <h2 id="quiz-title">Titre du Quiz</h2>
-                <div id="quiz-questions-container">
-                    <!-- Les questions du quiz seront insérées ici -->
-                </div>
-                <button id="submit-quiz-btn" class="btn-main">Valider mes réponses</button>
+        <!-- PAGE 5 : AFFICHAGE DU CONTENU (QUIZ, ETC.) -->
+        <section id="content-page" class="page">
+            <div class="content-container">
+                <h2 id="content-title">Titre du Contenu</h2>
+                <div id="content-viewer"></div>
+                <button id="submit-quiz-btn" class="btn-main hidden">Valider mes réponses</button>
                 <div id="quiz-result" class="hidden"></div>
             </div>
         </section>
+        
+        <!-- PAGE 6 : DÉTAILS DE LA CLASSE POUR LE PROFESSEUR -->
+        <section id="class-details-page" class="page">
+            <div class="class-details-container">
+                <button id="back-to-teacher-dashboard" class="btn-secondary"><i class="fa-solid fa-arrow-left"></i> Retour</button>
+                <h2 id="class-details-title">Résultats de la classe</h2>
+                <div id="class-results-container"></div>
+            </div>
+        </section>
+
     </main>
 
-    <!-- Modale Création de classe -->
+    <!-- MODALES -->
     <div id="create-class-modal" class="modal-overlay hidden">
         <div class="modal-content">
-            <button class="close-modal">&times;</button>
-            <h3>Créer une nouvelle classe</h3>
+            <span class="close-modal">&times;</span>
+            <h2>Créer une nouvelle classe</h2>
             <form id="create-class-form">
-                <div class="form-group">
-                    <label for="class-name-input">Nom de la classe</label>
-                    <input type="text" id="class-name-input" required placeholder="Ex: CM2-B">
-                </div>
+                <input type="text" id="class-name-input" placeholder="Nom de la classe (ex: CE2 - A)" required>
                 <button type="submit" class="btn-main">Créer</button>
-                 <p id="class-creation-error" class="error-message"></p>
+                <p class="error-message" id="class-creation-error"></p>
             </form>
         </div>
     </div>
-    
-    <!-- Modale Génération de ressource -->
+
+    <!-- MODALE DE CRÉATION DE RESSOURCE (ENSEIGNANT) -->
     <div id="generation-modal" class="modal-overlay hidden">
         <div class="modal-content">
-            <button class="close-modal">&times;</button>
+            <span class="close-modal">&times;</span>
+            <!-- ÉTAPE 1: FORMULAIRE DE SÉLECTION -->
             <div id="modal-form-step">
-                <h3>Générer un contenu pédagogique</h3>
+                <h2>Créer une ressource pédagogique</h2>
                 <form id="resource-form">
-                    <div class="form-group">
-                        <label for="content-type-select">Type de contenu</label>
-                        <select id="content-type-select" class="form-control">
-                            <option value="quiz">Quiz (QCM)</option>
-                            <option value="exercices">Exercices d'application</option>
-                            <option value="questions_ouvertes">Questions ouvertes</option>
-                            <option value="fiche_revision">Fiche de révision</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="cycle-select">Cycle Éducatif</label>
-                        <select id="cycle-select" class="form-control">
-                            <option value="">-- Choisir le cycle --</option>
-                            <option value="primaire">Primaire</option>
-                            <option value="college">Collège</option>
-                            <option value="lycee">Lycée</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="level-select">Niveau / Classe</label>
-                        <select id="level-select" class="form-control" disabled>
-                            <option value="">-- D'abord choisir un cycle --</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="subject-select">Matière</label>
-                        <select id="subject-select" class="form-control" disabled>
-                             <option value="">-- D'abord choisir un niveau --</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="notion-select">Notion à travailler</label>
-                        <select id="notion-select" class="form-control" disabled>
-                            <option value="">-- D'abord choisir une matière --</option>
-                        </select>
-                    </div>
-                    <button type="submit" class="btn-main" disabled>Générer le contenu</button>
+                    <div class="form-group"><label for="cycle-select">Cycle</label><select id="cycle-select"><option value="">-- Choisir --</option><option value="primaire">Primaire</option><option value="college">Collège</option><option value="lycee">Lycée</option></select></div>
+                    <div class="form-group"><label for="level-select">Classe</label><select id="level-select" disabled><option>-- D'abord choisir un cycle --</option></select></div>
+                    <div class="form-group"><label for="subject-select">Matière</label><select id="subject-select" disabled><option>-- D'abord choisir une classe --</option></select></div>
+                    <div class="form-group"><label for="notion-select">Notion</label><select id="notion-select" disabled><option>-- D'abord choisir une matière --</option></select></div>
+                    <div class="form-group"><label for="content-type-select">Type de contenu</label><select id="content-type-select"><option value="quiz">Quiz (QCM)</option><option value="exercices">Exercices</option><option value="questions_ouvertes">Questions ouvertes</option><option value="fiche_revision">Fiche de révision</option></select></div>
+                    <button type="submit" class="btn-main" disabled>Générer avec AIDA</button>
                 </form>
             </div>
+            <!-- ÉTAPE 2: CHARGEMENT -->
             <div id="modal-loading-step" class="hidden">
-                <h3>Génération en cours...</h3>
+                <h2>AIDA réfléchit...</h2>
                 <div class="spinner"></div>
-                <p>AIDA prépare votre contenu, veuillez patienter.</p>
             </div>
+            <!-- ÉTAPE 3: PRÉVISUALISATION ET MODIFICATION -->
             <div id="modal-result-step" class="hidden">
-                 <h3>Contenu généré avec succès !</h3>
-                <div class="generated-content"></div>
+                <h2>Contenu généré</h2>
+                <p>Vous pouvez modifier le contenu ci-dessous avant de l'assigner.</p>
                 <div class="form-group">
-                    <label for="assign-class-select">Assigner à une classe :</label>
-                    <select id="assign-class-select">
-                        <!-- Options de classes insérées dynamiquement -->
-                    </select>
+                    <textarea id="generated-content-editor"></textarea>
                 </div>
-                <button class="btn-main use-content-btn">Utiliser ce contenu</button>
-            </div>
-        </div>
-    </div>
-
-     <!-- Modale Aide AIDA -->
-    <div id="aida-help-modal" class="modal-overlay hidden">
-        <div class="modal-content">
-            <button class="close-modal">&times;</button>
-            <div id="aida-help-loading">
-                <h3>AIDA cherche un indice...</h3>
-                <div class="spinner"></div>
-            </div>
-            <div id="aida-help-result" class="hidden">
-                <h3>Voici un indice :</h3>
-                <p id="aida-hint-text"></p>
+                <div class="assign-section">
+                    <label for="assign-class-select">Assigner à :</label>
+                    <select id="assign-class-select"></select>
+                    <button class="btn-main" id="confirm-assign-btn">Assigner ce contenu</button>
+                </div>
             </div>
         </div>
     </div>

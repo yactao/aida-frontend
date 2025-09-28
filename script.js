@@ -1,4 +1,4 @@
-// On utilise l'URL complète du backend Azure. C'est la connexion directe.
+// URL complète du backend Azure
 const backendUrl = 'https://aida-backend-bqd0fnd2a3c7dadf.francecentral-01.azurewebsites.net/api';
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -7,86 +7,68 @@ document.addEventListener('DOMContentLoaded', () => {
     const startButton = document.querySelector('#home .btn-main');
     const registerBtn = document.querySelector('.btn-register');
     const homeLink = document.getElementById('home-link');
-    const loginFormContainer = document.getElementById('login-form-container');
-    const signupFormContainer = document.getElementById('signup-form-container');
+    const themeToggleBtn = document.getElementById('theme-toggle-btn');
     const loginForm = document.getElementById('login-form');
     const signupForm = document.getElementById('signup-form');
     const showSignupLink = document.getElementById('show-signup');
     const showLoginLink = document.getElementById('show-login');
-    const loginError = document.getElementById('login-error');
-    const signupError = document.getElementById('signup-error');
     const teacherWelcome = document.getElementById('teacher-welcome');
     const openClassModalBtn = document.getElementById('open-class-modal-btn');
     const classModal = document.getElementById('create-class-modal');
     const createClassForm = document.getElementById('create-class-form');
-    const classCreationError = document.getElementById('class-creation-error');
     const classListContainer = document.getElementById('class-list');
     const noClassesMessage = document.getElementById('no-classes-message');
-    const openQuizModalBtn = document.querySelector('.new-resource-btn');
-    const quizModal = document.getElementById('generation-modal');
+    const openResourceModalBtn = document.querySelector('.new-resource-btn');
+    const generationModal = document.getElementById('generation-modal');
     const resourceForm = document.getElementById('resource-form');
     const modalFormStep = document.getElementById('modal-form-step');
     const modalLoadingStep = document.getElementById('modal-loading-step');
     const modalResultStep = document.getElementById('modal-result-step');
     const assignClassSelect = document.getElementById('assign-class-select');
-    const useContentBtn = quizModal ? quizModal.querySelector('.use-content-btn') : null;
     const studentWelcome = document.getElementById('student-welcome');
     const joinClassPanel = document.getElementById('join-class-panel');
     const joinClassForm = document.getElementById('join-class-form');
-    const joinClassError = document.getElementById('join-class-error');
     const studentModuleList = document.getElementById('student-module-list');
-    const quizTitle = document.getElementById('quiz-title');
-    const quizQuestionsContainer = document.getElementById('quiz-questions-container');
+    const contentTitle = document.getElementById('content-title');
+    const contentViewer = document.getElementById('content-viewer');
     const submitQuizBtn = document.getElementById('submit-quiz-btn');
     const quizResult = document.getElementById('quiz-result');
-    const aidaHelpModal = document.getElementById('aida-help-modal');
-    const aidaHelpLoading = document.getElementById('aida-help-loading');
-    const aidaHelpResult = document.getElementById('aida-help-result');
-    const aidaHintText = document.getElementById('aida-hint-text');
     const classDetailsTitle = document.getElementById('class-details-title');
     const classResultsContainer = document.getElementById('class-results-container');
     const backToTeacherDashboardBtn = document.getElementById('back-to-teacher-dashboard');
-    const quizContainer = document.querySelector('.quiz-container');
-    const contentTypeSelect = document.getElementById('content-type-select');
     const cycleSelect = document.getElementById('cycle-select');
     const levelSelect = document.getElementById('level-select');
     const subjectSelect = document.getElementById('subject-select');
     const notionSelect = document.getElementById('notion-select');
-    const resourceFormButton = document.querySelector('#resource-form button');
-    const userMenu = document.getElementById('user-menu');
-    const userMenuBtn = document.getElementById('user-menu-btn');
-    const userMenuDropdown = document.getElementById('user-menu-dropdown');
-    const userEmailDisplay = document.getElementById('user-email-display');
+    const contentTypeSelect = document.getElementById('content-type-select');
+    const resourceFormButton = resourceForm.querySelector('button');
+    const generatedContentEditor = document.getElementById('generated-content-editor');
+    const confirmAssignBtn = document.getElementById('confirm-assign-btn');
+    const userMenuContainer = document.querySelector('.user-menu-container');
+    const userDropdown = document.querySelector('.user-dropdown');
+    const dropdownUserInfo = document.getElementById('dropdown-user-info');
     const logoutBtn = document.getElementById('logout-btn');
-    const themeToggleCheckbox = document.getElementById('theme-toggle-checkbox');
-
 
     // --- VARIABLES GLOBALES ---
     let currentUser = null;
     let generatedContentData = null;
-    let currentQuizData = null;
-    let currentClassId = null;
     let programmesData = null;
-    let currentClassDataForTeacher = null;
 
-    const goToAuthPage = (e) => { e.preventDefault(); changePage('auth-page'); };
+    // --- FONCTIONS DE NAVIGATION ET UI ---
+    function changePage(targetId) {
+        pages.forEach(page => page.classList.remove('active'));
+        document.getElementById(targetId)?.classList.add('active');
+    }
 
     function applyTheme(theme) {
         document.body.classList.toggle('dark-mode', theme === 'dark');
-        if (themeToggleCheckbox) {
-            themeToggleCheckbox.checked = (theme === 'dark');
-        }
+        themeToggleBtn.innerHTML = theme === 'dark' ? '<i class="fa-solid fa-sun"></i>' : '<i class="fa-solid fa-moon"></i>';
     }
 
-    function changePage(targetId) {
-        pages.forEach(page => page.classList.remove('active'));
-        const targetPage = document.getElementById(targetId);
-        if (targetPage) targetPage.classList.add('active');
-    }
-
+    // --- GESTION DE L'AUTHENTIFICATION ---
     async function handleAuth(url, body) {
-        const errorEl = body.role ? signupError : loginError;
-        if (errorEl) errorEl.textContent = '';
+        const errorEl = body.role ? document.getElementById('signup-error') : document.getElementById('login-error');
+        errorEl.textContent = '';
         try {
             const response = await fetch(`${backendUrl}${url}`, {
                 method: 'POST',
@@ -98,604 +80,309 @@ document.addEventListener('DOMContentLoaded', () => {
             currentUser = data.user;
             await setupUIForUser();
         } catch (error) {
-            if (errorEl) errorEl.textContent = error.message;
+            errorEl.textContent = error.message;
         }
     }
-    
+
     async function setupUIForUser() {
-        if (!currentUser) return;
-
+        if (!currentUser) {
+            registerBtn.classList.remove('hidden');
+            userDropdown.classList.add('hidden');
+            return;
+        }
         registerBtn.classList.add('hidden');
-        userMenu.classList.remove('hidden');
-        userEmailDisplay.textContent = currentUser.email;
+        userDropdown.classList.remove('hidden');
+        dropdownUserInfo.textContent = currentUser.email;
 
-        if (currentUser.role === 'student') {
-            if (studentWelcome) studentWelcome.textContent = `Bonjour ${currentUser.email.split('@')[0]} !`;
-            await fetchAndDisplayStudentClasses();
-            changePage('student-dashboard');
-        } else {
-            if (teacherWelcome) teacherWelcome.textContent = `Tableau de bord de ${currentUser.email.split('@')[0]}`;
+        if (currentUser.role === 'teacher') {
+            teacherWelcome.textContent = `Tableau de bord de ${currentUser.email.split('@')[0]}`;
             await fetchAndDisplayClasses();
             changePage('teacher-dashboard');
+        } else {
+            studentWelcome.textContent = `Bonjour ${currentUser.email.split('@')[0]} !`;
+            await fetchAndDisplayStudentContent();
+            changePage('student-dashboard');
         }
     }
 
     function logout() {
         currentUser = null;
-        registerBtn.classList.remove('hidden');
-        userMenu.classList.add('hidden');
-        userMenuDropdown.classList.remove('active');
         initializeAppState();
     }
-    
+
+    // --- LOGIQUE POUR L'ENSEIGNANT ---
     async function fetchAndDisplayClasses() {
-        if (!currentUser || !classListContainer) return;
+        if (!currentUser) return;
         try {
             const response = await fetch(`${backendUrl}/classes/${currentUser.email}`);
             const classes = await response.json();
             classListContainer.innerHTML = '';
-            if (assignClassSelect) assignClassSelect.innerHTML = '<option value="">-- Sélectionnez une classe --</option>';
-            if (noClassesMessage) noClassesMessage.style.display = classes.length === 0 ? 'block' : 'none';
+            assignClassSelect.innerHTML = '<option value="">-- Sélectionnez --</option>';
+            noClassesMessage.style.display = classes.length === 0 ? 'block' : 'none';
             classes.forEach(cls => {
                 const classCard = document.createElement('div');
-                classCard.className = 'dashboard-card clickable';
+                classCard.className = 'dashboard-card';
                 classCard.innerHTML = `<h4><i class="fa-solid fa-users"></i> ${cls.className}</h4><p>${cls.students.length} élève(s)</p><p>${(cls.quizzes || []).length} contenu(s)</p>`;
                 classCard.addEventListener('click', () => showClassDetails(cls.id, cls.className));
                 classListContainer.appendChild(classCard);
-                if (assignClassSelect) {
-                    const option = new Option(cls.className, cls.id);
-                    assignClassSelect.appendChild(option);
-                }
+                assignClassSelect.add(new Option(cls.className, cls.id));
             });
         } catch (error) { console.error("Erreur de récupération des classes:", error); }
     }
 
-    async function showClassDetails(classId, className) {
-        changePage('class-details-page');
-        if (classDetailsTitle) classDetailsTitle.textContent = `Résultats de la classe : ${className}`;
-        if (classResultsContainer) {
-            classResultsContainer.innerHTML = '<div class="spinner"></div>';
-            classResultsContainer.classList.remove('quiz-feedback');
-        }
-        try {
-            const response = await fetch(`${backendUrl}/class/details/${classId}`);
-            currentClassDataForTeacher = await response.json();
-            
-            if (!currentClassDataForTeacher.results || currentClassDataForTeacher.results.length === 0) {
-                if (classResultsContainer) classResultsContainer.innerHTML = '<p>Aucun quiz n\'a été complété pour cette classe.</p>';
-                return;
-            }
-
-            const resultsByQuiz = currentClassDataForTeacher.results.reduce((acc, result) => {
-                if (!acc[result.quizId]) acc[result.quizId] = { title: result.quizTitle, results: [] };
-                acc[result.quizId].results.push(result);
-                return acc;
-            }, {});
-
-            if (classResultsContainer) classResultsContainer.innerHTML = '';
-            for (const quizId in resultsByQuiz) {
-                const quiz = resultsByQuiz[quizId];
-                let resultsHTML = '<ul>';
-                quiz.results.forEach(r => {
-                    resultsHTML += `<li><button class="result-link" data-result-id="${r.resultId}"><strong>${r.studentEmail.split('@')[0]}</strong> a obtenu ${r.score}/${r.totalQuestions}</button></li>`;
-                });
-                resultsHTML += '</ul>';
-                const quizResultCard = document.createElement('div');
-                quizResultCard.className = 'quiz-result-card';
-                quizResultCard.innerHTML = `<h3>${quiz.title}</h3>${resultsHTML}`;
-                if (classResultsContainer) classResultsContainer.appendChild(quizResultCard);
-            }
-            
-            document.querySelectorAll('.result-link').forEach(button => {
-                button.addEventListener('click', (e) => {
-                    const resultId = e.currentTarget.getAttribute('data-result-id');
-                    displayDetailedResult(resultId, classId, className);
-                });
-            });
-        } catch (error) {
-            if (classResultsContainer) classResultsContainer.innerHTML = '<p>Une erreur est survenue.</p>';
-        }
-    }
-
-    function displayDetailedResult(resultId, classId, className) {
-        const result = currentClassDataForTeacher.results.find(r => r.resultId === resultId);
-        const quiz = (currentClassDataForTeacher.quizzes || []).find(q => q.id === result.quizId);
-
-        if (!result || !quiz) { alert("Impossible de trouver les détails."); return; }
-
-        if (classDetailsTitle) classDetailsTitle.textContent = `Rapport d'erreurs pour ${result.studentEmail.split('@')[0]} (${quiz.title})`;
-        if (classResultsContainer) {
-            classResultsContainer.innerHTML = '';
-            classResultsContainer.classList.add('quiz-feedback');
-        }
-
-        const backButton = document.createElement('button');
-        backButton.className = 'btn-secondary btn-small';
-        backButton.innerHTML = `<i class="fa-solid fa-arrow-left"></i> Retour à la synthèse de la classe`;
-        backButton.addEventListener('click', () => showClassDetails(classId, className));
-        if (classResultsContainer) classResultsContainer.appendChild(backButton);
-
-        let errorCount = 0;
-        quiz.questions.forEach((q, index) => {
-            const userAnswerIndex = result.answers[index];
-            const isCorrect = userAnswerIndex === q.correct_answer_index;
-
-            if (!isCorrect) {
-                errorCount++;
-                const questionElement = document.createElement('div');
-                questionElement.className = 'quiz-question';
-                
-                const optionsHTML = q.options.map((option, i) => {
-                    let className = '';
-                    if (i === q.correct_answer_index) className = 'correct-answer';
-                    else if (i === userAnswerIndex) className = 'wrong-answer';
-                    return `<label class="${className}">${option}</label>`;
-                }).join('');
-
-                questionElement.innerHTML = `<p><strong>Question ${index + 1}: ${q.question_text}</strong></p><div class="quiz-options">${optionsHTML}</div>`;
-                if (classResultsContainer) classResultsContainer.appendChild(questionElement);
-            }
-        });
-
-        if (errorCount === 0) {
-            const noErrorsMessage = document.createElement('p');
-            noErrorsMessage.style.marginTop = '1rem';
-            noErrorsMessage.innerHTML = `<strong>Félicitations !</strong> Cet élève n'a fait aucune erreur sur ce quiz.`;
-            if (classResultsContainer) classResultsContainer.appendChild(noErrorsMessage);
-        }
-    }
-    
-    async function fetchAndDisplayStudentClasses() {
-        if (!currentUser || !studentModuleList) return;
-        try {
-            const response = await fetch(`${backendUrl}/student/classes/${currentUser.email}`);
-            const classes = await response.json();
-            studentModuleList.innerHTML = '';
-            if (joinClassPanel) joinClassPanel.classList.toggle('hidden', classes.length > 0);
-            if (classes.length === 0) {
-                studentModuleList.innerHTML = '<div class="module-card"><h4>En attente de votre première classe</h4><p>Rejoignez une classe pour voir les modules.</p></div>';
-                return;
-            }
-            
-            let hasPendingQuizzes = false;
-            classes.forEach(cls => {
-                const classQuizzes = cls.quizzes || [];
-                if (classQuizzes.length > 0) {
-                    const completedQuizIds = (cls.results || [])
-                        .filter(result => result.studentEmail === currentUser.email)
-                        .map(result => result.quizId);
-
-                    const pendingQuizzes = classQuizzes.filter(quiz => !completedQuizIds.includes(quiz.id) && quiz.type === 'quiz');
-
-                    if (pendingQuizzes.length > 0) {
-                        hasPendingQuizzes = true;
-                        pendingQuizzes.forEach(quiz => {
-                            const quizCard = document.createElement('div');
-                            quizCard.className = 'module-card';
-                            quizCard.innerHTML = `<h4>${quiz.title}</h4><p>De la classe : ${cls.className}</p><button class="btn-secondary">Commencer le quiz</button>`;
-                            quizCard.querySelector('button').addEventListener('click', () => startQuiz(quiz, cls.id));
-                            studentModuleList.appendChild(quizCard);
-                        });
-                    }
-                }
-            });
-
-            if (!hasPendingQuizzes) {
-                studentModuleList.innerHTML = '<div class="module-card"><h4>Bravo !</h4><p>Tu as terminé tous les quiz pour le moment. Reviens plus tard !</p></div>';
-            }
-        } catch (error) {
-            console.error("Impossible de charger les modules de l'élève:", error);
-        }
-    }
-
-    async function getAidaHelp(questionText) {
-        if (!aidaHelpModal) return;
-        aidaHelpModal.classList.remove('hidden');
-        if (aidaHelpLoading) aidaHelpLoading.classList.remove('hidden');
-        if (aidaHelpResult) aidaHelpResult.classList.add('hidden');
-        try {
-            const response = await fetch(`${backendUrl}/aida/help`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ question: questionText })
-            });
-            const data = await response.json();
-            if (!response.ok) throw new Error(data.error);
-            if (aidaHintText) aidaHintText.textContent = data.hint;
-        } catch (error) {
-            if (aidaHintText) aidaHintText.textContent = "Désolée, je n'ai pas trouvé d'indice pour le moment.";
-        } finally {
-            if (aidaHelpLoading) aidaHelpLoading.classList.add('hidden');
-            if (aidaHelpResult) aidaHelpResult.classList.remove('hidden');
-        }
-    }
-    
-    function startQuiz(quizData, classId) {
-        currentQuizData = quizData;
-        currentClassId = classId;
-
-        if (!quizData || !Array.isArray(quizData.questions)) {
-            alert("Désolé, ce quiz ne peut pas être chargé car ses questions sont manquantes.");
-            return;
-        }
-
-        if (quizContainer) quizContainer.classList.remove('quiz-feedback');
-        if (quizTitle) quizTitle.textContent = quizData.title;
-        if (quizQuestionsContainer) quizQuestionsContainer.innerHTML = '';
-        if (quizResult) quizResult.classList.add('hidden');
-        if (submitQuizBtn) submitQuizBtn.classList.remove('hidden');
-        
-        quizData.questions.forEach((q, index) => {
-            const questionElement = document.createElement('div');
-            questionElement.className = 'quiz-question';
-            const optionsHTML = q.options.map((option, i) => `<label><input type="radio" name="question-${index}" value="${i}"> ${option}</label>`).join('');
-            questionElement.innerHTML = `<p><strong>${index + 1}. ${q.question_text}</strong><button class="aida-help-btn" title="Demander un indice à AIDA"><i class="fa-solid fa-lightbulb"></i></button></p><div class="quiz-options">${optionsHTML}</div>`;
-            const helpBtn = questionElement.querySelector('.aida-help-btn');
-            if (helpBtn) helpBtn.addEventListener('click', () => getAidaHelp(q.question_text));
-            if (quizQuestionsContainer) quizQuestionsContainer.appendChild(questionElement);
-        });
-        changePage('quiz-page');
-    }
-    
-    function initializeAppState() {
-        document.querySelectorAll('.modal-overlay').forEach(m => m.classList.add('hidden'));
-        changePage('home');
-    }
-    
     function initializeResourceModal() {
-        if(modalFormStep) modalFormStep.classList.remove('hidden');
-        if(modalLoadingStep) modalLoadingStep.classList.add('hidden');
-        if(modalResultStep) modalResultStep.classList.add('hidden');
-        if(resourceForm) resourceForm.reset();
+        cycleSelect.value = '';
         levelSelect.innerHTML = '<option value="">-- D\'abord choisir un cycle --</option>';
         levelSelect.disabled = true;
-        subjectSelect.innerHTML = '<option value="">-- D\'abord choisir un niveau --</option>';
+        subjectSelect.innerHTML = '<option value="">-- D\'abord choisir une classe --</option>';
         subjectSelect.disabled = true;
         notionSelect.innerHTML = '<option value="">-- D\'abord choisir une matière --</option>';
         notionSelect.disabled = true;
         resourceFormButton.disabled = true;
         programmesData = null;
+        modalFormStep.classList.remove('hidden');
+        modalLoadingStep.classList.add('hidden');
+        modalResultStep.classList.add('hidden');
     }
 
     async function loadProgrammesForCycle(cycle) {
-        levelSelect.innerHTML = '<option value="">Chargement...</option>';
-        subjectSelect.innerHTML = '<option value="">-- D\'abord choisir un niveau --</option>';
-        notionSelect.innerHTML = '<option value="">-- D\'abord choisir une matière --</option>';
-        levelSelect.disabled = true;
-        subjectSelect.disabled = true;
-        notionSelect.disabled = true;
-
         if (!cycle) {
             levelSelect.innerHTML = '<option value="">-- D\'abord choisir un cycle --</option>';
+            levelSelect.disabled = true;
             return;
         }
-
         const fileMap = {
-            primaire: 'Programmes Scolaires - Primaire.json',
-            college: 'Programmes Scolaires - Collège.json',
-            lycee: 'Programmes Scolaires - Lycée.json'
+            primaire: 'programmes-primaire.json',
+            college: 'programmes-college.json',
+            lycee: 'programmes-lycee.json'
         };
-        const fileName = fileMap[cycle];
-
-        if (!fileName) {
-            levelSelect.innerHTML = '<option value="">Erreur de cycle</option>';
-            return;
-        }
-
         try {
-            const response = await fetch(fileName);
-            if (!response.ok) throw new Error(`Fichier ${fileName} non trouvé.`);
+            const response = await fetch(fileMap[cycle]);
             programmesData = await response.json();
-            
-            levelSelect.innerHTML = '<option value="">-- Choisir le niveau --</option>';
-            Object.keys(programmesData).forEach(level => {
-                levelSelect.add(new Option(level, level));
-            });
-            levelSelect.disabled = false;
-        } catch (error) {
-            console.error("Impossible de charger les programmes:", error);
-            levelSelect.innerHTML = '<option value="">Erreur de chargement</option>';
-        }
+            populateSelect(levelSelect, Object.keys(programmesData), "-- Choisir la classe --");
+        } catch (e) { console.error("Erreur chargement programmes"); }
     }
     
-    function renderGeneratedContent(content) {
-        const container = quizModal.querySelector('#modal-result-step .generated-content');
-        if (!container) return;
-
-        let html = `<h4>${content.title}</h4>`;
-        switch(content.type) {
-            case 'quiz':
-                html += `<p>${content.questions.length} questions à choix multiples.</p>`;
-                break;
-            case 'exercices':
-                html += '<ul>';
-                content.content.forEach(exo => {
-                    html += `<li><strong>Exercice :</strong> ${exo.enonce}</li>`;
-                });
-                html += '</ul>';
-                break;
-            case 'questions_ouvertes':
-                html += '<ul>';
-                content.content.forEach(q => {
-                    html += `<li>${q}</li>`;
-                });
-                html += '</ul>';
-                break;
-            case 'fiche_revision':
-                html += `<p>${content.content.replace(/\n/g, '<br>')}</p>`;
-                break;
-            default:
-                html += `<p>Type de contenu non reconnu.</p>`;
-        }
-        container.innerHTML = html;
-    }
-
-    function setupEventListeners() {
-        if (startButton) startButton.addEventListener('click', (e) => { e.preventDefault(); changePage(startButton.getAttribute('data-target')); });
-        if (registerBtn) registerBtn.addEventListener('click', goToAuthPage);
-        if (homeLink) homeLink.addEventListener('click', (e) => { e.preventDefault(); changePage('home'); });
-        
-        if (userMenuBtn) {
-            userMenuBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                userMenuDropdown.classList.toggle('active');
+    // --- LOGIQUE POUR L'ÉLÈVE ---
+     async function fetchAndDisplayStudentContent() {
+        if (!currentUser) return;
+        try {
+            const response = await fetch(`${backendUrl}/student/classes/${currentUser.email}`);
+            const classes = await response.json();
+            studentModuleList.innerHTML = '';
+            joinClassPanel.classList.toggle('hidden', classes.length > 0);
+            
+            let hasContent = false;
+            classes.forEach(cls => {
+                if (cls.quizzes && cls.quizzes.length > 0) {
+                    hasContent = true;
+                    cls.quizzes.forEach(content => {
+                        const card = document.createElement('div');
+                        card.className = 'dashboard-card';
+                        card.innerHTML = `<h4>${content.title}</h4><p>Classe: ${cls.className}</p><button class="btn-secondary">Commencer</button>`;
+                        card.querySelector('button').addEventListener('click', () => displayContent(content, cls.id));
+                        studentModuleList.appendChild(card);
+                    });
+                }
             });
-        }
-        if (logoutBtn) logoutBtn.addEventListener('click', logout);
-        if (themeToggleCheckbox) {
-             themeToggleCheckbox.addEventListener('change', () => {
-                const newTheme = themeToggleCheckbox.checked ? 'dark' : 'light';
-                localStorage.setItem('theme', newTheme);
-                applyTheme(newTheme);
-            });
-        }
-        document.addEventListener('click', () => {
-            if (userMenuDropdown.classList.contains('active')) {
-                userMenuDropdown.classList.remove('active');
+
+            if (!hasContent) {
+                studentModuleList.innerHTML = '<p>Aucun module n\'est disponible pour le moment.</p>';
             }
+
+        } catch (error) { console.error("Erreur de récupération des modules:", error); }
+    }
+    
+    function displayContent(contentData, classId) {
+        contentTitle.textContent = contentData.title;
+        contentViewer.innerHTML = '';
+        submitQuizBtn.classList.add('hidden');
+        
+        switch(contentData.type) {
+            case 'quiz':
+                displayQuiz(contentData);
+                break;
+            // Autres types de contenu à gérer ici
+            default:
+                contentViewer.innerHTML = `<p>${contentData.content || "Ce type de contenu n'est pas encore supporté."}</p>`;
+        }
+        changePage('content-page');
+    }
+    
+    function displayQuiz(quizData) {
+        quizData.questions.forEach((q, index) => {
+            const questionElement = document.createElement('div');
+            questionElement.className = 'quiz-question';
+            const optionsHTML = q.options.map((option, i) => `<label><input type="radio" name="question-${index}" value="${i}"> ${option}</label>`).join('');
+            questionElement.innerHTML = `<p><strong>${index + 1}. ${q.question_text}</strong></p><div class="quiz-options">${optionsHTML}</div>`;
+            contentViewer.appendChild(questionElement);
         });
-
-        if (showSignupLink) showSignupLink.addEventListener('click', (e) => { e.preventDefault(); if(loginFormContainer && signupFormContainer) { loginFormContainer.classList.add('hidden'); signupFormContainer.classList.remove('hidden'); } });
-        if (showLoginLink) showLoginLink.addEventListener('click', (e) => { e.preventDefault(); if(signupFormContainer && loginFormContainer) { signupFormContainer.classList.add('hidden'); loginFormContainer.classList.remove('hidden'); } });
-        
-        if (signupForm) {
-            signupForm.addEventListener('submit', (e) => {
-                e.preventDefault();
-                handleAuth('/auth/signup', { email: e.target.elements['signup-email'].value, password: e.target.elements['signup-password'].value, role: e.target.elements['signup-role'].value });
-            });
-        }
-        if (loginForm) {
-            loginForm.addEventListener('submit', (e) => {
-                e.preventDefault();
-                handleAuth('/auth/login', { email: e.target.elements['login-email'].value, password: e.target.elements['login-password'].value });
-            });
-        }
-        if (openClassModalBtn) openClassModalBtn.addEventListener('click', () => { if (classModal) classModal.classList.remove('hidden'); });
-        if (createClassForm) {
-            createClassForm.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                if (classCreationError) classCreationError.textContent = '';
-                const className = e.target.elements['class-name-input'].value;
-                try {
-                    const response = await fetch(`${backendUrl}/classes/create`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ className, teacherEmail: currentUser.email }) });
-                    if (!response.ok) throw new Error((await response.json()).error);
-                    await fetchAndDisplayClasses();
-                    if (classModal) classModal.classList.add('hidden');
-                    e.target.reset();
-                } catch (error) {
-                    if (classCreationError) classCreationError.textContent = error.message;
-                }
-            });
-        }
-        
-        if (openQuizModalBtn) {
-            openQuizModalBtn.addEventListener('click', () => { 
-                if (quizModal) quizModal.classList.remove('hidden');
-                initializeResourceModal(); 
-            });
-        }
-        if (cycleSelect) {
-            cycleSelect.addEventListener('change', () => { loadProgrammesForCycle(cycleSelect.value); });
-        }
-        if (levelSelect) {
-            levelSelect.addEventListener('change', () => {
-                subjectSelect.innerHTML = '<option value="">-- Choisir la matière --</option>';
-                notionSelect.innerHTML = '<option value="">-- Choisir la notion --</option>';
-                subjectSelect.disabled = true;
-                notionSelect.disabled = true;
-                if(resourceFormButton) resourceFormButton.disabled = true;
-
-                const selectedLevel = levelSelect.value;
-                if (selectedLevel && programmesData[selectedLevel]) {
-                    Object.keys(programmesData[selectedLevel]).forEach(subjectKey => {
-                        const subjectData = programmesData[selectedLevel][subjectKey];
-                        const subjectName = subjectData.nom || subjectKey.charAt(0).toUpperCase() + subjectKey.slice(1);
-                        subjectSelect.add(new Option(subjectName, subjectKey));
-                    });
-                    subjectSelect.disabled = false;
-                }
-            });
-        }
-        if (subjectSelect) {
-            subjectSelect.addEventListener('change', () => {
-                notionSelect.innerHTML = '<option value="">-- Choisir la notion --</option>';
-                notionSelect.disabled = true;
-                if(resourceFormButton) resourceFormButton.disabled = true;
-
-                const selectedLevel = levelSelect.value;
-                const selectedSubject = subjectSelect.value;
-                if (selectedSubject && programmesData[selectedLevel] && programmesData[selectedLevel][selectedSubject]) {
-                    const subjectContent = programmesData[selectedLevel][selectedSubject];
-                    Object.keys(subjectContent).forEach(notionKey => {
-                        if (subjectContent[notionKey] && subjectContent[notionKey].nom) {
-                            const notionName = subjectContent[notionKey].nom;
-                            notionSelect.add(new Option(notionName, notionKey));
-                        }
-                    });
-                    notionSelect.disabled = false;
-                }
-            });
-        }
-        if (notionSelect) {
-            notionSelect.addEventListener('change', () => {
-                if(resourceFormButton) resourceFormButton.disabled = notionSelect.value === "";
-            });
-        }
-        if (resourceForm) {
-            resourceForm.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const contentType = contentTypeSelect.value;
-                const level = levelSelect.value;
-                const subject = subjectSelect.value;
-                const notion = notionSelect.value;
-                const competences = programmesData[level][subject][notion].competences;
-
-                if (modalFormStep) modalFormStep.classList.add('hidden');
-                if (modalLoadingStep) modalLoadingStep.classList.remove('hidden');
-                if (modalResultStep) modalResultStep.classList.add('hidden');
-
-                try {
-                    const response = await fetch(`${backendUrl}/generate/content`, { 
-                        method: 'POST', 
-                        headers: { 'Content-Type': 'application/json' }, 
-                        body: JSON.stringify({ competences, contentType })
-                    });
-                    generatedContentData = await response.json();
-                    if (!response.ok) throw new Error(generatedContentData.error);
-                    
-                    renderGeneratedContent(generatedContentData);
-
-                } catch (err) {
-                    alert(err.message);
-                } finally {
-                    if (modalLoadingStep) modalLoadingStep.classList.add('hidden');
-                    if (modalResultStep) modalResultStep.classList.remove('hidden');
-                }
-            });
-        }
-        if (useContentBtn) {
-            useContentBtn.addEventListener('click', async () => {
-                const classId = assignClassSelect.value;
-                if (!classId) return alert("Veuillez sélectionner une classe.");
-                try {
-                    const response = await fetch(`${backendUrl}/class/assign-content`, {
-                        method: 'POST', headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ contentData: generatedContentData, classId, teacherEmail: currentUser.email })
-                    });
-                    if (!response.ok) throw new Error((await response.json()).error);
-                    alert("Contenu assigné avec succès !");
-                    if (quizModal) quizModal.classList.add('hidden');
-                    await fetchAndDisplayClasses();
-                } catch (error) { alert(`Erreur: ${error.message}`); }
-            });
-        }
-
-        if (joinClassForm) {
-            joinClassForm.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                if (joinClassError) joinClassError.textContent = '';
-                const className = e.target.elements['class-code-input'].value;
-                try {
-                    const response = await fetch(`${backendUrl}/class/join`, {
-                        method: 'POST', headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ className, studentEmail: currentUser.email })
-                    });
-                    const data = await response.json();
-                    if (!response.ok) throw new Error(data.error);
-                    alert(data.message);
-                    e.target.reset();
-                    await fetchAndDisplayStudentClasses();
-                } catch (error) {
-                    if (joinClassError) joinClassError.textContent = error.message;
-                }
-            });
-        }
-        if (submitQuizBtn) {
-            submitQuizBtn.addEventListener('click', async () => {
-                let score = 0;
-                const userAnswers = [];
-
-                currentQuizData.questions.forEach((q, index) => {
-                    const selectedInput = document.querySelector(`input[name="question-${index}"]:checked`);
-                    const answerIndex = selectedInput ? parseInt(selectedInput.value) : -1;
-                    userAnswers.push(answerIndex);
-                    if (answerIndex === q.correct_answer_index) score++;
-                });
-
-                const resultData = { classId: currentClassId, quizId: currentQuizData.id, quizTitle: currentQuizData.title, studentEmail: currentUser.email, score: score, totalQuestions: currentQuizData.questions.length, answers: userAnswers };
-                try {
-                    await fetch(`${backendUrl}/quiz/submit`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(resultData) });
-                } catch (error) { console.error("Le score n'a pas pu être envoyé.", error); }
-
-                if (quizContainer) quizContainer.classList.add('quiz-feedback');
-                if (quizQuestionsContainer) quizQuestionsContainer.innerHTML = `<div class="quiz-feedback-header"><h3>Correction - Votre score : ${score}/${currentQuizData.questions.length}</h3><div class="spinner"></div><p>AIDA prépare les explications...</p></div>`;
-                if (submitQuizBtn) submitQuizBtn.classList.add('hidden');
-
-                const feedbackPromises = currentQuizData.questions.map((q, index) => {
-                    const userAnswerIndex = userAnswers[index];
-                    if (userAnswerIndex !== -1 && userAnswerIndex !== q.correct_answer_index) {
-                        return fetch(`${backendUrl}/aida/feedback`, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ question: q.question_text, wrongAnswer: q.options[userAnswerIndex], correctAnswer: q.options[q.correct_answer_index] })
-                        }).then(res => res.json());
-                    }
-                    return Promise.resolve(null);
-                });
-
-                const feedbacks = await Promise.all(feedbackPromises);
-                if (quizQuestionsContainer) quizQuestionsContainer.innerHTML = `<div class="quiz-feedback-header"><h3>Correction - Votre score : ${score}/${currentQuizData.questions.length}</h3></div>`;
-
-                currentQuizData.questions.forEach((q, index) => {
-                    const questionElement = document.createElement('div');
-                    questionElement.className = 'quiz-question';
-                    const userAnswerIndex = userAnswers[index];
-                    let feedbackHTML = '';
-                    if (feedbacks[index] && feedbacks[index].feedback) {
-                        feedbackHTML = `<div class="aida-feedback">${feedbacks[index].feedback}</div>`;
-                    }
-                    const optionsHTML = q.options.map((option, i) => {
-                        let className = '';
-                        if (i === q.correct_answer_index) className = 'correct-answer';
-                        else if (i === userAnswerIndex) className = 'wrong-answer';
-                        return `<label class="${className}">${option}</label>`;
-                    }).join('');
-                    questionElement.innerHTML = `<p><strong>${index + 1}. ${q.question_text}</strong></p><div class="quiz-options">${optionsHTML}</div>${feedbackHTML}`;
-                    if (quizQuestionsContainer) quizQuestionsContainer.appendChild(questionElement);
-                });
-
-                if (quizResult) {
-                    quizResult.innerHTML = `<button id="back-to-dashboard" class="btn-secondary">Retourner au tableau de bord</button>`;
-                    quizResult.classList.remove('hidden');
-                    const backBtn = quizResult.querySelector('#back-to-dashboard');
-                    if (backBtn) backBtn.addEventListener('click', async () => {
-                        await fetchAndDisplayStudentClasses();
-                        changePage('student-dashboard');
-                    });
-                }
-            });
-        }
-        if (backToTeacherDashboardBtn) {
-            backToTeacherDashboardBtn.addEventListener('click', () => changePage('teacher-dashboard'));
-        }
+        submitQuizBtn.classList.remove('hidden');
     }
 
-    function setupModals() {
+
+    // --- FONCTIONS UTILITAIRES ---
+    function populateSelect(selectElement, options, defaultText, isObject = false) {
+        selectElement.innerHTML = `<option value="">${defaultText}</option>`;
+        options.forEach(option => {
+            const value = isObject ? option.key : option;
+            const text = isObject ? option.name : option;
+            selectElement.add(new Option(text, value));
+        });
+        selectElement.disabled = false;
+    }
+    
+    function findCompetences(data, path) {
+        let current = data;
+        for (const key of path) {
+            current = current[key];
+            if (!current) return [];
+        }
+
+        let competences = [];
+        function recurse(obj) {
+            if (obj.competences) {
+                competences = competences.concat(obj.competences);
+            }
+            if (obj.sous_notions) {
+                Object.values(obj.sous_notions).forEach(recurse);
+            }
+        }
+        recurse(current);
+        return [...new Set(competences)]; // Retourne des compétences uniques
+    }
+
+
+    // --- GESTION DES ÉVÉNEMENTS ---
+    function setupEventListeners() {
+        // Navigation & UI
+        homeLink.addEventListener('click', (e) => { e.preventDefault(); initializeAppState(); });
+        startButton.addEventListener('click', () => changePage('auth-page'));
+        themeToggleBtn.addEventListener('click', () => {
+            const newTheme = document.body.classList.contains('dark-mode') ? 'light' : 'dark';
+            localStorage.setItem('theme', newTheme);
+            applyTheme(newTheme);
+        });
+        showSignupLink.addEventListener('click', (e) => { e.preventDefault(); document.getElementById('login-form-container').classList.add('hidden'); document.getElementById('signup-form-container').classList.remove('hidden'); });
+        showLoginLink.addEventListener('click', (e) => { e.preventDefault(); document.getElementById('signup-form-container').classList.add('hidden'); document.getElementById('login-form-container').classList.remove('hidden'); });
+        registerBtn.addEventListener('click', () => changePage('auth-page'));
+        logoutBtn.addEventListener('click', logout);
+        backToTeacherDashboardBtn.addEventListener('click', () => changePage('teacher-dashboard'));
+
+        // Modales
         document.querySelectorAll('.modal-overlay').forEach(modal => {
             modal.addEventListener('click', (e) => { if (e.target === modal) modal.classList.add('hidden'); });
-            const closeBtn = modal.querySelector('.close-modal');
-            if (closeBtn) closeBtn.addEventListener('click', () => modal.classList.add('hidden'));
+            modal.querySelector('.close-modal')?.addEventListener('click', () => modal.classList.add('hidden'));
         });
+        
+        // Authentification
+        loginForm.addEventListener('submit', (e) => { e.preventDefault(); handleAuth('/auth/login', { email: loginForm.elements['login-email'].value, password: loginForm.elements['login-password'].value }); });
+        signupForm.addEventListener('submit', (e) => { e.preventDefault(); handleAuth('/auth/signup', { email: signupForm.elements['signup-email'].value, password: signupForm.elements['signup-password'].value, role: signupForm.elements['signup-role'].value }); });
+
+        // Enseignant
+        openClassModalBtn.addEventListener('click', () => classModal.classList.remove('hidden'));
+        createClassForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const className = createClassForm.elements['class-name-input'].value;
+            try {
+                const response = await fetch(`${backendUrl}/classes/create`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ className, teacherEmail: currentUser.email }) });
+                if (!response.ok) throw new Error((await response.json()).error);
+                await fetchAndDisplayClasses();
+                classModal.classList.add('hidden');
+            } catch (error) { document.getElementById('class-creation-error').textContent = error.message; }
+        });
+
+        openResourceModalBtn.addEventListener('click', () => {
+            generationModal.classList.remove('hidden');
+            initializeResourceModal();
+        });
+
+        // Logique des menus déroulants pour la création
+        cycleSelect.addEventListener('change', () => loadProgrammesForCycle(cycleSelect.value));
+        levelSelect.addEventListener('change', () => {
+            const path = [levelSelect.value];
+            populateSelect(subjectSelect, Object.keys(programmesData[path[0]]).map(k => ({ key: k, name: programmesData[path[0]][k].nom })), "-- Choisir la matière --", true);
+        });
+        subjectSelect.addEventListener('change', () => {
+            const path = [levelSelect.value, subjectSelect.value, 'sous_notions'];
+            populateSelect(notionSelect, Object.keys(programmesData[path[0]][path[1]][path[2]]).map(k => ({ key: k, name: programmesData[path[0]][path[1]][path[2]][k].nom })), "-- Choisir la notion --", true);
+        });
+        notionSelect.addEventListener('change', () => {
+            resourceFormButton.disabled = !notionSelect.value;
+        });
+
+        resourceForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            modalFormStep.classList.add('hidden');
+            modalLoadingStep.classList.remove('hidden');
+
+            const path = [levelSelect.value, subjectSelect.value, 'sous_notions', notionSelect.value];
+            const competences = findCompetences(programmesData, path);
+            const contentType = contentTypeSelect.value;
+            
+            try {
+                const response = await fetch(`${backendUrl}/generate/content`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ competences, contentType })
+                });
+                generatedContentData = await response.json();
+                if (!response.ok) throw new Error(generatedContentData.error);
+                
+                generatedContentEditor.value = JSON.stringify(generatedContentData, null, 2);
+                modalLoadingStep.classList.add('hidden');
+                modalResultStep.classList.remove('hidden');
+            } catch (err) {
+                alert("Erreur de génération: " + err.message);
+                initializeResourceModal();
+            }
+        });
+        
+        confirmAssignBtn.addEventListener('click', async () => {
+            const classId = assignClassSelect.value;
+            if (!classId) return alert("Veuillez sélectionner une classe.");
+            try {
+                const contentToAssign = JSON.parse(generatedContentEditor.value);
+                const response = await fetch(`${backendUrl}/class/assign-content`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ contentData: contentToAssign, classId, teacherEmail: currentUser.email })
+                });
+                if (!response.ok) throw new Error((await response.json()).error);
+                alert("Contenu assigné avec succès !");
+                generationModal.classList.add('hidden');
+                await fetchAndDisplayClasses();
+            } catch (error) { alert(`Erreur: ${error.message}`); }
+        });
+        
+        // Élève
+        joinClassForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const className = joinClassForm.elements['class-code-input'].value;
+            try {
+                const response = await fetch(`${backendUrl}/class/join`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ className, studentEmail: currentUser.email })
+                });
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.error);
+                alert(data.message);
+                await fetchAndDisplayStudentContent();
+            } catch (error) { document.getElementById('join-class-error').textContent = error.message; }
+        });
+
     }
 
-    function init() {
-        const savedTheme = localStorage.getItem('theme') || 'light';
-        applyTheme(savedTheme);
-        initializeAppState();
-        setupEventListeners();
-        setupModals();
+    function initializeAppState() {
+        changePage('home');
+        if (currentUser) logout();
     }
 
-    init();
+    // --- INITIALISATION ---
+    const savedTheme = localStorage.getItem('theme') || 'light';
+    applyTheme(savedTheme);
+    initializeAppState();
+    setupEventListeners();
 });
 
