@@ -34,14 +34,13 @@ header { display: flex; justify-content: space-between; align-items: center; pad
 .logo span { font-size: 1.5rem; font-weight: 700; color: var(--text-color); }
 
 /* --- GESTION DES PAGES --- */
-main { padding: 0; /* Le padding sera sur les sections internes */ }
+main { padding: 0; }
 .page { display: none; }
 .page.active { display: block; animation: fadeIn 0.5s ease-in-out; }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
 /* --- PAGE D'ACCUEIL --- */
 #home { position: relative; overflow: hidden; text-align: center; padding: 4rem 1rem; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 90vh; }
-#hero-animation { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
 .hero-content { position: relative; z-index: 2; max-width: 1200px; }
 #home h1 { font-size: 3.5rem; margin-bottom: 1rem; animation: floatIn 0.8s ease-out forwards; }
 #home p { font-size: 1.2rem; max-width: 700px; margin: 0 auto 2rem; color: #6c757d; animation: floatIn 0.8s 0.2s ease-out forwards; opacity: 0; }
@@ -62,6 +61,19 @@ body.dark-mode .selection-card:hover { box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3
 .selection-card:nth-child(2):hover { border-top-color: var(--secondary-color); }
 .selection-card:nth-child(3):hover { border-top-color: #F5A623; } 
 .playground-card:hover { border-top-color: #7ED321; }
+
+/* --- NOUVELLE ANIMATION D'ICÔNES FLOTTANTES --- */
+.floating-icons-background { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; pointer-events: none; }
+.floating-icons-background i { position: absolute; color: rgba(128, 128, 128, 0.15); font-size: 40px; animation: floatUp 20s infinite linear; bottom: -50px; }
+body.dark-mode .floating-icons-background i { color: rgba(255, 255, 255, 0.1); }
+@keyframes floatUp { from { transform: translateY(0) rotate(0deg); } to { transform: translateY(-100vh) rotate(360deg); } }
+.floating-icons-background i:nth-child(1) { left: 10%; animation-delay: 0s; animation-duration: 15s; }
+.floating-icons-background i:nth-child(2) { left: 25%; animation-delay: 2s; animation-duration: 12s; }
+.floating-icons-background i:nth-child(3) { left: 40%; animation-delay: 4s; animation-duration: 18s; }
+.floating-icons-background i:nth-child(4) { left: 55%; animation-delay: 1s; animation-duration: 22s; }
+.floating-icons-background i:nth-child(5) { left: 70%; animation-delay: 5s; animation-duration: 14s; }
+.floating-icons-background i:nth-child(6) { left: 85%; animation-delay: 3s; animation-duration: 20s; }
+.floating-icons-background i:nth-child(7) { left: 95%; animation-delay: 7s; animation-duration: 16s; }
 
 .hidden { display: none !important; }
 
