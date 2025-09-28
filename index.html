@@ -9,7 +9,7 @@
 </head>
 <body>
     <header>
-        <a href="#" id="home-link" class="logo">
+        <a href="index.html" id="home-link" class="logo">
             <div class="logo-icon">A</div>
             <span>AIDA</span>
         </a>
@@ -40,15 +40,12 @@
     <main>
         <!-- PAGE 1: ACCUEIL -->
         <section id="home" class="page active">
-            <!-- La toile pour notre animation -->
             <canvas id="hero-animation"></canvas>
-            
             <div class="hero-content">
                 <h1>L'innovation pédagogique au service de la <span class="gradient-text">réussite</span>.</h1>
                 <p>Une plateforme unique pour les élèves, les enseignants et les établissements. Qui êtes-vous ?</p>
             
                 <div class="home-selection-container">
-                    <!-- Cartes de sélection (inchangées) -->
                     <div class="selection-card" data-target="auth-page"> <i class="fa-solid fa-user-graduate"></i> <h3>Élève</h3> <p>Révise tes leçons et prépare tes examens avec ton tuteur AIDA.</p> </div>
                     <div class="selection-card" data-target="auth-page"> <i class="fa-solid fa-chalkboard-user"></i> <h3>Enseignant</h3> <p>Crée des ressources sur-mesure et suis les progrès de tes classes.</p> </div>
                     <div class="selection-card" data-target="auth-page"> <i class="fa-solid fa-school"></i> <h3>Établissement</h3> <p>Déploie une solution d'apprentissage innovante pour tous tes élèves.</p> </div>
@@ -57,10 +54,20 @@
             </div>
         </section>
 
-        <!-- ... (Le reste des pages est inchangé) ... -->
-
+        <!-- Le reste des pages (auth, dashboards, etc.) est ici -->
+        <!-- Il est important de les inclure pour que la navigation fonctionne -->
+        <section id="auth-page" class="page"></section>
+        <section id="teacher-dashboard" class="page"></section>
+        <section id="student-dashboard" class="page"></section>
+        <section id="content-page" class="page"></section>
+        <section id="class-details-page" class="page"></section>
     </main>
-    <!-- ... (Toutes les modales sont inchangées) ... -->
+    
+    <!-- Les modales sont ici -->
+    <div id="create-class-modal" class="modal-overlay hidden"></div>
+    <div id="generation-modal" class="modal-overlay hidden"></div>
+    <div id="result-details-modal" class="modal-overlay hidden"></div>
+
     <script src="script.js"></script>
 </body>
 </html>
