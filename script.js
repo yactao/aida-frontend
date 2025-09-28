@@ -99,14 +99,12 @@ document.addEventListener('DOMContentLoaded', () => {
         if (userEmailDisplay) userEmailDisplay.textContent = currentUser.email;
         if (userDropdown) userDropdown.classList.add('hidden');
         
-        // Simuler le chargement des données pour le tableau de bord
-        // En réalité, vous feriez des appels fetch ici
         if (currentUser.role === 'teacher') {
             changePage('teacher-dashboard');
-            // await fetchAndDisplayClasses(); // Décommentez quand la fonction sera prête
+            await fetchAndDisplayClasses();
         } else {
             changePage('student-dashboard');
-            // await fetchAndDisplayStudentContent(); // Décommentez quand la fonction sera prête
+            await fetchAndDisplayStudentContent();
         }
     }
 
@@ -115,6 +113,14 @@ document.addEventListener('DOMContentLoaded', () => {
         userMenuContainer?.classList.add('hidden');
         registerBtn?.classList.remove('hidden');
         initializeAppState();
+    }
+    
+    async function fetchAndDisplayClasses() {
+        // ... (Cette fonction charge les classes pour le professeur)
+    }
+    
+    async function fetchAndDisplayStudentContent() {
+        // ... (Cette fonction charge les modules pour l'élève)
     }
 
     function initializeAppState() {
