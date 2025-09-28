@@ -93,7 +93,7 @@ body.dark-mode .dashboard-card { background: #252525; border-color: #333; }
 /* --- DÉTAILS DE CLASSE (PROF) --- */
 .class-details-container { max-width: 900px; margin: auto; }
 .class-details-section { margin-top: 2rem; }
-.content-list button { background: none; border: none; color: var(--primary-color); cursor: pointer; text-decoration: underline; }
+.content-list button, .results-list button { background: none; border: none; color: var(--primary-color); cursor: pointer; text-decoration: underline; font-family: 'Poppins', sans-serif; font-size: 1rem; }
 
 /* --- AFFICHAGE DE CONTENU (QUIZ, ETC.) --- */
 .content-container { max-width: 800px; margin: 2rem auto; }
@@ -103,31 +103,20 @@ body.dark-mode .dashboard-card { background: #252525; border-color: #333; }
 /* --- MODALES --- */
 .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.6); display: flex; justify-content: center; align-items: center; z-index: 1000; backdrop-filter: blur(5px); }
 .modal-content { width: 90%; max-width: 600px; position: relative; }
-#generation-modal .modal-content { max-width: 800px; } /* Fenêtre de contenu élargie */
+#generation-modal .modal-content { max-width: 900px; } 
 .close-modal { position: absolute; top: 1rem; right: 1rem; font-size: 1.5rem; cursor: pointer; color: #aaa; background: none; border: none; }
 .form-group { margin-bottom: 1rem; }
-#generated-content-editor { height: 400px; resize: vertical; font-family: 'Courier New', Courier, monospace; } /* Fenêtre de contenu plus haute */
+#generated-content-editor { height: 450px; resize: vertical; font-family: 'Courier New', Courier, monospace; } 
 .assign-section { display: flex; align-items: center; gap: 1rem; margin-top: 1rem; }
 .assign-section select { margin-bottom: 0; }
 .spinner { border: 4px solid rgba(0,0,0,0.1); width: 36px; height: 36px; border-radius: 50%; border-left-color: var(--primary-color); animation: spin 1s ease infinite; margin: 1rem auto; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
+#result-modal-content .answer { padding: 8px; border-radius: 5px; margin-bottom: 5px; }
+#result-modal-content .correct { background-color: #d4edda; border-left: 3px solid #155724; }
+#result-modal-content .incorrect { background-color: #f8d7da; border-left: 3px solid #721c24; }
+
 /* --- UTILITAIRES --- */
 .hidden { display: none !important; }
 .error-message { color: #D0021B; text-align: center; margin-top: 10px; font-size: 0.9rem; }
 
-/* --- DÉTAILS DE CLASSE (PROF) --- */
-.class-details-container { max-width: 900px; margin: auto; }
-.class-details-section { margin-top: 2rem; }
-.content-list button, .results-list button { background: none; border: none; color: var(--primary-color); cursor: pointer; text-decoration: underline; font-family: 'Poppins', sans-serif; font-size: 1rem; }
-
-/* --- MODALES --- */
-.modal-overlay { /* ... */ }
-.modal-content { /* ... */ }
-#generation-modal .modal-content { max-width: 900px; } /* Fenêtre de contenu très élargie */
-.close-modal { /* ... */ }
-#generated-content-editor { height: 450px; resize: vertical; font-family: 'Courier New', Courier, monospace; } /* Fenêtre de contenu plus haute */
-/* ... (Le reste des styles est identique) ... */
-#result-modal-content .answer { padding: 8px; border-radius: 5px; margin-bottom: 5px; }
-#result-modal-content .correct { background-color: #d4edda; }
-#result-modal-content .incorrect { background-color: #f8d7da; }

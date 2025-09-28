@@ -150,14 +150,18 @@
         </div>
     </div>
 
-    <!-- MODALE DE CRÉATION DE RESSOURCE (ENSEIGNANT) -->
     <div id="generation-modal" class="modal-overlay hidden">
         <div class="modal-content">
             <span class="close-modal">&times;</span>
             <div id="modal-form-step">
                 <h2>Créer une ressource pédagogique</h2>
                 <form id="resource-form">
-                     <!-- ... Menus déroulants ... -->
+                    <div class="form-group"><label for="cycle-select">Cycle</label><select id="cycle-select"><option value="">-- Choisir --</option><option value="primaire">Primaire</option><option value="college">Collège</option><option value="lycee">Lycée</option></select></div>
+                    <div class="form-group"><label for="level-select">Classe</label><select id="level-select" disabled><option>-- D'abord choisir un cycle --</option></select></div>
+                    <div class="form-group"><label for="subject-select">Matière</label><select id="subject-select" disabled><option>-- D'abord choisir une classe --</option></select></div>
+                    <div class="form-group"><label for="notion-select">Notion</label><select id="notion-select" disabled><option>-- D'abord choisir une matière --</option></select></div>
+                    <div class="form-group"><label for="content-type-select">Type de contenu</label><select id="content-type-select"><option value="quiz">Quiz (QCM)</option><option value="exercices">Exercices</option></select></div>
+                    <button type="submit" class="btn-main" disabled>Générer avec AIDA</button>
                 </form>
             </div>
             <div id="modal-loading-step" class="hidden">
@@ -177,7 +181,6 @@
         </div>
     </div>
     
-    <!-- MODALE POUR VOIR LES RÉPONSES D'UN ÉLÈVE -->
     <div id="result-details-modal" class="modal-overlay hidden">
         <div class="modal-content">
             <span class="close-modal">&times;</span>
