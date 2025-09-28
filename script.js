@@ -152,9 +152,9 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         const fileMap = {
-            primaire: 'programmes-primaire.json',
-            college: 'programmes-college.json',
-            lycee: 'programmes-lycee.json'
+            primaire: 'Programmes Scolaires - Primaire.json',
+            college: 'Programmes Scolaires - Collège.json',
+            lycee: 'Programmes Scolaires - Lycée.json'
         };
         try {
             const response = await fetch(fileMap[cycle]);
