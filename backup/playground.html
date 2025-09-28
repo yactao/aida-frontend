@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AIDA - Terrain de Jeux</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
+        :root {
+            --primary-color: #6D28D9;
+            --secondary-color: #EC4899;
+            --background-color: #F3F4F6;
+            --text-color: #1F2937;
+            --card-bg-color: #FFFFFF;
+            --shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        header {
+            padding: 1rem 5%;
+            background-color: var(--card-bg-color);
+            box-shadow: var(--shadow);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .logo a { display: flex; align-items: center; text-decoration: none; }
+        .logo-icon { width: 40px; height: 40px; background: linear-gradient(45deg, var(--primary-color), var(--secondary-color)); color: white; display: grid; place-items: center; border-radius: 10px; font-weight: 700; font-size: 1.5rem; margin-right: 10px; }
+        .logo span { font-size: 1.5rem; font-weight: 700; color: var(--text-color); }
+        .main-container {
+            flex-grow: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem;
+        }
+        .playground-card {
+            background-color: var(--card-bg-color);
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            width: 100%;
+            max-width: 500px;
+            text-align: center;
+        }
+        .playground-card h1, .playground-card h2 {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(45deg, var(--primary-color), var(--secondary-color));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .playground-card p { margin-bottom: 2rem; color: #6B7280; }
+        .form-group { margin-bottom: 1.5rem; text-align: left; }
+        .form-group label { display: block; margin-bottom: 0.5rem; font-weight: 600; }
+        input, select { width: 100%; padding: 12px; border: 1px solid #D1D5DB; border-radius: 8px; font-size: 1rem; }
+        .btn-main { padding: 12px 24px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.3s ease; text-decoration: none; background: linear-gradient(45deg, var(--primary-color), var(--secondary-color)); color: #FFF; font-size: 1rem; width: 100%; }
+        .chat-container {
+            width: 100%;
+            max-width: 800px;
+            height: 80vh;
+            display: flex;
+            flex-direction: column;
+            background: var(--card-bg-color);
+            box-shadow: var(--shadow);
+            border-radius: 12px;
+        }
+        .chat-header { padding: 1rem; border-bottom: 1px solid #E5E7EB; text-align: center; font-weight: 600; }
+        .chat-messages { flex-grow: 1; padding: 1rem; overflow-y: auto; }
+        .message { margin-bottom: 1rem; display: flex; }
+        .message.user { justify-content: flex-end; }
+        .message-bubble { padding: 0.75rem 1rem; border-radius: 18px; max-width: 75%; white-space: pre-wrap; }
+        .message.user .message-bubble { background: linear-gradient(45deg, var(--primary-color), var(--secondary-color)); color: white; border-bottom-right-radius: 4px; }
+        .message.aida .message-bubble { background-color: #E5E7EB; color: #1F2937; border-bottom-left-radius: 4px; }
+        .chat-input { display: flex; padding: 1rem; border-top: 1px solid #E5E7EB; }
+        .chat-input input { flex-grow: 1; padding: 12px; border: 1px solid #D1D5DB; border-radius: 20px; font-size: 1rem; margin-right: 0.5rem; }
+        .chat-input button { background: var(--primary-color); color: white; border: none; border-radius: 50%; width: 45px; height: 45px; font-size: 1.2rem; cursor: pointer; flex-shrink: 0; }
+        .hidden { display: none !important; }
+        .typing-indicator .message-bubble span { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background-color: #9CA3AF; margin: 0 2px; animation: bounce 1.4s infinite ease-in-out both; }
+        .typing-indicator .message-bubble span:nth-child(1) { animation-delay: -0.32s; }
+        .typing-indicator .message-bubble span:nth-child(2) { animation-delay: -0.16s; }
+        @keyframes bounce { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1.0); } }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="logo">
+            <a href="index.html">
+                <div class="logo-icon">A</div>
+                <span>AIDA</span>
+            </a>
+        </div>
+    </header>
+
+    <main class="main-container">
+        <!-- Étape 1: Identification -->
+        <div id="welcome-step" class="playground-card">
+            <h1>Hello, je suis AIDA</h1>
+            <p>Comment puis-je t'aider aujourd'hui ?</p>
+            <form id="welcome-form">
+                <div class="form-group">
+                    <label for="student-name">Ton prénom</label>
+                    <input type="text" id="student-name" placeholder="Ex: Paul" required>
+                </div>
+                <button type="submit" class="btn-main">Commencer</button>
+            </form>
+        </div>
+
+        <!-- Étape 2: Sélection du sujet -->
+        <div id="selection-step" class="playground-card hidden">
+            <h2 id="selection-title"></h2>
+            <form id="selection-form">
+                <div class="form-group">
+                    <label for="cycle-select">Cycle</label>
+                    <select id="cycle-select">
+                        <option value="">-- Choisir --</option>
+                        <option value="primaire">Primaire</option>
+                        <option value="college">Collège</option>
+                        <option value="lycee">Lycée</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="level-select">Classe</label>
+                    <select id="level-select" disabled><option>-- D'abord choisir un cycle --</option></select>
+                </div>
+                <div class="form-group">
+                    <label for="subject-select">Matière</label>
+                    <select id="subject-select" disabled><option>-- D'abord choisir une classe --</option></select>
+                </div>
+                <div class="form-group">
+                    <label for="notion-select">Notion à réviser</label>
+                    <select id="notion-select" disabled><option>-- D'abord choisir une matière --</option></select>
+                </div>
+                <button type="submit" class="btn-main" disabled>Discuter avec AIDA</button>
+            </form>
+        </div>
+        
+        <!-- Étape 3: Le Chat -->
+        <div id="chat-step" class="chat-container hidden">
+            <div class="chat-header" id="chat-header-title"></div>
+            <div class="chat-messages" id="chat-messages"></div>
+            <form class="chat-input" id="chat-form">
+                <input type="text" id="user-input" placeholder="Pose ta question ici..." autocomplete="off">
+                 <button type="button" id="hint-btn" title="Demander un indice"><i class="fa-solid fa-lightbulb"></i></button>
+                <button type="submit" id="send-btn"><i class="fa-solid fa-paper-plane"></i></button>
+            </form>
+        </div>
+    </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const backendUrl = 'https://aida-backend-bqd0fnd2a3c7dadf.francecentral-01.azurewebsites.net/api';
+            const welcomeStep = document.getElementById('welcome-step');
+            const selectionStep = document.getElementById('selection-step');
+            const chatStep = document.getElementById('chat-step');
+            const welcomeForm = document.getElementById('welcome-form');
+            const selectionForm = document.getElementById('selection-form');
+            const chatForm = document.getElementById('chat-form');
+            const studentNameInput = document.getElementById('student-name');
+            const selectionTitle = document.getElementById('selection-title');
+            const cycleSelect = document.getElementById('cycle-select');
+            const levelSelect = document.getElementById('level-select');
+            const subjectSelect = document.getElementById('subject-select');
+            const notionSelect = document.getElementById('notion-select');
+            const selectionButton = selectionForm.querySelector('button');
+            const chatHeaderTitle = document.getElementById('chat-header-title');
+            const chatMessages = document.getElementById('chat-messages');
+            const userInput = document.getElementById('user-input');
+            const hintBtn = document.getElementById('hint-btn');
+            const sendBtn = document.getElementById('send-btn');
+            
+            let studentName = '';
+            let selectedNotionContext = '';
+            let programmesData = null;
+            let conversationHistory = [];
+
+            welcomeForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                studentName = studentNameInput.value.trim();
+                if (studentName) {
+                    selectionTitle.textContent = `Bonjour ${studentName}, que veux-tu réviser ?`;
+                    welcomeStep.classList.add('hidden');
+                    selectionStep.classList.remove('hidden');
+                }
+            });
+
+            cycleSelect.addEventListener('change', async () => {
+                const cycle = cycleSelect.value;
+                resetSelect(levelSelect, "-- D'abord choisir un cycle --");
+                resetSelect(subjectSelect, "-- D'abord choisir une classe --");
+                resetSelect(notionSelect, "-- D'abord choisir une matière --");
+                if (!cycle) return;
+                const fileMap = {
+                    primaire: 'programmes-primaire.json',
+                    college: 'programmes-college.json',
+                    lycee: 'programmes-lycee.json'
+                };
+                try {
+                    const response = await fetch(fileMap[cycle]);
+                    programmesData = await response.json();
+                    populateSelect(levelSelect, Object.keys(programmesData), "-- Choisir --");
+                } catch (e) { alert("Impossible de charger les programmes pour ce cycle."); }
+            });
+
+            levelSelect.addEventListener('change', () => {
+                resetSelect(subjectSelect, "-- D'abord choisir une classe --");
+                resetSelect(notionSelect, "-- D'abord choisir une matière --");
+                const level = levelSelect.value;
+                if (level && programmesData[level]) {
+                     const subjects = Object.keys(programmesData[level]).map(key => ({
+                        key: key,
+                        name: programmesData[level][key].nom
+                    }));
+                    populateSelect(subjectSelect, subjects, "-- Choisir --", true);
+                }
+            });
+            
+            subjectSelect.addEventListener('change', () => {
+                resetSelect(notionSelect, "-- D'abord choisir une matière --");
+                const level = levelSelect.value;
+                const subject = subjectSelect.value;
+                if (subject && programmesData[level]?.[subject]) {
+                    const subjectData = programmesData[level][subject];
+                    let allNotions = [];
+                    Object.keys(subjectData).forEach(mainNotionKey => {
+                        if (mainNotionKey === 'nom') return;
+                        const mainNotion = subjectData[mainNotionKey];
+                        if (mainNotion && mainNotion.sous_notions) {
+                             Object.keys(mainNotion.sous_notions).forEach(subNotionKey => {
+                                const subNotion = mainNotion.sous_notions[subNotionKey];
+                                if (subNotion && subNotion.nom) {
+                                    allNotions.push({ key: `${mainNotionKey},${subNotionKey}`, name: subNotion.nom });
+                                }
+                            });
+                        }
+                    });
+                    populateSelect(notionSelect, allNotions, "-- Choisir --", true);
+                }
+            });
+
+            notionSelect.addEventListener('change', () => {
+                selectionButton.disabled = !notionSelect.value;
+            });
+            
+            selectionForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const levelName = levelSelect.options[levelSelect.selectedIndex].text;
+                const subjectName = subjectSelect.options[subjectSelect.selectedIndex].text;
+                const notionName = notionSelect.options[notionSelect.selectedIndex].text;
+
+                const [mainNotionKey, subNotionKey] = notionSelect.value.split(',');
+                const competences = programmesData[levelSelect.value][subjectSelect.value][mainNotionKey].sous_notions[subNotionKey].competences;
+                
+                selectedNotionContext = `Niveau: ${levelName}, Matière: ${subjectName}, Notion: ${notionName}. Compétences clés: "${competences.join(', ')}"`;
+                chatHeaderTitle.textContent = `Aide sur : ${notionName}`;
+                
+                conversationHistory = [{
+                    role: "system",
+                    content: `Tu es AIDA, une enseignante personnelle bienveillante. Tu aides ${studentName} (niveau ${levelName}). La discussion porte sur: ${notionName}. Réponds de manière structurée avec des retours à la ligne. N'utilise que du texte simple.`
+                }];
+
+                addMessage(`Bonjour ${studentName} ! Je suis là pour t'aider avec la notion '${notionName}' en ${subjectName} (niveau ${levelName}). Pose-moi ta première question !`, "aida");
+
+                selectionStep.classList.add('hidden');
+                chatStep.classList.remove('hidden');
+            });
+
+            chatForm.addEventListener('submit', (e) => {
+                 e.preventDefault();
+                 sendMessage();
+            });
+
+            hintBtn.addEventListener('click', async () => {
+                if (conversationHistory.length <= 1) return; // Pas d'indice sans question
+                addTypingIndicator();
+                try {
+                     const response = await fetch(`${backendUrl}/aida/hint`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ history: conversationHistory })
+                    });
+                    const data = await response.json();
+                    if (!response.ok) throw new Error(data.error);
+                    removeTypingIndicator();
+                    addMessage(data.hint, "aida");
+                } catch(error) {
+                    removeTypingIndicator();
+                    addMessage("Désolée, je n'ai pas trouvé d'indice pour le moment.", "aida");
+                }
+            });
+            
+            async function sendMessage() {
+                const userMessage = userInput.value.trim();
+                if (!userMessage) return;
+
+                addMessage(userMessage, "user");
+                conversationHistory.push({ role: "user", content: userMessage });
+                userInput.value = '';
+                addTypingIndicator();
+
+                try {
+                    const response = await fetch(`${backendUrl}/aida/chat`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ history: conversationHistory })
+                    });
+                    const data = await response.json();
+                    if (!response.ok) throw new Error(data.error);
+                    removeTypingIndicator();
+                    addMessage(data.reply, "aida");
+                    conversationHistory.push({ role: "assistant", content: data.reply });
+                } catch(error) {
+                    removeTypingIndicator();
+                    addMessage("Désolée, une erreur est survenue. Peux-tu reformuler ?", "aida");
+                }
+            }
+            
+            function resetSelect(selectElement, defaultText) {
+                selectElement.innerHTML = `<option value="">${defaultText}</option>`;
+                selectElement.disabled = true;
+                if(selectionButton) selectionButton.disabled = true;
+            }
+
+            function populateSelect(selectElement, options, defaultText, isObjectArray = false) {
+                selectElement.innerHTML = `<option value="">${defaultText}</option>`;
+                options.forEach(option => {
+                    const value = isObjectArray ? option.key : option;
+                    const text = isObjectArray ? option.name : option;
+                    selectElement.add(new Option(text, value));
+                });
+                selectElement.disabled = false;
+            }
+
+            function addMessage(text, sender) {
+                const messageElement = document.createElement('div');
+                messageElement.classList.add('message', sender);
+                const bubble = document.createElement('div');
+                bubble.classList.add('message-bubble');
+                bubble.textContent = text;
+                messageElement.appendChild(bubble);
+                chatMessages.appendChild(messageElement);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }
+            
+            function addTypingIndicator() {
+                const indicator = document.createElement('div');
+                indicator.id = 'typing-indicator';
+                indicator.classList.add('message', 'aida');
+                indicator.innerHTML = `<div class="message-bubble"><span></span><span></span><span></span></div>`;
+                chatMessages.appendChild(indicator);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }
+            
+            function removeTypingIndicator() {
+                const indicator = document.getElementById('typing-indicator');
+                if(indicator) indicator.remove();
+            }
+        });
+    </script>
+</body>
+</html>
+
