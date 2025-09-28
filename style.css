@@ -116,3 +116,18 @@ body.dark-mode .dashboard-card { background: #252525; border-color: #333; }
 .hidden { display: none !important; }
 .error-message { color: #D0021B; text-align: center; margin-top: 10px; font-size: 0.9rem; }
 
+/* --- DÉTAILS DE CLASSE (PROF) --- */
+.class-details-container { max-width: 900px; margin: auto; }
+.class-details-section { margin-top: 2rem; }
+.content-list button, .results-list button { background: none; border: none; color: var(--primary-color); cursor: pointer; text-decoration: underline; font-family: 'Poppins', sans-serif; font-size: 1rem; }
+
+/* --- MODALES --- */
+.modal-overlay { /* ... */ }
+.modal-content { /* ... */ }
+#generation-modal .modal-content { max-width: 900px; } /* Fenêtre de contenu très élargie */
+.close-modal { /* ... */ }
+#generated-content-editor { height: 450px; resize: vertical; font-family: 'Courier New', Courier, monospace; } /* Fenêtre de contenu plus haute */
+/* ... (Le reste des styles est identique) ... */
+#result-modal-content .answer { padding: 8px; border-radius: 5px; margin-bottom: 5px; }
+#result-modal-content .correct { background-color: #d4edda; }
+#result-modal-content .incorrect { background-color: #f8d7da; }

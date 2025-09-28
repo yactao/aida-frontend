@@ -116,6 +116,7 @@
         <!-- PAGE 5 : AFFICHAGE DU CONTENU (QUIZ, ETC.) -->
         <section id="content-page" class="page">
             <div class="content-container">
+                <button id="back-to-dashboard-btn" class="btn-secondary"><i class="fa-solid fa-arrow-left"></i> Retour</button>
                 <h2 id="content-title">Titre du Contenu</h2>
                 <div id="content-viewer"></div>
                 <button id="submit-quiz-btn" class="btn-main hidden">Valider mes réponses</button>
@@ -153,30 +154,20 @@
     <div id="generation-modal" class="modal-overlay hidden">
         <div class="modal-content">
             <span class="close-modal">&times;</span>
-            <!-- ÉTAPE 1: FORMULAIRE DE SÉLECTION -->
             <div id="modal-form-step">
                 <h2>Créer une ressource pédagogique</h2>
                 <form id="resource-form">
-                    <div class="form-group"><label for="cycle-select">Cycle</label><select id="cycle-select"><option value="">-- Choisir --</option><option value="primaire">Primaire</option><option value="college">Collège</option><option value="lycee">Lycée</option></select></div>
-                    <div class="form-group"><label for="level-select">Classe</label><select id="level-select" disabled><option>-- D'abord choisir un cycle --</option></select></div>
-                    <div class="form-group"><label for="subject-select">Matière</label><select id="subject-select" disabled><option>-- D'abord choisir une classe --</option></select></div>
-                    <div class="form-group"><label for="notion-select">Notion</label><select id="notion-select" disabled><option>-- D'abord choisir une matière --</option></select></div>
-                    <div class="form-group"><label for="content-type-select">Type de contenu</label><select id="content-type-select"><option value="quiz">Quiz (QCM)</option><option value="exercices">Exercices</option><option value="questions_ouvertes">Questions ouvertes</option><option value="fiche_revision">Fiche de révision</option></select></div>
-                    <button type="submit" class="btn-main" disabled>Générer avec AIDA</button>
+                     <!-- ... Menus déroulants ... -->
                 </form>
             </div>
-            <!-- ÉTAPE 2: CHARGEMENT -->
             <div id="modal-loading-step" class="hidden">
                 <h2>AIDA réfléchit...</h2>
                 <div class="spinner"></div>
             </div>
-            <!-- ÉTAPE 3: PRÉVISUALISATION ET MODIFICATION -->
             <div id="modal-result-step" class="hidden">
                 <h2>Contenu généré</h2>
                 <p>Vous pouvez modifier le contenu ci-dessous avant de l'assigner.</p>
-                <div class="form-group">
-                    <textarea id="generated-content-editor"></textarea>
-                </div>
+                <div class="form-group"><textarea id="generated-content-editor"></textarea></div>
                 <div class="assign-section">
                     <label for="assign-class-select">Assigner à :</label>
                     <select id="assign-class-select"></select>
@@ -185,6 +176,16 @@
             </div>
         </div>
     </div>
+    
+    <!-- MODALE POUR VOIR LES RÉPONSES D'UN ÉLÈVE -->
+    <div id="result-details-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <h2 id="result-modal-title">Détail des réponses</h2>
+            <div id="result-modal-content"></div>
+        </div>
+    </div>
+
 
     <script src="script.js"></script>
 </body>

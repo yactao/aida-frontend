@@ -32,6 +32,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const contentTitle = document.getElementById('content-title');
     const contentViewer = document.getElementById('content-viewer');
     const submitQuizBtn = document.getElementById('submit-quiz-btn');
+    const quizResult = document.getElementById('quiz-result');
     const classDetailsTitle = document.getElementById('class-details-title');
     const classDetailsContent = document.getElementById('class-details-content');
     const backToTeacherDashboardBtn = document.getElementById('back-to-teacher-dashboard');
@@ -40,7 +41,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const subjectSelect = document.getElementById('subject-select');
     const notionSelect = document.getElementById('notion-select');
     const contentTypeSelect = document.getElementById('content-type-select');
-    const resourceFormButton = resourceForm.querySelector('button');
+    const resourceFormButton = document.querySelector('#resource-form button');
     const generatedContentEditor = document.getElementById('generated-content-editor');
     const confirmAssignBtn = document.getElementById('confirm-assign-btn');
     const userMenuContainer = document.querySelector('.user-menu-container');
@@ -48,12 +49,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const userDropdown = document.querySelector('.user-dropdown');
     const userEmailDisplay = document.getElementById('user-email-display');
     const logoutBtn = document.getElementById('logout-btn');
+    const backToDashboardBtn = document.getElementById('back-to-dashboard-btn');
+
 
     // --- VARIABLES GLOBALES ---
     let currentUser = null;
-    let generatedContentData = null;
+    let generatedContentData = null; // Stockera le JSON structuré
     let programmesData = null;
-    let currentClassData = null;
+    let currentClassData = null; // Stockera les données de la classe consultée
 
     // --- NAVIGATION ET UI ---
     function changePage(targetId) {
@@ -118,9 +121,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const classes = await response.json();
             classListContainer.innerHTML = '';
             assignClassSelect.innerHTML = '<option value="">-- Sélectionnez --</option>';
-            if (noClassesMessage) {
-                noClassesMessage.style.display = classes.length === 0 ? 'block' : 'none';
-            }
+            noClassesMessage.style.display = classes.length === 0 ? 'block' : 'none';
             classes.forEach(cls => {
                 const classCard = document.createElement('div');
                 classCard.className = 'dashboard-card';
@@ -131,7 +132,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         } catch (error) { console.error("Erreur de récupération des classes:", error); }
     }
-
+    
     async function showClassDetails(classId, className) {
         changePage('class-details-page');
         classDetailsTitle.textContent = `Détails de la classe : ${className}`;
@@ -165,28 +166,13 @@ document.addEventListener('DOMContentLoaded', () => {
             resultsSection.className = 'class-details-section';
             resultsSection.innerHTML = '<h3>Résultats des Élèves</h3>';
              if (currentClassData.results && currentClassData.results.length > 0) {
-                 const resultsByStudent = currentClassData.results.reduce((acc, result) => {
-                    if (!acc[result.studentEmail]) {
-                        acc[result.studentEmail] = [];
-                    }
-                    acc[result.studentEmail].push(result);
-                    return acc;
-                }, {});
-
                 const resultsList = document.createElement('ul');
-                for (const studentEmail in resultsByStudent) {
-                    const studentResults = resultsByStudent[studentEmail];
-                    const studentLi = document.createElement('li');
-                    studentLi.innerHTML = `<strong>${studentEmail.split('@')[0]}</strong>`;
-                    const resultSubList = document.createElement('ul');
-                    studentResults.forEach(r => {
-                        const resultLi = document.createElement('li');
-                        resultLi.textContent = `${r.quizTitle}: ${r.score}/${r.totalQuestions}`;
-                        resultSubList.appendChild(resultLi);
-                    });
-                    studentLi.appendChild(resultSubList);
-                    resultsList.appendChild(studentLi);
-                }
+                resultsList.className = 'results-list';
+                currentClassData.results.forEach(result => {
+                    const li = document.createElement('li');
+                    li.innerHTML = `${result.studentEmail.split('@')[0]} - ${result.quizTitle}: ${result.score}/${result.totalQuestions} <button data-result-id="${result.resultId}">Voir détails</button>`;
+                    resultsList.appendChild(li);
+                });
                 resultsSection.appendChild(resultsList);
              } else {
                  resultsSection.innerHTML += '<p>Aucun élève n\'a encore terminé de contenu.</p>';
@@ -203,9 +189,38 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!content) return;
         alert(`Prévisualisation de : ${content.title}\n\n` + JSON.stringify(content, null, 2));
     }
-    
-    // --- LOGIQUE POUR L'ÉLÈVE ---
-     async function fetchAndDisplayStudentContent() {
+
+    function displayStudentResultDetails(resultId) {
+        const result = currentClassData.results.find(r => r.resultId === resultId);
+        const content = currentClassData.quizzes.find(q => q.id === result.quizId);
+        if (!result || !content) return;
+
+        const modal = document.getElementById('result-details-modal');
+        const modalTitle = document.getElementById('result-modal-title');
+        const modalContent = document.getElementById('result-modal-content');
+
+        modalTitle.textContent = `Réponses de ${result.studentEmail.split('@')[0]}`;
+        let contentHTML = '';
+        content.questions.forEach((q, index) => {
+            const studentAnswerIndex = result.answers[index];
+            const isCorrect = studentAnswerIndex == q.correct_answer_index;
+            contentHTML += `<h4>Question ${index + 1}: ${q.question_text}</h4>`;
+            q.options.forEach((opt, optIndex) => {
+                let className = '';
+                if (optIndex == studentAnswerIndex) {
+                    className = isCorrect ? 'correct' : 'incorrect';
+                } else if (optIndex == q.correct_answer_index) {
+                    className = 'correct';
+                }
+                contentHTML += `<div class="answer ${className}">${opt}</div>`;
+            });
+        });
+        modalContent.innerHTML = contentHTML;
+        modal.classList.remove('hidden');
+    }
+
+    // --- LOGIQUE ÉLÈVE ---
+    async function fetchAndDisplayStudentContent() {
         if (!currentUser) return;
         try {
             const response = await fetch(`${backendUrl}/student/classes/${currentUser.email}`);
@@ -238,10 +253,11 @@ document.addEventListener('DOMContentLoaded', () => {
         contentTitle.textContent = contentData.title;
         contentViewer.innerHTML = '';
         submitQuizBtn.classList.add('hidden');
+        quizResult.classList.add('hidden');
         
         switch(contentData.type) {
             case 'quiz':
-                displayQuiz(contentData);
+                displayQuiz(contentData, classId);
                 break;
             default:
                 contentViewer.innerHTML = `<p>${contentData.content || "Ce type de contenu n'est pas encore supporté."}</p>`;
@@ -249,7 +265,7 @@ document.addEventListener('DOMContentLoaded', () => {
         changePage('content-page');
     }
     
-    function displayQuiz(quizData) {
+    function displayQuiz(quizData, classId) {
         quizData.questions.forEach((q, index) => {
             const questionElement = document.createElement('div');
             questionElement.className = 'quiz-question';
@@ -258,6 +274,44 @@ document.addEventListener('DOMContentLoaded', () => {
             contentViewer.appendChild(questionElement);
         });
         submitQuizBtn.classList.remove('hidden');
+        submitQuizBtn.onclick = () => submitQuiz(quizData, classId); // Attacher l'événement
+    }
+
+    async function submitQuiz(quizData, classId) {
+        let score = 0;
+        const userAnswers = [];
+        quizData.questions.forEach((q, index) => {
+            const selectedInput = document.querySelector(`input[name="question-${index}"]:checked`);
+            const answerIndex = selectedInput ? parseInt(selectedInput.value) : -1;
+            userAnswers.push(answerIndex);
+            if (answerIndex == q.correct_answer_index) {
+                score++;
+            }
+        });
+
+        // Envoyer les résultats au backend
+        try {
+            await fetch(`${backendUrl}/quiz/submit`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    classId,
+                    quizId: quizData.id,
+                    studentEmail: currentUser.email,
+                    score,
+                    totalQuestions: quizData.questions.length,
+                    quizTitle: quizData.title,
+                    answers: userAnswers
+                })
+            });
+        } catch (error) {
+            console.error("Erreur lors de l'envoi du score:", error);
+        }
+
+        // Afficher la correction
+        quizResult.textContent = `Votre score : ${score} / ${quizData.questions.length}`;
+        quizResult.classList.remove('hidden');
+        submitQuizBtn.classList.add('hidden');
     }
 
     // --- INITIALISATION & GESTION DES ÉVÉNEMENTS ---
@@ -285,9 +339,7 @@ document.addEventListener('DOMContentLoaded', () => {
         for (const key of path) {
             if (current && typeof current === 'object' && key in current) {
                 current = current[key];
-            } else {
-                return [];
-            }
+            } else { return []; }
         }
         if (current && Array.isArray(current.competences)) {
             return current.competences;
@@ -303,7 +355,7 @@ document.addEventListener('DOMContentLoaded', () => {
         subjectSelect.disabled = true;
         notionSelect.innerHTML = '<option value="">-- D\'abord choisir une matière --</option>';
         notionSelect.disabled = true;
-        resourceFormButton.disabled = true;
+        if(resourceFormButton) resourceFormButton.disabled = true;
         programmesData = null;
         modalFormStep.classList.remove('hidden');
         modalLoadingStep.classList.add('hidden');
@@ -330,8 +382,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function setupEventListeners() {
         homeLink.addEventListener('click', (e) => { e.preventDefault(); initializeAppState(); });
-        startButton.addEventListener('click', () => changePage('auth-page'));
-        registerBtn.addEventListener('click', () => changePage('auth-page'));
+        startButton.addEventListener('click', (e) => { e.preventDefault(); changePage(startButton.getAttribute('data-target')); });
+        registerBtn.addEventListener('click', (e) => { e.preventDefault(); changePage('auth-page'); });
+        backToDashboardBtn.addEventListener('click', () => {
+            if(currentUser.role === 'teacher') changePage('teacher-dashboard');
+            else changePage('student-dashboard');
+        });
 
         themeToggleBtn.addEventListener('click', () => {
             const newTheme = document.body.classList.contains('dark-mode') ? 'light' : 'dark';
@@ -413,7 +469,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         notionSelect.addEventListener('change', () => {
-            resourceFormButton.disabled = !notionSelect.value;
+            if(resourceFormButton) resourceFormButton.disabled = !notionSelect.value;
         });
 
         resourceForm.addEventListener('submit', async (e) => {
@@ -438,10 +494,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ competences, contentType })
                 });
-                generatedContentData = await response.json();
-                if (!response.ok) throw new Error(generatedContentData.error);
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.error);
                 
-                generatedContentEditor.value = JSON.stringify(generatedContentData, null, 2);
+                generatedContentEditor.value = data.text_representation;
+                generatedContentData = data.structured_content; // Garder le JSON en mémoire
+                
                 modalLoadingStep.classList.add('hidden');
                 modalResultStep.classList.remove('hidden');
             } catch (err) {
@@ -453,14 +511,22 @@ document.addEventListener('DOMContentLoaded', () => {
         confirmAssignBtn.addEventListener('click', async () => {
             const classId = assignClassSelect.value;
             if (!classId) return alert("Veuillez sélectionner une classe.");
+            const modifiedText = generatedContentEditor.value;
+
             try {
-                const contentToAssign = JSON.parse(generatedContentEditor.value);
-                const response = await fetch(`${backendUrl}/class/assign-content`, {
+                const conversionResponse = await fetch(`${backendUrl}/convert/text-to-json`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ contentData: contentToAssign, classId, teacherEmail: currentUser.email })
+                    body: JSON.stringify({ text: modifiedText, contentType: generatedContentData.type })
                 });
-                if (!response.ok) throw new Error((await response.json()).error);
+                const finalContent = await conversionResponse.json();
+
+                const assignResponse = await fetch(`${backendUrl}/class/assign-content`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ contentData: finalContent, classId, teacherEmail: currentUser.email })
+                });
+                if (!assignResponse.ok) throw new Error((await assignResponse.json()).error);
                 alert("Contenu assigné avec succès !");
                 generationModal.classList.add('hidden');
                 await fetchAndDisplayClasses();
@@ -484,9 +550,10 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         classDetailsContent.addEventListener('click', (e) => {
-            if (e.target.matches('button[data-content-id]')) {
-                const contentId = e.target.getAttribute('data-content-id');
-                displayContentForTeacher(contentId);
+            if (e.target.matches('button[data-result-id]')) {
+                displayStudentResultDetails(e.target.getAttribute('data-result-id'));
+            } else if (e.target.matches('button[data-content-id]')) {
+                displayContentForTeacher(e.target.getAttribute('data-content-id'));
             }
         });
     }
