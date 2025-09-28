@@ -41,19 +41,13 @@
         <!-- PAGE 1: ACCUEIL -->
         <section id="home" class="page active">
             <div class="floating-icons-background">
-                <!-- Icônes pour l'animation -->
-                <i class="fa-solid fa-flask"></i>
-                <i class="fa-solid fa-book"></i>
-                <i class="fa-solid fa-globe"></i>
-                <i class="fa-solid fa-square-root-variable"></i>
-                <i class="fa-solid fa-atom"></i>
-                <i class="fa-solid fa-pencil"></i>
+                <i class="fa-solid fa-flask"></i> <i class="fa-solid fa-book"></i> <i class="fa-solid fa-globe"></i>
+                <i class="fa-solid fa-square-root-variable"></i> <i class="fa-solid fa-atom"></i> <i class="fa-solid fa-pencil"></i>
                 <i class="fa-solid fa-lightbulb"></i>
             </div>
             <div class="hero-content">
                 <h1>L'innovation pédagogique au service de la <span class="gradient-text">réussite</span>.</h1>
-                <p>Une plateforme unique pour les élèves, les enseignants et les établissements. Rejoignez nous ?</p>
-            
+                <p>Une plateforme unique pour les élèves, les enseignants et les établissements. Qui êtes-vous ?</p>
                 <div class="home-selection-container">
                     <div class="selection-card" data-target="auth-page"> <i class="fa-solid fa-user-graduate"></i> <h3>Élève</h3> <p>Révise tes leçons et prépare tes examens avec ton tuteur AIDA.</p> </div>
                     <div class="selection-card" data-target="auth-page"> <i class="fa-solid fa-chalkboard-user"></i> <h3>Enseignant</h3> <p>Crée des ressources sur-mesure et suis les progrès de tes classes.</p> </div>
@@ -63,15 +57,44 @@
             </div>
         </section>
 
-        <!-- Les autres pages sont nécessaires pour la navigation -->
-        <section id="auth-page" class="page"></section>
+        <!-- PAGE 2: AUTHENTIFICATION -->
+        <section id="auth-page" class="page">
+            <div class="auth-container">
+                <div class="form-container" id="login-form-container">
+                    <h2>Connexion</h2>
+                    <form id="login-form">
+                        <input type="email" id="login-email" placeholder="Email" required>
+                        <input type="password" id="login-password" placeholder="Mot de passe" required>
+                        <button type="submit" class="btn-main">Se connecter</button>
+                        <p class="error-message" id="login-error"></p>
+                        <p class="form-switch">Pas de compte ? <a href="#" id="show-signup">Inscrivez-vous</a></p>
+                    </form>
+                </div>
+                <div class="form-container hidden" id="signup-form-container">
+                    <h2>Inscription</h2>
+                    <form id="signup-form">
+                        <input type="email" id="signup-email" placeholder="Email" required>
+                        <input type="password" id="signup-password" placeholder="Mot de passe" required>
+                        <select id="signup-role">
+                            <option value="student">Je suis un élève</option>
+                            <option value="teacher">Je suis un professeur</option>
+                        </select>
+                        <button type="submit" class="btn-main">S'inscrire</button>
+                        <p class="error-message" id="signup-error"></p>
+                        <p class="form-switch">Déjà un compte ? <a href="#" id="show-login">Connectez-vous</a></p>
+                    </form>
+                </div>
+            </div>
+        </section>
+
+        <!-- Les autres pages -->
         <section id="teacher-dashboard" class="page"></section>
         <section id="student-dashboard" class="page"></section>
         <section id="content-page" class="page"></section>
         <section id="class-details-page" class="page"></section>
     </main>
     
-    <!-- Les modales sont nécessaires pour le script -->
+    <!-- Les modales -->
     <div id="create-class-modal" class="modal-overlay hidden"></div>
     <div id="generation-modal" class="modal-overlay hidden"></div>
     <div id="result-details-modal" class="modal-overlay hidden"></div>

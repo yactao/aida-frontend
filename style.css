@@ -35,7 +35,7 @@ header { display: flex; justify-content: space-between; align-items: center; pad
 
 /* --- GESTION DES PAGES --- */
 main { padding: 0; }
-.page { display: none; }
+.page { display: none; padding: 2rem 5%; }
 .page.active { display: block; animation: fadeIn 0.5s ease-in-out; }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
@@ -62,7 +62,7 @@ body.dark-mode .selection-card:hover { box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3
 .selection-card:nth-child(3):hover { border-top-color: #F5A623; } 
 .playground-card:hover { border-top-color: #7ED321; }
 
-/* --- NOUVELLE ANIMATION D'ICÔNES FLOTTANTES --- */
+/* --- ANIMATION D'ICÔNES FLOTTANTES --- */
 .floating-icons-background { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; pointer-events: none; }
 .floating-icons-background i { position: absolute; color: rgba(128, 128, 128, 0.15); font-size: 40px; animation: floatUp 20s infinite linear; bottom: -50px; }
 body.dark-mode .floating-icons-background i { color: rgba(255, 255, 255, 0.1); }
