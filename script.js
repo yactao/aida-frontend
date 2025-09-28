@@ -266,10 +266,8 @@ document.addEventListener('DOMContentLoaded', () => {
         registerBtn.addEventListener('click', () => changePage('auth-page'));
         
         // CORRECTION: Logique du menu utilisateur
-        userMenuContainer.addEventListener('click', (e) => {
-            if (e.target.closest('#dropdown-user-info')) {
-                userDropdown.classList.toggle('hidden');
-            }
+        dropdownUserInfo.addEventListener('click', () => {
+            userDropdown.classList.toggle('hidden');
         });
         window.addEventListener('click', (e) => {
             if (!userMenuContainer.contains(e.target)) {
