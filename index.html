@@ -34,6 +34,7 @@
                     </div>
                 </div>
             </div>
+            <a href="playground.html" class="btn-secondary">Playground</a>
             <a href="#" class="btn-register">Connexion</a>
         </div>
     </header>
@@ -41,19 +42,12 @@
         <!-- PAGE 1: ACCUEIL -->
         <section id="home" class="page active">
             <div class="intro-animation-container">
-                <div class="animation-stage" id="aida-intro-animation">
-                    <!-- Les éléments de l'animation seront ajoutés ici par JS -->
-                </div>
+                <div class="animation-stage" id="aida-intro-animation"></div>
             </div>
             <div class="hero-content hidden">
                 <h1>L'innovation pédagogique au service de la <span class="gradient-text">réussite</span>.</h1>
                 <p>Une plateforme unique pour les élèves, les enseignants et les établissements. Rejoignez-nous !</p>
-                <div class="home-selection-container">
-                    <div class="selection-card" data-target="auth-page"> <i class="fa-solid fa-user-graduate"></i> <h3>Élève</h3> <p>Révise tes leçons et prépare tes examens.</p> </div>
-                    <div class="selection-card" data-target="auth-page"> <i class="fa-solid fa-chalkboard-user"></i> <h3>Enseignant</h3> <p>Crée des ressources et suis tes classes.</p> </div>
-                    <div class="selection-card" data-target="auth-page"> <i class="fa-solid fa-school"></i> <h3>Établissement</h3> <p>Déploie une solution innovante.</p> </div>
-                    <a href="playground.html" class="selection-card playground-card"> <i class="fa-solid fa-flask"></i> <h3>Playground</h3> <p>Teste AIDA librement, sans inscription.</p> </a>
-                </div>
+                <button id="start-btn" class="btn-main">Démarrer</button>
             </div>
         </section>
 
@@ -89,12 +83,12 @@
 
         <!-- PAGE 3: TABLEAU DE BORD ENSEIGNANT -->
         <section id="teacher-dashboard" class="page">
-            <h2 id="teacher-welcome">Tableau de bord de l'enseignant</h2>
+            <h2 id="teacher-welcome">Tableau de bord</h2>
             <div class="dashboard-grid">
                 <div class="dashboard-main-panel">
                     <h3>Mes Classes</h3>
                     <div id="class-list" class="class-grid"></div>
-                    <p id="no-classes-message" class="hidden">Vous n'avez pas encore de classe. Créez-en une pour commencer !</p>
+                    <p id="no-classes-message" class="hidden">Vous n'avez pas encore de classe.</p>
                 </div>
                 <div class="dashboard-side-panel">
                     <h3>Actions</h3>
@@ -105,27 +99,30 @@
         </section>
         
         <!-- PAGE 4: TABLEAU DE BORD ÉLÈVE -->
-        <section id="student-dashboard" class="page">
-            <h2 id="student-welcome">Bonjour !</h2>
-            <div class="dashboard-grid">
-                <div class="dashboard-main-panel">
-                    <h3>Mes Modules</h3>
-                    <div id="student-module-list"></div>
-                </div>
-                <div class="dashboard-side-panel" id="join-class-panel">
-                    <h3>Rejoindre une Classe</h3>
-                    <form id="join-class-form">
-                        <input type="text" id="class-code-input" placeholder="Nom exact de la classe" required>
-                        <button type="submit" class="btn-main">Rejoindre</button>
-                        <p class="error-message" id="join-class-error"></p>
-                    </form>
-                </div>
-            </div>
-        </section>
-
-        <!-- ... (Les autres pages et modales restent ici) ... -->
-
+        <section id="student-dashboard" class="page"></section>
+        <section id="content-page" class="page"></section>
+        <section id="class-details-page" class="page"></section>
     </main>
+    
+    <div id="create-class-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <h2>Créer une Nouvelle Classe</h2>
+            <form id="create-class-form">
+                <input type="text" id="class-name-input" placeholder="Nom de la classe (ex: CE2-B)" required>
+                <button type="submit" class="btn-main">Créer</button>
+                <p class="error-message" id="class-creation-error"></p>
+            </form>
+        </div>
+    </div>
+    <div id="generation-modal" class="modal-overlay hidden">
+         <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <h2>Générer une ressource</h2>
+            <!-- ... Contenu de la modale de génération ... -->
+        </div>
+    </div>
+
     <script src="script.js"></script>
 </body>
 </html>
