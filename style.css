@@ -62,7 +62,6 @@ body.dark-mode .btn-secondary { background-color: #2A3B4D; color: #A6C8FF; }
 .btn-register { background-color: transparent; border: 2px solid var(--primary-color); color: var(--primary-color);}
 .btn-register:hover { background-color: var(--primary-color); color: #FFF; }
 
-
 /* --- GESTION DES PAGES --- */
 main { padding: 2rem 5%; }
 .page { display: none; }
