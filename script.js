@@ -4,8 +4,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const homeLink = document.getElementById('home-link');
     const registerBtn = document.querySelector('.btn-register');
     const userMenuContainer = document.querySelector('.user-menu-container');
-    const userInfoClickable = document.getElementById('user-info-clickable');
-    const userDropdown = document.querySelector('.user-dropdown');
     const userEmailDisplay = document.getElementById('user-email-display');
     const logoutBtn = document.getElementById('logout-btn');
     const themeToggleBtn = document.getElementById('theme-toggle-btn');
@@ -21,50 +19,19 @@ document.addEventListener('DOMContentLoaded', () => {
     const noClassesMessage = document.getElementById('no-classes-message');
     const openResourceModalBtn = document.querySelector('.new-resource-btn');
     const generationModal = document.getElementById('generation-modal');
-    const resourceForm = document.getElementById('resource-form');
-    const modalFormStep = document.getElementById('modal-form-step');
-    const modalLoadingStep = document.getElementById('modal-loading-step');
-    const modalResultStep = document.getElementById('modal-result-step');
-    const assignClassSelect = document.getElementById('assign-class-select');
-    const studentWelcome = document.getElementById('student-welcome');
-    const joinClassPanel = document.getElementById('join-class-panel');
-    const joinClassForm = document.getElementById('join-class-form');
-    const studentModuleList = document.getElementById('student-module-list');
-    const contentTitle = document.getElementById('content-title');
-    const contentViewer = document.getElementById('content-viewer');
-    const submitQuizBtn = document.getElementById('submit-quiz-btn');
-    const quizResult = document.getElementById('quiz-result');
-    const classDetailsTitle = document.getElementById('class-details-title');
-    const classDetailsContent = document.getElementById('class-details-content');
-    const backToTeacherDashboardBtn = document.getElementById('back-to-teacher-dashboard');
-    const cycleSelect = document.getElementById('cycle-select');
-    const levelSelect = document.getElementById('level-select');
-    const subjectSelect = document.getElementById('subject-select');
-    const notionSelect = document.getElementById('notion-select');
-    const contentTypeSelect = document.getElementById('content-type-select');
-    const resourceFormButton = document.querySelector('#resource-form button');
-    const generatedContentEditor = document.getElementById('generated-content-editor');
-    const confirmAssignBtn = document.getElementById('confirm-assign-btn');
-    const backToDashboardBtn = document.getElementById('back-to-dashboard-btn');
     const aidaIntroAnimation = document.getElementById('aida-intro-animation');
     const startBtn = document.getElementById('start-btn');
 
     // --- VARIABLES GLOBALES ---
     const backendUrl = 'https://aida-backend-bqd0fnd2a3c7dadf.francecentral-01.azurewebsites.net/api';
     let currentUser = null;
-    let generatedContentData = null;
-    let programmesData = null;
-    let currentClassData = null;
-    let currentQuizData = null;
-    let currentClassId = null;
+    let introAnimationTimeout;
 
     // --- LOGIQUE DE L'APPLICATION ---
     function changePage(targetId) {
         pages.forEach(page => page.classList.remove('active'));
         const targetPage = document.getElementById(targetId);
-        if (targetPage) {
-            targetPage.classList.add('active');
-        }
+        if (targetPage) targetPage.classList.add('active');
     }
     
     function applyTheme(theme) {
@@ -102,7 +69,7 @@ document.addEventListener('DOMContentLoaded', () => {
             await fetchAndDisplayClasses();
             changePage('teacher-dashboard');
         } else {
-            await fetchAndDisplayStudentContent();
+            // await fetchAndDisplayStudentContent(); // Logique élève à venir
             changePage('student-dashboard');
         }
     }
@@ -125,46 +92,17 @@ document.addEventListener('DOMContentLoaded', () => {
             classes.forEach(cls => {
                 const classCard = document.createElement('div');
                 classCard.className = 'dashboard-card clickable';
-                classCard.innerHTML = `<h4><i class="fa-solid fa-users"></i> ${cls.className}</h4><p>${cls.students.length} élève(s)</p><p>${(cls.quizzes || []).length} contenu(s)</p>`;
-                classCard.addEventListener('click', () => showClassDetails(cls.id, cls.className));
+                classCard.innerHTML = `<h4><i class="fa-solid fa-users"></i> ${cls.className}</h4><p>${cls.students.length} élève(s)</p>`;
                 classListContainer.appendChild(classCard);
             });
         } catch(e) { console.error("Erreur de chargement des classes", e); }
     }
 
-    async function fetchAndDisplayStudentContent() {
-        if (!currentUser || !studentModuleList) return;
-        if (studentWelcome) studentWelcome.textContent = `Bonjour ${currentUser.email.split('@')[0]} !`;
-        try {
-            const response = await fetch(`${backendUrl}/student/classes/${currentUser.email}`);
-            const classes = await response.json();
-            studentModuleList.innerHTML = '';
-            if (joinClassPanel) joinClassPanel.classList.toggle('hidden', classes.length > 0);
-            if (classes.length === 0) {
-                studentModuleList.innerHTML = '<h4>Rejoignez une classe pour commencer.</h4>';
-                return;
-            }
-            let hasContent = false;
-            classes.forEach(cls => {
-                if(cls.quizzes && cls.quizzes.length > 0) {
-                    hasContent = true;
-                    cls.quizzes.forEach(content => {
-                        const card = document.createElement('div');
-                        card.className = 'dashboard-card';
-                        card.innerHTML = `<h4>${content.title}</h4><p>Classe: ${cls.className}</p><button class="btn-main">Commencer</button>`;
-                        card.querySelector('button').addEventListener('click', () => startContent(content, cls.id));
-                        studentModuleList.appendChild(card);
-                    });
-                }
-            });
-            if (!hasContent) {
-                studentModuleList.innerHTML = '<h4>Aucun module pour le moment.</h4>';
-            }
-        } catch(e) { console.error("Erreur de chargement des modules", e); }
-    }
-
+    // --- ANIMATION D'INTRODUCTION ---
     function setupIntroAnimation() {
-        if (!aidaIntroAnimation) return;
+        const heroContent = document.querySelector('.hero-content');
+        if (!aidaIntroAnimation || !heroContent) return;
+
         const animationTexts = ["Pour les élèves", "Pour les enseignants", "Créez des ressources", "Suivez les progrès", "Apprenez simplement"];
         const animationColors = ['#4A90E2', '#50E3C2', '#F5A623', '#8E44AD', '#D35400'];
         let currentIndex = 0;
@@ -180,24 +118,24 @@ document.addEventListener('DOMContentLoaded', () => {
                 aidaIntroAnimation.innerHTML = '';
                 aidaIntroAnimation.appendChild(textElement);
                 
-                setTimeout(() => {
+                introAnimationTimeout = setTimeout(() => {
                     textElement.className = 'animation-text is-leaving';
                     currentIndex++;
-                    setTimeout(animateStep, 1000);
-                }, 2000);
+                    introAnimationTimeout = setTimeout(animateStep, 750);
+                }, 1500);
             } else {
-                aidaIntroAnimation.innerHTML = `<div class="final-logo">
-                    <div class="logo-icon">A</div><span class="logo-text">AIDA</span><span class="logo-tagline">ÉDUCATION, C'EST PARTI !</span>
-                </div>`;
-                setTimeout(() => {
-                    aidaIntroAnimation.parentElement?.classList.add('hidden');
-                    document.querySelector('.hero-content')?.classList.remove('hidden');
-                }, 2000);
+                interruptIntroAnimation();
             }
         }
-        document.querySelector('.hero-content')?.classList.add('hidden');
+        heroContent.classList.add('hidden');
         aidaIntroAnimation.parentElement?.classList.remove('hidden');
         animateStep();
+    }
+    
+    function interruptIntroAnimation() {
+        clearTimeout(introAnimationTimeout);
+        aidaIntroAnimation.parentElement?.classList.add('hidden');
+        document.querySelector('.hero-content')?.classList.remove('hidden');
     }
 
     function initializeAppState() {
@@ -206,8 +144,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function setupEventListeners() {
         homeLink?.addEventListener('click', (e) => { e.preventDefault(); initializeAppState(); });
-        registerBtn?.addEventListener('click', (e) => { e.preventDefault(); changePage('auth-page'); });
-        startBtn?.addEventListener('click', (e) => { e.preventDefault(); changePage('auth-page'); });
+        
+        registerBtn?.addEventListener('click', (e) => { 
+            e.preventDefault(); 
+            interruptIntroAnimation();
+            changePage('auth-page'); 
+        });
+        startBtn?.addEventListener('click', (e) => { 
+            e.preventDefault(); 
+            interruptIntroAnimation();
+            changePage('auth-page'); 
+        });
         
         loginForm?.addEventListener('submit', (e) => { e.preventDefault(); handleAuth('/auth/login', { email: e.target.elements['login-email'].value, password: e.target.elements['login-password'].value }); });
         signupForm?.addEventListener('submit', (e) => { e.preventDefault(); handleAuth('/auth/signup', { email: e.target.elements['signup-email'].value, password: e.target.elements['signup-password'].value, role: e.target.elements['signup-role'].value }); });
