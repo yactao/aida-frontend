@@ -278,19 +278,65 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function submitQuiz(quizData, classId) {
-        let score = 0;
         const userAnswers = [];
         quizData.questions.forEach((q, index) => {
             const selectedInput = document.querySelector(`input[name="question-${index}"]:checked`);
-            const answerIndex = selectedInput ? parseInt(selectedInput.value) : -1;
-            userAnswers.push(answerIndex);
-            if (answerIndex == q.correct_answer_index) {
-                score++;
-            }
+            userAnswers.push(selectedInput ? parseInt(selectedInput.value) : -1);
         });
 
-        // Envoyer les résultats au backend
+        // Bloquer les réponses et afficher la correction
+        submitQuizBtn.classList.add('hidden');
+        contentViewer.innerHTML = ''; // Nettoyer pour afficher la correction
+
+        for (let i = 0; i < quizData.questions.length; i++) {
+            const q = quizData.questions[i];
+            const studentAnswerIndex = userAnswers[i];
+            const isCorrect = studentAnswerIndex == q.correct_answer_index;
+
+            const feedbackElement = document.createElement('div');
+            feedbackElement.className = `question-feedback ${isCorrect ? 'correct' : 'incorrect'}`;
+            
+            let optionsHTML = q.options.map((option, idx) => {
+                let className = '';
+                if (idx == studentAnswerIndex) className = isCorrect ? 'correct' : 'incorrect';
+                else if (idx == q.correct_answer_index) className = 'correct';
+                return `<div class="answer ${className}">${option}</div>`;
+            }).join('');
+
+            feedbackElement.innerHTML = `<p><strong>${i + 1}. ${q.question_text}</strong></p>${optionsHTML}`;
+
+            if (!isCorrect) {
+                const explanationSpinner = document.createElement('div');
+                explanationSpinner.className = 'spinner';
+                feedbackElement.appendChild(explanationSpinner);
+
+                try {
+                    const response = await fetch(`${backendUrl}/generate/explanation`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            question: q.question_text,
+                            studentAnswer: q.options[studentAnswerIndex] || "Aucune réponse",
+                            correctAnswer: q.options[q.correct_answer_index]
+                        })
+                    });
+                    const data = await response.json();
+                    explanationSpinner.remove();
+                    const explanationDiv = document.createElement('div');
+                    explanationDiv.className = 'aida-explanation';
+                    explanationDiv.innerHTML = `💡 **AIDA dit :** ${data.explanation}`;
+                    feedbackElement.appendChild(explanationDiv);
+                } catch (error) {
+                    explanationSpinner.remove();
+                    console.error("Erreur explication:", error);
+                }
+            }
+            contentViewer.appendChild(feedbackElement);
+        }
+
+        // Envoyer les résultats au backend en arrière-plan
         try {
+            let score = userAnswers.reduce((acc, ans, idx) => acc + (ans == quizData.questions[idx].correct_answer_index ? 1 : 0), 0);
             await fetch(`${backendUrl}/quiz/submit`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -307,11 +353,6 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (error) {
             console.error("Erreur lors de l'envoi du score:", error);
         }
-
-        // Afficher la correction
-        quizResult.textContent = `Votre score : ${score} / ${quizData.questions.length}`;
-        quizResult.classList.remove('hidden');
-        submitQuizBtn.classList.add('hidden');
     }
 
     // --- INITIALISATION & GESTION DES ÉVÉNEMENTS ---
