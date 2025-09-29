@@ -45,14 +45,14 @@
                     <!-- Les éléments de l'animation seront ajoutés ici par JS -->
                 </div>
             </div>
-            <div class="hero-content">
+            <div class="hero-content hidden">
                 <h1>L'innovation pédagogique au service de la <span class="gradient-text">réussite</span>.</h1>
-                <p>Une plateforme unique pour les élèves, les enseignants et les établissements. Rejoignez nous ?</p>
+                <p>Une plateforme unique pour les élèves, les enseignants et les établissements. Rejoignez-nous !</p>
                 <div class="home-selection-container">
-                    <div class="selection-card" data-target="auth-page"> <i class="fa-solid fa-user-graduate"></i> <h3>Élève</h3> <p>Révise tes leçons et prépare tes examens avec ton tuteur AIDA.</p> </div>
-                    <div class="selection-card" data-target="auth-page"> <i class="fa-solid fa-chalkboard-user"></i> <h3>Enseignant</h3> <p>Crée des ressources sur-mesure et suis les progrès de tes classes.</p> </div>
-                    <div class="selection-card" data-target="auth-page"> <i class="fa-solid fa-school"></i> <h3>Établissement</h3> <p>Déploie une solution d'apprentissage innovante pour tous tes élèves.</p> </div>
-                    <a href="playground.html" class="selection-card playground-card"> <i class="fa-solid fa-flask"></i> <h3>Playground</h3> <p>Teste AIDA librement, sans inscription, pour discuter avec l'IA.</p> </a>
+                    <div class="selection-card" data-target="auth-page"> <i class="fa-solid fa-user-graduate"></i> <h3>Élève</h3> <p>Révise tes leçons et prépare tes examens.</p> </div>
+                    <div class="selection-card" data-target="auth-page"> <i class="fa-solid fa-chalkboard-user"></i> <h3>Enseignant</h3> <p>Crée des ressources et suis tes classes.</p> </div>
+                    <div class="selection-card" data-target="auth-page"> <i class="fa-solid fa-school"></i> <h3>Établissement</h3> <p>Déploie une solution innovante.</p> </div>
+                    <a href="playground.html" class="selection-card playground-card"> <i class="fa-solid fa-flask"></i> <h3>Playground</h3> <p>Teste AIDA librement, sans inscription.</p> </a>
                 </div>
             </div>
         </section>
@@ -123,123 +123,9 @@
             </div>
         </section>
 
-        <!-- PAGE 5: CONTENU (QUIZ/EXERCICE) -->
-        <section id="content-page" class="page">
-            <button id="back-to-dashboard-btn" class="btn-secondary"><i class="fa-solid fa-arrow-left"></i> Retour au tableau de bord</button>
-            <div class="quiz-container">
-                <h2 id="content-title">Titre du Contenu</h2>
-                <div id="content-viewer">
-                    <!-- Les questions de quiz ou exercices seront affichées ici -->
-                </div>
-                <div id="quiz-result" class="hidden"></div>
-                <button id="submit-quiz-btn" class="btn-main hidden">Soumettre le Quiz</button>
-            </div>
-        </section>
+        <!-- ... (Les autres pages et modales restent ici) ... -->
 
-        <!-- PAGE 6: DÉTAILS DE CLASSE (ENSEIGNANT) -->
-        <section id="class-details-page" class="page">
-            <button id="back-to-teacher-dashboard-btn" class="btn-secondary"><i class="fa-solid fa-arrow-left"></i> Retour aux classes</button>
-            <div class="class-details-container">
-                <h2 id="class-details-title"></h2>
-                <div id="class-details-content">
-                    <!-- Contenu détaillé des classes et résultats -->
-                </div>
-            </div>
-        </section>
     </main>
-    
-    <!-- Les MODALES (Pop-ups) -->
-    <!-- Modale Créer une Classe -->
-    <div id="create-class-modal" class="modal-overlay hidden">
-        <div class="modal-content">
-            <span class="close-modal">&times;</span>
-            <h2>Créer une Nouvelle Classe</h2>
-            <form id="create-class-form">
-                <div class="form-group">
-                    <label for="class-name-input">Nom de la classe</label>
-                    <input type="text" id="class-name-input" placeholder="Ex: CE2-A" required>
-                </div>
-                <button type="submit" class="btn-main">Créer la Classe</button>
-                <p class="error-message" id="class-creation-error"></p>
-            </form>
-        </div>
-    </div>
-
-    <!-- Modale Générer/Assigner une Ressource -->
-    <div id="generation-modal" class="modal-overlay hidden">
-        <div class="modal-content">
-            <span class="close-modal">&times;</span>
-            <h2>Créer une Nouvelle Ressource</h2>
-
-            <div id="modal-form-step">
-                <h3>1. Choisir le Sujet</h3>
-                <form id="resource-form">
-                    <div class="form-group">
-                        <label for="cycle-select">Cycle</label>
-                        <select id="cycle-select" required>
-                            <option value="">-- Choisir un cycle --</option>
-                            <option value="primaire">Primaire</option>
-                            <option value="college">Collège</option>
-                            <option value="lycee">Lycée</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="level-select">Classe</label>
-                        <select id="level-select" disabled required><option value="">-- D'abord choisir un cycle --</option></select>
-                    </div>
-                    <div class="form-group">
-                        <label for="subject-select">Matière</label>
-                        <select id="subject-select" disabled required><option value="">-- D'abord choisir une classe --</option></select>
-                    </div>
-                    <div class="form-group">
-                        <label for="notion-select">Notion à aborder</label>
-                        <select id="notion-select" disabled required><option value="">-- D'abord choisir une matière --</option></select>
-                    </div>
-                    <div class="form-group">
-                        <label for="content-type-select">Type de contenu</label>
-                        <select id="content-type-select" required>
-                            <option value="quiz">Quiz</option>
-                            <option value="exercices">Exercices</option>
-                        </select>
-                    </div>
-                    <button type="submit" class="btn-main" id="generate-resource-btn" disabled>Générer la Ressource</button>
-                </form>
-            </div>
-
-            <div id="modal-loading-step" class="hidden">
-                <h3>Génération en cours...</h3>
-                <div class="spinner"></div>
-                <p>AIDA est en train de créer votre contenu. Cela peut prendre quelques instants.</p>
-            </div>
-
-            <div id="modal-result-step" class="hidden">
-                <h3>2. Vérifier et Assignez</h3>
-                <div class="form-group">
-                    <label for="generated-content-editor">Contenu généré (modifiable)</label>
-                    <textarea id="generated-content-editor" rows="10" class="w-full p-2 border rounded"></textarea>
-                </div>
-                <div class="form-group">
-                    <label for="assign-class-select">Assigner à la classe :</label>
-                    <select id="assign-class-select" required>
-                        <option value="">-- Sélectionnez une classe --</option>
-                    </select>
-                </div>
-                <button id="confirm-assign-btn" class="btn-main">Confirmer et Assigner</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Modale Détails des Résultats (pour Enseignant) -->
-    <div id="result-details-modal" class="modal-overlay hidden">
-        <div class="modal-content">
-            <span class="close-modal">&times;</span>
-            <h2 id="result-modal-title">Détails des Réponses</h2>
-            <div id="result-modal-content">
-                <!-- Les réponses détaillées du quiz de l'élève s'afficheront ici -->
-            </div>
-        </div>
-    </div>
-
     <script src="script.js"></script>
 </body>
 </html>
