@@ -117,16 +117,88 @@ document.addEventListener('DOMContentLoaded', () => {
     async function fetchAndDisplayClasses() {
         if (!currentUser || !classListContainer) return;
         if (teacherWelcome) teacherWelcome.textContent = `Tableau de bord de ${currentUser.email.split('@')[0]}`;
-        // ... (Le reste de la logique pour afficher les classes)
+        try {
+            const response = await fetch(`${backendUrl}/classes/${currentUser.email}`);
+            const classes = await response.json();
+            classListContainer.innerHTML = '';
+            if (noClassesMessage) noClassesMessage.style.display = classes.length === 0 ? 'block' : 'none';
+            classes.forEach(cls => {
+                const classCard = document.createElement('div');
+                classCard.className = 'dashboard-card clickable';
+                classCard.innerHTML = `<h4><i class="fa-solid fa-users"></i> ${cls.className}</h4><p>${cls.students.length} élève(s)</p><p>${(cls.quizzes || []).length} contenu(s)</p>`;
+                classCard.addEventListener('click', () => showClassDetails(cls.id, cls.className));
+                classListContainer.appendChild(classCard);
+            });
+        } catch(e) { console.error("Erreur de chargement des classes", e); }
     }
 
     async function fetchAndDisplayStudentContent() {
         if (!currentUser || !studentModuleList) return;
         if (studentWelcome) studentWelcome.textContent = `Bonjour ${currentUser.email.split('@')[0]} !`;
-        // ... (Le reste de la logique pour afficher les modules)
+        try {
+            const response = await fetch(`${backendUrl}/student/classes/${currentUser.email}`);
+            const classes = await response.json();
+            studentModuleList.innerHTML = '';
+            if (joinClassPanel) joinClassPanel.classList.toggle('hidden', classes.length > 0);
+            if (classes.length === 0) {
+                studentModuleList.innerHTML = '<h4>Rejoignez une classe pour commencer.</h4>';
+                return;
+            }
+            let hasContent = false;
+            classes.forEach(cls => {
+                if(cls.quizzes && cls.quizzes.length > 0) {
+                    hasContent = true;
+                    cls.quizzes.forEach(content => {
+                        const card = document.createElement('div');
+                        card.className = 'dashboard-card';
+                        card.innerHTML = `<h4>${content.title}</h4><p>Classe: ${cls.className}</p><button class="btn-main">Commencer</button>`;
+                        card.querySelector('button').addEventListener('click', () => startContent(content, cls.id));
+                        studentModuleList.appendChild(card);
+                    });
+                }
+            });
+            if (!hasContent) {
+                studentModuleList.innerHTML = '<h4>Aucun module pour le moment.</h4>';
+            }
+        } catch(e) { console.error("Erreur de chargement des modules", e); }
     }
 
-    function setupIntroAnimation() { /* ... (code de l'animation de roulement) ... */ }
+    function setupIntroAnimation() {
+        if (!aidaIntroAnimation) return;
+        const animationTexts = ["Pour les élèves", "Pour les enseignants", "Créez des ressources", "Suivez les progrès", "Apprenez simplement"];
+        const animationColors = ['#4A90E2', '#50E3C2', '#F5A623', '#8E44AD', '#D35400'];
+        let currentIndex = 0;
+
+        function animateStep() {
+            if (currentIndex < animationTexts.length) {
+                const text = animationTexts[currentIndex];
+                const textElement = document.createElement('span');
+                textElement.className = 'animation-text is-entering';
+                textElement.textContent = text;
+                textElement.style.color = animationColors[currentIndex % animationColors.length];
+                
+                aidaIntroAnimation.innerHTML = '';
+                aidaIntroAnimation.appendChild(textElement);
+                
+                setTimeout(() => {
+                    textElement.className = 'animation-text is-leaving';
+                    currentIndex++;
+                    setTimeout(animateStep, 1000);
+                }, 2000);
+            } else {
+                aidaIntroAnimation.innerHTML = `<div class="final-logo">
+                    <div class="logo-icon">A</div><span class="logo-text">AIDA</span><span class="logo-tagline">ÉDUCATION, C'EST PARTI !</span>
+                </div>`;
+                setTimeout(() => {
+                    aidaIntroAnimation.parentElement?.classList.add('hidden');
+                    document.querySelector('.hero-content')?.classList.remove('hidden');
+                }, 2000);
+            }
+        }
+        document.querySelector('.hero-content')?.classList.add('hidden');
+        aidaIntroAnimation.parentElement?.classList.remove('hidden');
+        animateStep();
+    }
 
     function initializeAppState() {
         changePage('home');
@@ -148,6 +220,18 @@ document.addEventListener('DOMContentLoaded', () => {
             btn.addEventListener('click', () => {
                 btn.closest('.modal-overlay').classList.add('hidden');
             });
+        });
+        
+        createClassForm?.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const className = e.target.elements['class-name-input'].value;
+            try {
+                await fetch(`${backendUrl}/classes/create`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ className, teacherEmail: currentUser.email }) });
+                await fetchAndDisplayClasses();
+                classModal.classList.add('hidden');
+            } catch (error) {
+                console.error("Erreur création classe", error);
+            }
         });
     }
 
