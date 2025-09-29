@@ -4,8 +4,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const homeLink = document.getElementById('home-link');
     const registerBtn = document.querySelector('.btn-register');
     const userMenuContainer = document.querySelector('.user-menu-container');
-    const userInfoClickable = document.getElementById('user-info-clickable');
-    const userDropdown = document.querySelector('.user-dropdown');
     const userEmailDisplay = document.getElementById('user-email-display');
     const logoutBtn = document.getElementById('logout-btn');
     const themeToggleBtn = document.getElementById('theme-toggle-btn');
@@ -21,51 +19,22 @@ document.addEventListener('DOMContentLoaded', () => {
     const noClassesMessage = document.getElementById('no-classes-message');
     const openResourceModalBtn = document.querySelector('.new-resource-btn');
     const generationModal = document.getElementById('generation-modal');
-    const resourceForm = document.getElementById('resource-form');
-    const modalFormStep = document.getElementById('modal-form-step');
-    const modalLoadingStep = document.getElementById('modal-loading-step');
-    const modalResultStep = document.getElementById('modal-result-step');
-    const assignClassSelect = document.getElementById('assign-class-select');
     const studentWelcome = document.getElementById('student-welcome');
-    const joinClassPanel = document.getElementById('join-class-panel');
-    const joinClassForm = document.getElementById('join-class-form');
     const studentModuleList = document.getElementById('student-module-list');
-    const contentTitle = document.getElementById('content-title');
-    const contentViewer = document.getElementById('content-viewer');
-    const submitQuizBtn = document.getElementById('submit-quiz-btn');
-    const quizResult = document.getElementById('quiz-result');
-    const classDetailsTitle = document.getElementById('class-details-title');
-    const classDetailsContent = document.getElementById('class-details-content');
-    const backToTeacherDashboardBtn = document.getElementById('back-to-teacher-dashboard');
-    const cycleSelect = document.getElementById('cycle-select');
-    const levelSelect = document.getElementById('level-select');
-    const subjectSelect = document.getElementById('subject-select');
-    const notionSelect = document.getElementById('notion-select');
-    const contentTypeSelect = document.getElementById('content-type-select');
-    const resourceFormButton = document.querySelector('#resource-form button');
-    const generatedContentEditor = document.getElementById('generated-content-editor');
-    const confirmAssignBtn = document.getElementById('confirm-assign-btn');
-    const backToDashboardBtn = document.getElementById('back-to-dashboard-btn');
+    const joinClassPanel = document.getElementById('join-class-panel');
     const aidaIntroAnimation = document.getElementById('aida-intro-animation');
     const startBtn = document.getElementById('start-btn');
 
     // --- VARIABLES GLOBALES ---
     const backendUrl = 'https://aida-backend-bqd0fnd2a3c7dadf.francecentral-01.azurewebsites.net/api';
     let currentUser = null;
-    let introAnimationTimeout; // Pour pouvoir interrompre l'animation
-    let generatedContentData = null;
-    let programmesData = null;
-    let currentClassData = null;
-    let currentQuizData = null;
-    let currentClassId = null;
+    let introAnimationTimeout;
 
     // --- LOGIQUE DE L'APPLICATION ---
     function changePage(targetId) {
         pages.forEach(page => page.classList.remove('active'));
         const targetPage = document.getElementById(targetId);
-        if (targetPage) {
-            targetPage.classList.add('active');
-        }
+        if (targetPage) targetPage.classList.add('active');
     }
     
     function applyTheme(theme) {
@@ -98,13 +67,12 @@ document.addEventListener('DOMContentLoaded', () => {
         registerBtn?.classList.add('hidden');
         userMenuContainer?.classList.remove('hidden');
         if (userEmailDisplay) userEmailDisplay.textContent = currentUser.email;
-        if (userDropdown) userDropdown.classList.add('hidden');
         
         if (currentUser.role === 'teacher') {
             await fetchAndDisplayClasses();
             changePage('teacher-dashboard');
         } else {
-            await fetchAndDisplayStudentContent();
+            // await fetchAndDisplayStudentContent(); // Logique élève
             changePage('student-dashboard');
         }
     }
@@ -127,17 +95,10 @@ document.addEventListener('DOMContentLoaded', () => {
             classes.forEach(cls => {
                 const classCard = document.createElement('div');
                 classCard.className = 'dashboard-card clickable';
-                classCard.innerHTML = `<h4><i class="fa-solid fa-users"></i> ${cls.className}</h4><p>${cls.students.length} élève(s)</p><p>${(cls.quizzes || []).length} contenu(s)</p>`;
-                classCard.addEventListener('click', () => showClassDetails(cls.id, cls.className));
+                classCard.innerHTML = `<h4><i class="fa-solid fa-users"></i> ${cls.className}</h4><p>${cls.students.length} élève(s)</p>`;
                 classListContainer.appendChild(classCard);
             });
         } catch(e) { console.error("Erreur de chargement des classes", e); }
-    }
-
-    async function fetchAndDisplayStudentContent() {
-        if (!currentUser || !studentModuleList) return;
-        if (studentWelcome) studentWelcome.textContent = `Bonjour ${currentUser.email.split('@')[0]} !`;
-        // ... (Le reste de la logique pour afficher les modules)
     }
 
     // --- ANIMATION D'INTRODUCTION ---
