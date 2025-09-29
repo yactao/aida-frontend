@@ -72,7 +72,7 @@ document.addEventListener('DOMContentLoaded', () => {
             await fetchAndDisplayClasses();
             changePage('teacher-dashboard');
         } else {
-            // await fetchAndDisplayStudentContent(); // Logique élève
+            // await fetchAndDisplayStudentContent(); // Logique élève à venir
             changePage('student-dashboard');
         }
     }

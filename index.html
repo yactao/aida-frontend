@@ -98,12 +98,31 @@
             </div>
         </section>
         
-        <!-- Les autres pages et modales sont ici pour que la navigation fonctionne -->
-        <section id="student-dashboard" class="page"></section>
+        <!-- PAGE 4: TABLEAU DE BORD ÉLÈVE -->
+        <section id="student-dashboard" class="page">
+             <h2 id="student-welcome">Bonjour !</h2>
+            <div class="dashboard-grid">
+                <div class="dashboard-main-panel">
+                    <h3>Mes Modules</h3>
+                    <div id="student-module-list"></div>
+                </div>
+                <div class="dashboard-side-panel" id="join-class-panel">
+                    <h3>Rejoindre une Classe</h3>
+                    <form id="join-class-form">
+                        <input type="text" id="class-code-input" placeholder="Nom exact de la classe" required>
+                        <button type="submit" class="btn-main">Rejoindre</button>
+                        <p class="error-message" id="join-class-error"></p>
+                    </form>
+                </div>
+            </div>
+        </section>
+
+        <!-- Autres pages cachées -->
         <section id="content-page" class="page"></section>
         <section id="class-details-page" class="page"></section>
     </main>
     
+    <!-- MODALES -->
     <div id="create-class-modal" class="modal-overlay hidden">
          <div class="modal-content">
             <span class="close-modal">&times;</span>
@@ -119,7 +138,7 @@
          <div class="modal-content">
             <span class="close-modal">&times;</span>
             <h2>Générer une ressource</h2>
-            <!-- ... Contenu de la modale de génération ... -->
+            <!-- Le contenu de cette modale sera ajouté par le script -->
         </div>
     </div>
 
