@@ -19,31 +19,41 @@ document.addEventListener('DOMContentLoaded', () => {
     const classListContainer = document.getElementById('class-list');
     const noClassesMessage = document.getElementById('no-classes-message');
     const openResourceModalBtn = document.querySelector('.new-resource-btn');
+    
+    // Modales
     const generationModal = document.getElementById('generation-modal');
+    const assignmentModal = document.getElementById('assignment-modal');
+    
     const resourceForm = document.getElementById('resource-form');
     const modalFormStep = document.getElementById('modal-form-step');
     const modalLoadingStep = document.getElementById('modal-loading-step');
-    const modalResultStep = document.getElementById('modal-result-step');
+    
     const assignClassSelect = document.getElementById('assign-class-select');
     const studentWelcome = document.getElementById('student-welcome');
     const joinClassPanel = document.getElementById('join-class-panel');
     const joinClassForm = document.getElementById('join-class-form');
     const studentModuleList = document.getElementById('student-module-list');
+    
     const contentTitle = document.getElementById('content-title');
     const contentViewer = document.getElementById('content-viewer');
+    const speakContentBtn = document.getElementById('speak-content-btn');
     const submitQuizBtn = document.getElementById('submit-quiz-btn');
     const quizResult = document.getElementById('quiz-result');
+
     const classDetailsTitle = document.getElementById('class-details-title');
     const classDetailsContent = document.getElementById('class-details-content');
     const backToTeacherDashboardBtn = document.getElementById('back-to-teacher-dashboard');
+    
     const cycleSelect = document.getElementById('cycle-select');
     const levelSelect = document.getElementById('level-select');
     const subjectSelect = document.getElementById('subject-select');
     const notionSelect = document.getElementById('notion-select');
     const contentTypeSelect = document.getElementById('content-type-select');
     const resourceFormButton = document.querySelector('#resource-form button');
+    
     const generatedContentEditor = document.getElementById('generated-content-editor');
     const confirmAssignBtn = document.getElementById('confirm-assign-btn');
+    
     const userMenuContainer = document.querySelector('.user-menu-container');
     const userInfoClickable = document.getElementById('user-info-clickable');
     const userDropdown = document.querySelector('.user-dropdown');
@@ -58,10 +68,39 @@ document.addEventListener('DOMContentLoaded', () => {
     let programmesData = null;
     let currentClassData = null; // Stockera les données de la classe consultée
 
+    // --- SYNTHÈSE VOCALE ---
+    function getTextFromContentViewer() {
+        let text = contentTitle.textContent + '. ';
+        contentViewer.querySelectorAll('.quiz-question, .question-feedback').forEach(q => {
+            const questionText = q.querySelector('p strong');
+            if(questionText) text += questionText.textContent + '. ';
+            q.querySelectorAll('label, .answer').forEach(opt => {
+                text += opt.textContent + '. ';
+            });
+        });
+        return text;
+    }
+
+    function speakText(text, buttonElement) {
+        if (speechSynthesis.speaking) {
+            speechSynthesis.cancel();
+            buttonElement.classList.remove('speaking');
+            return;
+        }
+        if (text) {
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'fr-FR';
+            utterance.onstart = () => buttonElement.classList.add('speaking');
+            utterance.onend = () => buttonElement.classList.remove('speaking');
+            speechSynthesis.speak(utterance);
+        }
+    }
+
     // --- NAVIGATION ET UI ---
     function changePage(targetId) {
         pages.forEach(page => page.classList.remove('active'));
         document.getElementById(targetId)?.classList.add('active');
+        speechSynthesis.cancel(); // Arrêter la lecture si on change de page
     }
 
     function applyTheme(theme) {
@@ -187,7 +226,8 @@ document.addEventListener('DOMContentLoaded', () => {
     function displayContentForTeacher(contentId) {
         const content = currentClassData.quizzes.find(q => q.id === contentId);
         if (!content) return;
-        alert(`Prévisualisation de : ${content.title}\n\n` + JSON.stringify(content, null, 2));
+        // Pour les profs, on utilise la même page que les élèves pour la prévisualisation
+        displayContent(content, currentClassData.id);
     }
 
     function displayStudentResultDetails(resultId) {
@@ -255,9 +295,12 @@ document.addEventListener('DOMContentLoaded', () => {
         submitQuizBtn.classList.add('hidden');
         quizResult.classList.add('hidden');
         
+        // Cacher le bouton "Valider" si c'est un prof qui prévisualise
+        const isTeacherPreview = currentUser.role === 'teacher';
+
         switch(contentData.type) {
             case 'quiz':
-                displayQuiz(contentData, classId);
+                displayQuiz(contentData, classId, isTeacherPreview);
                 break;
             default:
                 contentViewer.innerHTML = `<p>${contentData.content || "Ce type de contenu n'est pas encore supporté."}</p>`;
@@ -265,16 +308,19 @@ document.addEventListener('DOMContentLoaded', () => {
         changePage('content-page');
     }
     
-    function displayQuiz(quizData, classId) {
+    function displayQuiz(quizData, classId, isTeacherPreview) {
         quizData.questions.forEach((q, index) => {
             const questionElement = document.createElement('div');
             questionElement.className = 'quiz-question';
-            const optionsHTML = q.options.map((option, i) => `<label><input type="radio" name="question-${index}" value="${i}"> ${option}</label>`).join('');
+            const optionsHTML = q.options.map((option, i) => `<label><input type="radio" name="question-${index}" value="${i}" ${isTeacherPreview ? 'disabled' : ''}> ${option}</label>`).join('');
             questionElement.innerHTML = `<p><strong>${index + 1}. ${q.question_text}</strong></p><div class="quiz-options">${optionsHTML}</div>`;
             contentViewer.appendChild(questionElement);
         });
-        submitQuizBtn.classList.remove('hidden');
-        submitQuizBtn.onclick = () => submitQuiz(quizData, classId); // Attacher l'événement
+        
+        if (!isTeacherPreview) {
+            submitQuizBtn.classList.remove('hidden');
+            submitQuizBtn.onclick = () => submitQuiz(quizData, classId); // Attacher l'événement
+        }
     }
 
     async function submitQuiz(quizData, classId) {
@@ -400,7 +446,6 @@ document.addEventListener('DOMContentLoaded', () => {
         programmesData = null;
         modalFormStep.classList.remove('hidden');
         modalLoadingStep.classList.add('hidden');
-        modalResultStep.classList.add('hidden');
     }
 
     async function loadProgrammesForCycle(cycle) {
@@ -432,6 +477,11 @@ document.addEventListener('DOMContentLoaded', () => {
         backToDashboardBtn.addEventListener('click', () => {
             if(currentUser.role === 'teacher') changePage('teacher-dashboard');
             else changePage('student-dashboard');
+        });
+
+        speakContentBtn.addEventListener('click', () => {
+            const textToRead = getTextFromContentViewer();
+            speakText(textToRead, speakContentBtn);
         });
 
         themeToggleBtn.addEventListener('click', () => {
@@ -475,8 +525,8 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         openResourceModalBtn.addEventListener('click', () => {
-            generationModal.classList.remove('hidden');
             initializeResourceModal();
+            generationModal.classList.remove('hidden');
         });
 
         cycleSelect.addEventListener('change', () => loadProgrammesForCycle(cycleSelect.value));
@@ -543,12 +593,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (!response.ok) throw new Error(data.error);
                 
                 generatedContentEditor.value = data.text_representation;
-                generatedContentData = data.structured_content; // Garder le JSON en mémoire
+                generatedContentData = data.structured_content;
                 
-                modalLoadingStep.classList.add('hidden');
-                modalResultStep.classList.remove('hidden');
+                generationModal.classList.add('hidden'); // On ferme l'ancienne modale
+                assignmentModal.classList.remove('hidden'); // On ouvre le nouveau pop-up
             } catch (err) {
                 alert("Erreur de génération: " + err.message);
+            } finally {
+                // On réinitialise la modale de génération pour la prochaine fois
                 initializeResourceModal();
             }
         });
@@ -573,7 +625,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
                 if (!assignResponse.ok) throw new Error((await assignResponse.json()).error);
                 alert("Contenu assigné avec succès !");
-                generationModal.classList.add('hidden');
+                assignmentModal.classList.add('hidden');
                 await fetchAndDisplayClasses();
             } catch (error) { alert(`Erreur: ${error.message}`); }
         });

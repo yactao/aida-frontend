@@ -44,8 +44,7 @@
         <!-- PAGE 1: ACCUEIL -->
         <section id="home" class="page active">
             <h1>Bienvenue dans l'école <span class="gradient-text">2.0</span></h1>
-            <p>L'innovation pédagogique au service de la réussite. 
-                <br>Une plateforme unique pour les élèves, les enseignants et les établissements. Rejoignez-nous !</p>
+            <p>L'innovation pédagogique au service de la réussite. Une plateforme unique pour les élèves, les enseignants et les établissements. Rejoignez-nous !</p>
             <div class="hero-buttons">
                 <a href="#" class="btn-main" data-target="auth-page">Espace Enseignant / Élève</a>
                 <a href="playground.html" class="btn-secondary">Terrain de Jeux (Accès libre)</a>
@@ -95,7 +94,9 @@
                 </div>
                 <div class="dashboard-side-panel">
                     <h3>Actions Rapides</h3>
-                    <button class="btn-main new-resource-btn"><i class="fa-solid fa-wand-magic-sparkles"></i> Créer une ressource</button>
+                    <div class="actions-buttons">
+                        <button class="btn-main new-resource-btn"><i class="fa-solid fa-wand-magic-sparkles"></i> Créer une ressource</button>
+                    </div>
                 </div>
             </div>
         </section>
@@ -118,7 +119,10 @@
         <section id="content-page" class="page">
             <div class="content-container">
                 <button id="back-to-dashboard-btn" class="btn-secondary"><i class="fa-solid fa-arrow-left"></i> Retour</button>
-                <h2 id="content-title">Titre du Contenu</h2>
+                <div class="content-header-vocal">
+                    <h2 id="content-title">Titre du Contenu</h2>
+                    <button id="speak-content-btn" class="speak-btn" aria-label="Lire le contenu à voix haute"><i class="fa-solid fa-volume-high"></i></button>
+                </div>
                 <div id="content-viewer"></div>
                 <button id="submit-quiz-btn" class="btn-main hidden">Valider mes réponses</button>
                 <div id="quiz-result" class="hidden"></div>
@@ -151,6 +155,7 @@
         </div>
     </div>
 
+    <!-- Modale de génération (formulaire) -->
     <div id="generation-modal" class="modal-overlay hidden">
         <div class="modal-content">
             <span class="close-modal">&times;</span>
@@ -169,19 +174,24 @@
                 <h2>AIDA réfléchit...</h2>
                 <div class="spinner"></div>
             </div>
-            <div id="modal-result-step" class="hidden">
-                <h2>Contenu généré</h2>
-                <p>Vous pouvez modifier le contenu ci-dessous avant de l'assigner.</p>
-                <div class="form-group"><textarea id="generated-content-editor"></textarea></div>
-                <div class="assign-section">
-                    <label for="assign-class-select">Assigner à :</label>
-                    <select id="assign-class-select"></select>
-                    <button class="btn-main" id="confirm-assign-btn">Assigner ce contenu</button>
-                </div>
-            </div>
         </div>
     </div>
     
+    <!-- Modale d'assignation (contenu généré) -->
+    <div id="assignment-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <h2>Contenu généré</h2>
+            <p>Vous pouvez modifier le contenu ci-dessous avant de l'assigner.</p>
+            <div class="form-group"><textarea id="generated-content-editor"></textarea></div>
+            <div class="assign-section">
+                <label for="assign-class-select">Assigner à :</label>
+                <select id="assign-class-select"></select>
+                <button class="btn-main" id="confirm-assign-btn">Assigner ce contenu</button>
+            </div>
+        </div>
+    </div>
+
     <div id="result-details-modal" class="modal-overlay hidden">
         <div class="modal-content">
             <span class="close-modal">&times;</span>
@@ -189,7 +199,6 @@
             <div id="result-modal-content"></div>
         </div>
     </div>
-
 
     <script src="script.js"></script>
 </body>
