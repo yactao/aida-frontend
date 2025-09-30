@@ -268,21 +268,60 @@ document.addEventListener('DOMContentLoaded', () => {
             studentModuleList.innerHTML = '';
             joinClassPanel.classList.toggle('hidden', classes.length > 0);
             
-            let hasContent = false;
+            let allQuizzes = [];
             classes.forEach(cls => {
                 if (cls.quizzes && cls.quizzes.length > 0) {
-                    hasContent = true;
-                    cls.quizzes.forEach(content => {
-                        const card = document.createElement('div');
-                        card.className = 'dashboard-card';
-                        card.innerHTML = `<h4>${content.title}</h4><p>Classe: ${cls.className}</p><button class="btn-secondary">Commencer</button>`;
-                        card.querySelector('button').addEventListener('click', () => displayContent(content, cls.id));
-                        studentModuleList.appendChild(card);
+                    cls.quizzes.forEach(quiz => {
+                        allQuizzes.push({ ...quiz, className: cls.className, classId: cls.id });
                     });
                 }
             });
 
-            if (!hasContent) {
+            // Trier par date d'assignation, les plus récents en premier
+            allQuizzes.sort((a, b) => new Date(b.assignedAt) - new Date(a.assignedAt));
+
+            if (allQuizzes.length > 0) {
+                allQuizzes.forEach(content => {
+                    const card = document.createElement('div');
+                    card.className = 'dashboard-card-student';
+
+                    const assignedDate = new Date(content.assignedAt);
+                    const formattedDate = assignedDate.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' });
+
+                    const isNew = content.isNewest;
+                    const isCompleted = content.status === 'completed';
+
+                    // Simple logique pour déterminer la matière à partir du titre
+                    let subject = 'autre';
+                    if (content.title.toLowerCase().includes('math')) subject = 'maths';
+                    if (content.title.toLowerCase().includes('français')) subject = 'francais';
+                    if (content.title.toLowerCase().includes('science')) subject = 'sciences';
+                    if (content.title.toLowerCase().includes('histoire')) subject = 'histoire';
+
+
+                    card.innerHTML = `
+                        <div class="card-header">
+                            <span class="subject-tag tag-${subject}">${subject.charAt(0).toUpperCase() + subject.slice(1)}</span>
+                            ${isNew && !isCompleted ? '<span class="new-tag">Nouveau</span>' : ''}
+                        </div>
+                        <div class="card-content">
+                            <h4>${content.title}</h4>
+                            <p>Classe: ${content.className}</p>
+                        </div>
+                        <div class="card-footer">
+                            <span class="card-date">Reçu le ${formattedDate}</span>
+                            <button class="btn-secondary ${isCompleted ? 'btn-termine' : ''}" ${isCompleted ? 'disabled' : ''}>
+                                ${isCompleted ? 'Terminé' : 'Commencer'}
+                            </button>
+                        </div>
+                    `;
+
+                    if (!isCompleted) {
+                        card.querySelector('button').addEventListener('click', () => displayContent(content, content.classId));
+                    }
+                    studentModuleList.appendChild(card);
+                });
+            } else {
                 studentModuleList.innerHTML = '<p>Aucun module n\'est disponible pour le moment.</p>';
             }
 
@@ -396,6 +435,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     answers: userAnswers
                 })
             });
+            // Mettre à jour l'affichage après soumission
+            await fetchAndDisplayStudentContent();
         } catch (error) {
             console.error("Erreur lors de l'envoi du score:", error);
         }
