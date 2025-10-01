@@ -276,34 +276,27 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!currentUser) return;
         try {
             const response = await fetch(`${backendUrl}/student/classes/${currentUser.email}`);
-            const classes = await response.json();
+            const data = await response.json();
             studentTodoList.innerHTML = '';
             studentCompletedList.innerHTML = '';
+
+            const { todo, completed } = data;
+
+            if(todo && todo.length > 0) {
+                todo.forEach(content => createStudentCard(content, studentTodoList));
+            } else {
+                studentTodoList.innerHTML = '<p>Bravo, tu as tout terminé !</p>';
+            }
+
+            if(completed && completed.length > 0) {
+                completed.forEach(content => createStudentCard(content, studentCompletedList));
+            } else {
+                studentCompletedList.innerHTML = '<p>Aucun exercice terminé pour le moment.</p>';
+            }
             
-            let allContents = [];
-            classes.forEach(cls => {
-                if (cls.quizzes && cls.quizzes.length > 0) {
-                    cls.quizzes.forEach(content => {
-                        allContents.push({ ...content, className: cls.className, classId: cls.id });
-                    });
-                }
-            });
-
-            const toDolist = allContents.filter(c => c.status !== 'completed');
-            const completedList = allContents.filter(c => c.status === 'completed');
-
-            toDolist.sort((a, b) => new Date(b.assignedAt) - new Date(a.assignedAt));
-            completedList.sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt));
-
-            if(toDolist.length === 0) studentTodoList.innerHTML = '<p>Bravo, tu as tout terminé !</p>';
-            toDolist.forEach(content => createStudentCard(content, studentTodoList));
-
-            if(completedList.length === 0) studentCompletedList.innerHTML = '<p>Aucun exercice terminé pour le moment.</p>';
-            completedList.forEach(content => createStudentCard(content, studentCompletedList));
-
-            const hasClasses = classes.length > 0;
-            joinClassPanel.classList.toggle('hidden', hasClasses);
-            document.getElementById('student-work-area').classList.toggle('hidden', !hasClasses);
+            const hasJoinedClass = (todo && todo.length > 0) || (completed && completed.length > 0);
+            joinClassPanel.classList.toggle('hidden', hasJoinedClass);
+            document.getElementById('student-work-area').classList.toggle('hidden', !hasJoinedClass);
 
         } catch (error) { console.error("Erreur de récupération des modules:", error); }
     }
@@ -313,8 +306,9 @@ document.addEventListener('DOMContentLoaded', () => {
         card.className = 'dashboard-card-student';
         const isCompleted = content.status === 'completed';
 
-        const assignedDate = new Date(content.assignedAt);
-        const formattedDate = assignedDate.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        const dateToShow = isCompleted ? content.completedAt : content.assignedAt;
+        const formattedDate = new Date(dateToShow).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        const dateLabel = isCompleted ? 'Terminé le' : 'Reçu le';
 
         let subject = 'autre';
         if (content.title.toLowerCase().includes('math')) subject = 'maths';
@@ -332,7 +326,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <p>Classe: ${content.className}</p>
             </div>
             <div class="card-footer">
-                <span class="card-date">Reçu le ${formattedDate}</span>
+                <span class="card-date">${dateLabel} ${formattedDate}</span>
                 <button class="btn-secondary ${isCompleted ? 'btn-termine' : ''}" ${isCompleted ? 'disabled' : ''}>
                     ${isCompleted ? 'Terminé' : 'Commencer'}
                 </button>
@@ -358,8 +352,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 displayQuiz(contentData, classId, isTeacherPreview);
                 break;
             case 'revision':
+                const formattedContent = contentData.content
+                    .replace(/### (.*)/g, '<h3>$1</h3>')
+                    .replace(/## (.*)/g, '<h2>$1</h2>')
+                    .replace(/\* (.*)/g, '<li>$1</li>')
+                    .replace(/\n/g, '<br>');
+                contentViewer.innerHTML = `<div class="revision-content">${formattedContent}</div>`;
+                break;
             case 'exercices':
-                contentViewer.innerHTML = `<div class="revision-content">${contentData.content.replace(/\n/g, '<br>')}</div>`;
+                 contentViewer.innerHTML = `<div class="revision-content">${contentData.content.replace(/\n/g, '<br>')}</div>`;
                 break;
             default:
                 contentViewer.innerHTML = `<p>${contentData.content || "Ce type de contenu n'est pas encore supporté."}</p>`;
