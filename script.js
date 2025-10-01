@@ -519,7 +519,7 @@ document.addEventListener('DOMContentLoaded', () => {
             lycee: 'programmes-lycee.json'
         };
         try {
-            const response = await fetch(fileMap[cycle]);
+            const response = await fetch(`/${fileMap[cycle]}`); // Changé pour un chemin relatif
             if (!response.ok) throw new Error(`Fichier non trouvé: ${fileMap[cycle]}`);
             programmesData = await response.json();
             populateSelect(levelSelect, Object.keys(programmesData), "-- Choisir la classe --");
