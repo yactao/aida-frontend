@@ -174,13 +174,13 @@ document.addEventListener('DOMContentLoaded', () => {
         changePage('class-details-page');
         classDetailsTitle.textContent = `Détails de la classe : ${className}`;
         classDetailsContent.innerHTML = '<div class="spinner"></div>';
-
+    
         try {
             const response = await fetch(`${backendUrl}/class/details/${classId}`);
             currentClassData = await response.json();
             classDetailsContent.innerHTML = ''; // Nettoyer
-
-            // Section des contenus assignés
+    
+            // Section des contenus assignés (Vue moderne en cartes)
             const contentsSection = document.createElement('div');
             contentsSection.className = 'class-details-section';
             contentsSection.innerHTML = '<h3>Contenus Assignés</h3>';
@@ -191,8 +191,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     const card = document.createElement('div');
                     card.className = 'details-card';
                     card.innerHTML = `
-                        <div class="card-title">${content.title}</div>
-                        <div class="card-info">Type: ${content.type}</div>
+                        <div class="card-title">${content.title || 'Contenu sans titre'}</div>
+                        <div class="card-info">Type: ${content.type || 'N/A'}</div>
                         <button class="btn-secondary" data-content-id="${content.id}">Voir</button>
                     `;
                     assignedGrid.appendChild(card);
@@ -202,14 +202,15 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             contentsSection.appendChild(assignedGrid);
             classDetailsContent.appendChild(contentsSection);
-
-            // Section des résultats
+    
+            // Section des résultats des élèves (Vue moderne en cartes)
             const resultsSection = document.createElement('div');
             resultsSection.className = 'class-details-section';
             resultsSection.innerHTML = '<h3>Résultats des Élèves</h3>';
-             if (currentClassData.results && currentClassData.results.length > 0) {
-                const resultsGrid = document.createElement('div');
-                resultsGrid.className = 'details-grid';
+            const resultsGrid = document.createElement('div');
+            resultsGrid.className = 'details-grid';
+    
+            if (currentClassData.results && currentClassData.results.length > 0) {
                 currentClassData.results.forEach(result => {
                     const card = document.createElement('div');
                     card.className = 'details-card result-card';
@@ -225,13 +226,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     `;
                     resultsGrid.appendChild(card);
                 });
-                resultsSection.appendChild(resultsGrid);
-             } else {
-                 resultsSection.innerHTML += '<p>Aucun élève n\'a encore terminé de contenu.</p>';
-             }
+            } else {
+                resultsGrid.innerHTML = '<p>Aucun élève n\'a encore terminé de contenu.</p>';
+            }
+            resultsSection.appendChild(resultsGrid);
             classDetailsContent.appendChild(resultsSection);
-
+    
         } catch (error) {
+            console.error("Erreur lors de l'affichage des détails de la classe:", error);
             classDetailsContent.innerHTML = "<p>Erreur lors du chargement des détails.</p>";
         }
     }
