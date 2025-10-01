@@ -32,7 +32,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const studentWelcome = document.getElementById('student-welcome');
     const joinClassPanel = document.getElementById('join-class-panel');
     const joinClassForm = document.getElementById('join-class-form');
-    const studentModuleList = document.getElementById('student-module-list');
+    
+    const studentTodoList = document.getElementById('student-todo-list');
+    const studentCompletedList = document.getElementById('student-completed-list');
     
     const contentTitle = document.getElementById('content-title');
     const contentViewer = document.getElementById('content-viewer');
@@ -71,12 +73,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- SYNTHÈSE VOCALE ---
     function getTextFromContentViewer() {
         let text = contentTitle.textContent + '. ';
-        contentViewer.querySelectorAll('.quiz-question, .question-feedback').forEach(q => {
-            const questionText = q.querySelector('p strong');
-            if(questionText) text += questionText.textContent + '. ';
-            q.querySelectorAll('label, .answer').forEach(opt => {
-                text += opt.textContent + '. ';
-            });
+        contentViewer.querySelectorAll('.quiz-question, .question-feedback, .revision-content').forEach(el => {
+            text += el.innerText + '. ';
         });
         return text;
     }
@@ -186,18 +184,23 @@ document.addEventListener('DOMContentLoaded', () => {
             const contentsSection = document.createElement('div');
             contentsSection.className = 'class-details-section';
             contentsSection.innerHTML = '<h3>Contenus Assignés</h3>';
-            const contentList = document.createElement('ul');
-            contentList.className = 'content-list';
+            const assignedGrid = document.createElement('div');
+            assignedGrid.className = 'details-grid';
             if (currentClassData.quizzes && currentClassData.quizzes.length > 0) {
                 currentClassData.quizzes.forEach(content => {
-                    const li = document.createElement('li');
-                    li.innerHTML = `${content.title} <button data-content-id="${content.id}">Voir</button>`;
-                    contentList.appendChild(li);
+                    const card = document.createElement('div');
+                    card.className = 'details-card';
+                    card.innerHTML = `
+                        <div class="card-title">${content.title}</div>
+                        <div class="card-info">Type: ${content.type}</div>
+                        <button class="btn-secondary" data-content-id="${content.id}">Voir</button>
+                    `;
+                    assignedGrid.appendChild(card);
                 });
             } else {
-                contentList.innerHTML = '<p>Aucun contenu assigné pour cette classe.</p>';
+                assignedGrid.innerHTML = '<p>Aucun contenu assigné pour cette classe.</p>';
             }
-            contentsSection.appendChild(contentList);
+            contentsSection.appendChild(assignedGrid);
             classDetailsContent.appendChild(contentsSection);
 
             // Section des résultats
@@ -205,14 +208,24 @@ document.addEventListener('DOMContentLoaded', () => {
             resultsSection.className = 'class-details-section';
             resultsSection.innerHTML = '<h3>Résultats des Élèves</h3>';
              if (currentClassData.results && currentClassData.results.length > 0) {
-                const resultsList = document.createElement('ul');
-                resultsList.className = 'results-list';
+                const resultsGrid = document.createElement('div');
+                resultsGrid.className = 'details-grid';
                 currentClassData.results.forEach(result => {
-                    const li = document.createElement('li');
-                    li.innerHTML = `${result.studentEmail.split('@')[0]} - ${result.quizTitle}: ${result.score}/${result.totalQuestions} <button data-result-id="${result.resultId}">Voir détails</button>`;
-                    resultsList.appendChild(li);
+                    const card = document.createElement('div');
+                    card.className = 'details-card result-card';
+                    const scorePercentage = (result.score / result.totalQuestions) * 100;
+                    card.innerHTML = `
+                        <div class="card-title">${result.studentEmail.split('@')[0]}</div>
+                        <div class="card-info">${result.quizTitle}</div>
+                        <div class="score-display">
+                            <span class="score">${result.score}/${result.totalQuestions}</span>
+                            <div class="score-bar"><div class="score-fill" style="width: ${scorePercentage}%;"></div></div>
+                        </div>
+                        <button class="btn-secondary" data-result-id="${result.resultId}">Détails</button>
+                    `;
+                    resultsGrid.appendChild(card);
                 });
-                resultsSection.appendChild(resultsList);
+                resultsSection.appendChild(resultsGrid);
              } else {
                  resultsSection.innerHTML += '<p>Aucun élève n\'a encore terminé de contenu.</p>';
              }
@@ -226,7 +239,6 @@ document.addEventListener('DOMContentLoaded', () => {
     function displayContentForTeacher(contentId) {
         const content = currentClassData.quizzes.find(q => q.id === contentId);
         if (!content) return;
-        // Pour les profs, on utilise la même page que les élèves pour la prévisualisation
         displayContent(content, currentClassData.id);
     }
 
@@ -265,67 +277,72 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const response = await fetch(`${backendUrl}/student/classes/${currentUser.email}`);
             const classes = await response.json();
-            studentModuleList.innerHTML = '';
-            joinClassPanel.classList.toggle('hidden', classes.length > 0);
+            studentTodoList.innerHTML = '';
+            studentCompletedList.innerHTML = '';
             
-            let allQuizzes = [];
+            let allContents = [];
             classes.forEach(cls => {
                 if (cls.quizzes && cls.quizzes.length > 0) {
-                    cls.quizzes.forEach(quiz => {
-                        allQuizzes.push({ ...quiz, className: cls.className, classId: cls.id });
+                    cls.quizzes.forEach(content => {
+                        allContents.push({ ...content, className: cls.className, classId: cls.id });
                     });
                 }
             });
 
-            // Trier par date d'assignation, les plus récents en premier
-            allQuizzes.sort((a, b) => new Date(b.assignedAt) - new Date(a.assignedAt));
+            const toDolist = allContents.filter(c => c.status !== 'completed');
+            const completedList = allContents.filter(c => c.status === 'completed');
 
-            if (allQuizzes.length > 0) {
-                allQuizzes.forEach(content => {
-                    const card = document.createElement('div');
-                    card.className = 'dashboard-card-student';
+            toDolist.sort((a, b) => new Date(b.assignedAt) - new Date(a.assignedAt));
+            completedList.sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt));
 
-                    const assignedDate = new Date(content.assignedAt);
-                    const formattedDate = assignedDate.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' });
+            if(toDolist.length === 0) studentTodoList.innerHTML = '<p>Bravo, tu as tout terminé !</p>';
+            toDolist.forEach(content => createStudentCard(content, studentTodoList));
 
-                    const isNew = content.isNewest;
-                    const isCompleted = content.status === 'completed';
+            if(completedList.length === 0) studentCompletedList.innerHTML = '<p>Aucun exercice terminé pour le moment.</p>';
+            completedList.forEach(content => createStudentCard(content, studentCompletedList));
 
-                    // Simple logique pour déterminer la matière à partir du titre
-                    let subject = 'autre';
-                    if (content.title.toLowerCase().includes('math')) subject = 'maths';
-                    if (content.title.toLowerCase().includes('français')) subject = 'francais';
-                    if (content.title.toLowerCase().includes('science')) subject = 'sciences';
-                    if (content.title.toLowerCase().includes('histoire')) subject = 'histoire';
-
-
-                    card.innerHTML = `
-                        <div class="card-header">
-                            <span class="subject-tag tag-${subject}">${subject.charAt(0).toUpperCase() + subject.slice(1)}</span>
-                            ${isNew && !isCompleted ? '<span class="new-tag">Nouveau</span>' : ''}
-                        </div>
-                        <div class="card-content">
-                            <h4>${content.title}</h4>
-                            <p>Classe: ${content.className}</p>
-                        </div>
-                        <div class="card-footer">
-                            <span class="card-date">Reçu le ${formattedDate}</span>
-                            <button class="btn-secondary ${isCompleted ? 'btn-termine' : ''}" ${isCompleted ? 'disabled' : ''}>
-                                ${isCompleted ? 'Terminé' : 'Commencer'}
-                            </button>
-                        </div>
-                    `;
-
-                    if (!isCompleted) {
-                        card.querySelector('button').addEventListener('click', () => displayContent(content, content.classId));
-                    }
-                    studentModuleList.appendChild(card);
-                });
-            } else {
-                studentModuleList.innerHTML = '<p>Aucun module n\'est disponible pour le moment.</p>';
-            }
+            const hasClasses = classes.length > 0;
+            joinClassPanel.classList.toggle('hidden', hasClasses);
+            document.getElementById('student-work-area').classList.toggle('hidden', !hasClasses);
 
         } catch (error) { console.error("Erreur de récupération des modules:", error); }
+    }
+
+    function createStudentCard(content, container) {
+        const card = document.createElement('div');
+        card.className = 'dashboard-card-student';
+        const isCompleted = content.status === 'completed';
+
+        const assignedDate = new Date(content.assignedAt);
+        const formattedDate = assignedDate.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+
+        let subject = 'autre';
+        if (content.title.toLowerCase().includes('math')) subject = 'maths';
+        if (content.title.toLowerCase().includes('français')) subject = 'francais';
+        if (content.title.toLowerCase().includes('science')) subject = 'sciences';
+        if (content.title.toLowerCase().includes('histoire')) subject = 'histoire';
+
+        card.innerHTML = `
+            <div class="card-header">
+                <span class="subject-tag tag-${subject}">${subject.charAt(0).toUpperCase() + subject.slice(1)}</span>
+                ${content.isNewest && !isCompleted ? '<span class="new-tag">Nouveau</span>' : ''}
+            </div>
+            <div class="card-content">
+                <h4>${content.title}</h4>
+                <p>Classe: ${content.className}</p>
+            </div>
+            <div class="card-footer">
+                <span class="card-date">Reçu le ${formattedDate}</span>
+                <button class="btn-secondary ${isCompleted ? 'btn-termine' : ''}" ${isCompleted ? 'disabled' : ''}>
+                    ${isCompleted ? 'Terminé' : 'Commencer'}
+                </button>
+            </div>
+        `;
+
+        if (!isCompleted) {
+            card.querySelector('button').addEventListener('click', () => displayContent(content, content.classId));
+        }
+        container.appendChild(card);
     }
     
     function displayContent(contentData, classId) {
@@ -334,12 +351,15 @@ document.addEventListener('DOMContentLoaded', () => {
         submitQuizBtn.classList.add('hidden');
         quizResult.classList.add('hidden');
         
-        // Cacher le bouton "Valider" si c'est un prof qui prévisualise
         const isTeacherPreview = currentUser.role === 'teacher';
 
         switch(contentData.type) {
             case 'quiz':
                 displayQuiz(contentData, classId, isTeacherPreview);
+                break;
+            case 'revision':
+            case 'exercices':
+                contentViewer.innerHTML = `<div class="revision-content">${contentData.content.replace(/\n/g, '<br>')}</div>`;
                 break;
             default:
                 contentViewer.innerHTML = `<p>${contentData.content || "Ce type de contenu n'est pas encore supporté."}</p>`;
@@ -358,7 +378,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         if (!isTeacherPreview) {
             submitQuizBtn.classList.remove('hidden');
-            submitQuizBtn.onclick = () => submitQuiz(quizData, classId); // Attacher l'événement
+            submitQuizBtn.onclick = () => submitQuiz(quizData, classId);
         }
     }
 
@@ -369,9 +389,8 @@ document.addEventListener('DOMContentLoaded', () => {
             userAnswers.push(selectedInput ? parseInt(selectedInput.value) : -1);
         });
 
-        // Bloquer les réponses et afficher la correction
         submitQuizBtn.classList.add('hidden');
-        contentViewer.innerHTML = ''; // Nettoyer pour afficher la correction
+        contentViewer.innerHTML = '';
 
         for (let i = 0; i < quizData.questions.length; i++) {
             const q = quizData.questions[i];
@@ -419,7 +438,6 @@ document.addEventListener('DOMContentLoaded', () => {
             contentViewer.appendChild(feedbackElement);
         }
 
-        // Envoyer les résultats au backend en arrière-plan
         try {
             let score = userAnswers.reduce((acc, ans, idx) => acc + (ans == quizData.questions[idx].correct_answer_index ? 1 : 0), 0);
             await fetch(`${backendUrl}/quiz/submit`, {
@@ -435,7 +453,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     answers: userAnswers
                 })
             });
-            // Mettre à jour l'affichage après soumission
             await fetchAndDisplayStudentContent();
         } catch (error) {
             console.error("Erreur lors de l'envoi du score:", error);
@@ -636,12 +653,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 generatedContentEditor.value = data.text_representation;
                 generatedContentData = data.structured_content;
                 
-                generationModal.classList.add('hidden'); // On ferme l'ancienne modale
-                assignmentModal.classList.remove('hidden'); // On ouvre le nouveau pop-up
+                generationModal.classList.add('hidden');
+                assignmentModal.classList.remove('hidden');
             } catch (err) {
                 alert("Erreur de génération: " + err.message);
             } finally {
-                // On réinitialise la modale de génération pour la prochaine fois
                 initializeResourceModal();
             }
         });
@@ -688,10 +704,13 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         classDetailsContent.addEventListener('click', (e) => {
-            if (e.target.matches('button[data-result-id]')) {
-                displayStudentResultDetails(e.target.getAttribute('data-result-id'));
-            } else if (e.target.matches('button[data-content-id]')) {
-                displayContentForTeacher(e.target.getAttribute('data-content-id'));
+            const button = e.target.closest('button');
+            if (!button) return;
+            
+            if (button.dataset.resultId) {
+                displayStudentResultDetails(button.dataset.resultId);
+            } else if (button.dataset.contentId) {
+                displayContentForTeacher(button.dataset.contentId);
             }
         });
     }

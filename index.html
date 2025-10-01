@@ -104,7 +104,18 @@
         <!-- PAGE 4: TABLEAU DE BORD ÉLÈVE -->
         <section id="student-dashboard" class="page">
             <h2 id="student-welcome">Bonjour !</h2>
-            <div id="student-module-list" class="class-grid"></div>
+            
+            <div id="student-work-area">
+                <div id="todo-container">
+                    <h3>À faire</h3>
+                    <div id="student-todo-list" class="class-grid"></div>
+                </div>
+                <div id="completed-container">
+                    <h3>Terminés</h3>
+                    <div id="student-completed-list" class="class-grid"></div>
+                </div>
+            </div>
+
              <div id="join-class-panel" class="join-class-container">
                 <h3>Rejoindre une nouvelle classe</h3>
                 <form id="join-class-form">
@@ -166,7 +177,7 @@
                     <div class="form-group"><label for="level-select">Classe</label><select id="level-select" disabled><option>-- D'abord choisir un cycle --</option></select></div>
                     <div class="form-group"><label for="subject-select">Matière</label><select id="subject-select" disabled><option>-- D'abord choisir une classe --</option></select></div>
                     <div class="form-group"><label for="notion-select">Notion</label><select id="notion-select" disabled><option>-- D'abord choisir une matière --</option></select></div>
-                    <div class="form-group"><label for="content-type-select">Type de contenu</label><select id="content-type-select"><option value="quiz">Quiz (QCM)</option><option value="exercices">Exercices</option></select></div>
+                    <div class="form-group"><label for="content-type-select">Type de contenu</label><select id="content-type-select"><option value="quiz">Quiz (QCM)</option><option value="exercices">Exercices</option><option value="revision">Fiche de révision</option></select></div>
                     <button type="submit" class="btn-main" disabled>Générer avec AIDA</button>
                 </form>
             </div>
@@ -179,11 +190,11 @@
     
     <!-- Modale d'assignation (contenu généré) -->
     <div id="assignment-modal" class="modal-overlay hidden">
-        <div class="modal-content">
+        <div class="modal-content-large">
             <span class="close-modal">&times;</span>
             <h2>Contenu généré</h2>
             <p>Vous pouvez modifier le contenu ci-dessous avant de l'assigner.</p>
-            <div class="form-group"><textarea id="generated-content-editor"></textarea></div>
+            <div class="form-group-editor"><textarea id="generated-content-editor"></textarea></div>
             <div class="assign-section">
                 <label for="assign-class-select">Assigner à :</label>
                 <select id="assign-class-select"></select>
