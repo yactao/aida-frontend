@@ -618,7 +618,7 @@ document.addEventListener('DOMContentLoaded', () => {
             lycee: 'programmes-lycee.json'
         };
         try {
-            const response = await fetch(`/${fileMap[cycle]}`); 
+            const response = await fetch(`${backendUrl.replace('/api', '')}/${fileMap[cycle]}`); 
             if (!response.ok) throw new Error(`Fichier non trouvé: ${fileMap[cycle]}`);
             programmesData = await response.json();
             populateSelect(levelSelect, Object.keys(programmesData), "-- Choisir la classe --");
@@ -666,11 +666,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
         document.querySelectorAll('.modal-overlay').forEach(modal => {
             modal.addEventListener('click', (e) => { if (e.target === modal) modal.classList.add('hidden'); });
-            modal.querySelector('.close-modal')?.addEventListener('click', () => modal.classList.add('hidden'); });
+            modal.querySelector('.close-modal')?.addEventListener('click', () => modal.classList.add('hidden'));
         });
         
-        loginForm.addEventListener('submit', (e) => { e.preventDefault(); handleAuth('/auth/login', { email: loginForm.elements['login-email'].value, password: loginForm.elements['login-password'].value }); });
-        signupForm.addEventListener('submit', (e) => { e.preventDefault(); handleAuth('/auth/signup', { email: signupForm.elements['signup-email'].value, password: signupForm.elements['signup-password'].value, role: signupForm.elements['signup-role'].value }); });
+        loginForm.addEventListener('submit', (e) => { 
+            e.preventDefault(); 
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+            handleAuth('/auth/login', { email, password }); 
+        });
+        signupForm.addEventListener('submit', (e) => { 
+            e.preventDefault();
+            const email = document.getElementById('signup-email').value;
+            const password = document.getElementById('signup-password').value;
+            const role = document.getElementById('signup-role').value;
+            handleAuth('/auth/signup', { email, password, role }); 
+        });
 
         openClassModalBtn.addEventListener('click', () => classModal.classList.remove('hidden'));
         createClassForm.addEventListener('submit', async (e) => {
@@ -689,153 +700,5 @@ document.addEventListener('DOMContentLoaded', () => {
             generationModal.classList.remove('hidden');
         });
 
-        cycleSelect.addEventListener('change', () => loadProgrammesForCycle(cycleSelect.value));
-        
-        levelSelect.addEventListener('change', () => {
-            notionSelect.innerHTML = '<option value="">-- D\'abord choisir une matière --</option>';
-            notionSelect.disabled = true;
-            const level = levelSelect.value;
-            if (level && programmesData[level]) {
-                const subjects = Object.keys(programmesData[level]).map(key => ({ key: key, name: programmesData[level][key].nom }));
-                populateSelect(subjectSelect, subjects, "-- Choisir la matière --", true);
-            }
-        });
-        
-        subjectSelect.addEventListener('change', () => {
-            const selectedLevel = levelSelect.value;
-            const selectedSubject = subjectSelect.value;
-            if (selectedLevel && selectedSubject && programmesData[selectedLevel]?.[selectedSubject]) {
-                const subjectData = programmesData[selectedLevel][selectedSubject];
-                let allNotions = [];
-                Object.keys(subjectData).forEach(mainNotionKey => {
-                    if (mainNotionKey === 'nom') return;
-                    const mainNotion = subjectData[mainNotionKey];
-                    if (mainNotion && mainNotion.sous_notions) {
-                        Object.keys(mainNotion.sous_notions).forEach(subNotionKey => {
-                            const subNotion = mainNotion.sous_notions[subNotionKey];
-                            if (subNotion && subNotion.nom) {
-                                allNotions.push({ key: `${mainNotionKey},${subNotionKey}`, name: subNotion.nom });
-                            }
-                        });
-                    }
-                });
-                populateSelect(notionSelect, allNotions, "-- Choisir la notion --", true);
-            }
-        });
-
-        notionSelect.addEventListener('change', () => {
-            if(resourceFormButton) resourceFormButton.disabled = !notionSelect.value;
-        });
-
-        resourceForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            modalFormStep.classList.add('hidden');
-            modalLoadingStep.classList.remove('hidden');
-
-            const [mainNotionKey, subNotionKey] = notionSelect.value.split(',');
-            const path = [levelSelect.value, subjectSelect.value, mainNotionKey, 'sous_notions', subNotionKey];
-            const competences = findCompetences(programmesData, path);
-            const contentType = contentTypeSelect.value;
-
-            if (competences.length === 0) {
-                 alert("Aucune compétence trouvée pour cette notion.");
-                 initializeResourceModal();
-                 return;
-            }
-            
-            try {
-                const response = await fetch(`${backendUrl}/generate/content`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ competences, contentType })
-                });
-                const data = await response.json();
-                if (!response.ok) throw new Error(data.error);
-                
-                generatedContentEditor.value = data.text_representation;
-                generatedContentData = data.structured_content;
-                
-                generationModal.classList.add('hidden');
-                assignmentModal.classList.remove('hidden');
-            } catch (err) {
-                alert("Erreur de génération: " + err.message);
-            } finally {
-                initializeResourceModal();
-            }
-        });
-        
-        confirmAssignBtn.addEventListener('click', async () => {
-            const classId = assignClassSelect.value;
-            if (!classId) return alert("Veuillez sélectionner une classe.");
-            const modifiedText = generatedContentEditor.value;
-
-            try {
-                const conversionResponse = await fetch(`${backendUrl}/convert/text-to-json`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ text: modifiedText, contentType: generatedContentData.type })
-                });
-                const finalContent = await conversionResponse.json();
-
-                const assignResponse = await fetch(`${backendUrl}/class/assign-content`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ contentData: finalContent, classId, teacherEmail: currentUser.email })
-                });
-                if (!assignResponse.ok) throw new Error((await assignResponse.json()).error);
-                alert("Contenu assigné avec succès !");
-                assignmentModal.classList.add('hidden');
-                await fetchAndDisplayClasses();
-            } catch (error) { alert(`Erreur: ${error.message}`); }
-        });
-
-        classDetailsContent.addEventListener('click', (e) => {
-            const button = e.target.closest('button[data-student-email]');
-            if (button) {
-                showStudentResults(button.dataset.studentEmail);
-            }
-        });
-        
-        studentResultsContent.addEventListener('click', (e) => {
-            const button = e.target.closest('button[data-result-id]');
-             if (button) {
-                displayStudentResultDetails(button.dataset.resultId);
-            }
-        });
-        
-        manageClassBtn.addEventListener('click', openManageClassModal);
-        
-        studentListManagement.addEventListener('click', (e) => {
-            if(e.target.classList.contains('remove-student-btn')) {
-                handleRemoveStudent(e.target.dataset.studentEmail);
-            }
-        });
-        
-        addStudentForm.addEventListener('submit', (e) => {
-            e.preventDefault();
-            const email = addStudentForm.querySelector('input').value;
-            handleAddStudent(email);
-        });
-        
-        deleteClassBtn.addEventListener('click', () => {
-            deleteClassBtn.classList.add('hidden');
-            deleteClassConfirmation.classList.remove('hidden');
-        });
-        
-        cancelDeleteClassBtn.addEventListener('click', () => {
-            deleteClassBtn.classList.remove('hidden');
-            deleteClassConfirmation.classList.add('hidden');
-        });
-        
-        confirmDeleteClassBtn.addEventListener('click', handleDeleteClass);
-
-
-    }
-
-    // --- INITIALISATION ---
-    const savedTheme = localStorage.getItem('theme') || 'light';
-    applyTheme(savedTheme);
-    initializeAppState();
-    setupEventListeners();
-});
+        cycleSelect.addEventListener('change', () => loadProgrammesForCycle(cycleSelect.value
 
