@@ -1,5 +1,5 @@
 // URL complète du backend Azure
-const backendUrl = 'https://aida-backend-bqd0fnd2a3c7dadf.francecentral-01.azurewebsites.net';
+const backendUrl = 'https://aida-backend-bqd0fnd2a3c7dadf.francecentral-01.azurewebsites.net/api';
 
 document.addEventListener('DOMContentLoaded', () => {
     // --- SÉLECTEURS ---
@@ -111,7 +111,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const errorEl = body.role ? document.getElementById('signup-error') : document.getElementById('login-error');
         errorEl.textContent = '';
         try {
-            const response = await fetch(`${backendUrl}/api${url}`, {
+            const response = await fetch(`${backendUrl}${url}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(body)
@@ -154,7 +154,7 @@ document.addEventListener('DOMContentLoaded', () => {
     async function fetchAndDisplayClasses() {
         if (!currentUser) return;
         try {
-            const response = await fetch(`${backendUrl}/api/classes/${currentUser.email}`);
+            const response = await fetch(`${backendUrl}/classes/${currentUser.email}`);
             const classes = await response.json();
             classListContainer.innerHTML = '';
             assignClassSelect.innerHTML = '<option value="">-- Sélectionnez --</option>';
@@ -176,7 +176,7 @@ document.addEventListener('DOMContentLoaded', () => {
         classDetailsContent.innerHTML = '<div class="spinner"></div>';
     
         try {
-            const response = await fetch(`${backendUrl}/api/class/details/${classId}`);
+            const response = await fetch(`${backendUrl}/class/details/${classId}`);
             currentClassData = await response.json();
             classDetailsContent.innerHTML = ''; // Nettoyer
     
@@ -277,7 +277,7 @@ document.addEventListener('DOMContentLoaded', () => {
     async function fetchAndDisplayStudentContent() {
         if (!currentUser) return;
         try {
-            const response = await fetch(`${backendUrl}/api/student/classes/${currentUser.email}`);
+            const response = await fetch(`${backendUrl}/student/classes/${currentUser.email}`);
             const data = await response.json();
             studentTodoList.innerHTML = '';
             studentCompletedList.innerHTML = '';
@@ -297,7 +297,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             
             const hasJoinedClass = (todo && todo.length > 0) || (completed && completed.length > 0);
-            joinClassPanel.classList.toggle('hidden', hasJoinedClass);
+            joinClassPanel.classList.toggle('hidden', !hasJoinedClass);
             document.getElementById('student-work-area').classList.toggle('hidden', !hasJoinedClass);
 
         } catch (error) { console.error("Erreur de récupération des modules:", error); }
@@ -418,7 +418,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 feedbackElement.appendChild(explanationSpinner);
 
                 try {
-                    const response = await fetch(`${backendUrl}/api/generate/explanation`, {
+                    const response = await fetch(`${backendUrl}/generate/explanation`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
@@ -443,7 +443,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             let score = userAnswers.reduce((acc, ans, idx) => acc + (ans == quizData.questions[idx].correct_answer_index ? 1 : 0), 0);
-            await fetch(`${backendUrl}/api/quiz/submit`, {
+            await fetch(`${backendUrl}/quiz/submit`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -521,7 +521,7 @@ document.addEventListener('DOMContentLoaded', () => {
             lycee: 'programmes-lycee.json'
         };
         try {
-            const response = await fetch(`${backendUrl}/${fileMap[cycle]}`); 
+            const response = await fetch(`/${fileMap[cycle]}`); // Changé pour un chemin relatif
             if (!response.ok) throw new Error(`Fichier non trouvé: ${fileMap[cycle]}`);
             programmesData = await response.json();
             populateSelect(levelSelect, Object.keys(programmesData), "-- Choisir la classe --");
@@ -578,7 +578,7 @@ document.addEventListener('DOMContentLoaded', () => {
             e.preventDefault();
             const className = createClassForm.elements['class-name-input'].value;
             try {
-                const response = await fetch(`${backendUrl}/api/classes/create`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ className, teacherEmail: currentUser.email }) });
+                const response = await fetch(`${backendUrl}/classes/create`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ className, teacherEmail: currentUser.email }) });
                 if (!response.ok) throw new Error((await response.json()).error);
                 await fetchAndDisplayClasses();
                 classModal.classList.add('hidden');
@@ -645,7 +645,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             
             try {
-                const response = await fetch(`${backendUrl}/api/generate/content`, {
+                const response = await fetch(`${backendUrl}/generate/content`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ competences, contentType })
@@ -671,14 +671,14 @@ document.addEventListener('DOMContentLoaded', () => {
             const modifiedText = generatedContentEditor.value;
 
             try {
-                const conversionResponse = await fetch(`${backendUrl}/api/convert/text-to-json`, {
+                const conversionResponse = await fetch(`${backendUrl}/convert/text-to-json`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ text: modifiedText, contentType: generatedContentData.type })
                 });
                 const finalContent = await conversionResponse.json();
 
-                const assignResponse = await fetch(`${backendUrl}/api/class/assign-content`, {
+                const assignResponse = await fetch(`${backendUrl}/class/assign-content`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ contentData: finalContent, classId, teacherEmail: currentUser.email })
@@ -694,7 +694,7 @@ document.addEventListener('DOMContentLoaded', () => {
             e.preventDefault();
             const className = joinClassForm.elements['class-code-input'].value;
             try {
-                const response = await fetch(`${backendUrl}/api/class/join`, {
+                const response = await fetch(`${backendUrl}/class/join`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ className, studentEmail: currentUser.email })
