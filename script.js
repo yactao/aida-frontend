@@ -23,6 +23,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Modales
     const generationModal = document.getElementById('generation-modal');
     const assignmentModal = document.getElementById('assignment-modal');
+    const manageClassModal = document.getElementById('manage-class-modal');
     
     const resourceForm = document.getElementById('resource-form');
     const modalFormStep = document.getElementById('modal-form-step');
@@ -43,6 +44,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const classDetailsTitle = document.getElementById('class-details-title');
     const classDetailsContent = document.getElementById('class-details-content');
     const backToTeacherDashboardBtn = document.getElementById('back-to-teacher-dashboard');
+    const manageClassBtn = document.getElementById('manage-class-btn');
     
     const cycleSelect = document.getElementById('cycle-select');
     const levelSelect = document.getElementById('level-select');
@@ -61,10 +63,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const logoutBtn = document.getElementById('logout-btn');
     const backToDashboardBtn = document.getElementById('back-to-dashboard-btn');
     
-    // Nouveaux sélecteurs pour la vue par élève
     const backToClassDetailsBtn = document.getElementById('back-to-class-details');
     const studentResultsTitle = document.getElementById('student-results-title');
     const studentResultsContent = document.getElementById('student-results-content');
+    
+    // Sélecteurs de la modale de gestion
+    const manageClassModalTitle = document.getElementById('manage-class-modal-title');
+    const studentListManagement = document.getElementById('student-list-management');
+    const addStudentForm = document.getElementById('add-student-form');
+    const deleteClassBtn = document.getElementById('delete-class-btn');
+    const deleteClassConfirmation = document.getElementById('delete-class-confirmation');
+    const confirmDeleteClassBtn = document.getElementById('confirm-delete-class-btn');
+    const cancelDeleteClassBtn = document.getElementById('cancel-delete-class-btn');
 
 
     // --- VARIABLES GLOBALES ---
@@ -173,24 +183,29 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (error) { console.error("Erreur de récupération des classes:", error); }
     }
     
-    async function showClassDetails(classId, className) {
+    async function showClassDetails(classId, className, forceRefresh = false) {
         changePage('class-details-page');
         classDetailsTitle.textContent = `Détails de la classe : ${className}`;
-        classDetailsContent.innerHTML = '<div class="spinner"></div>';
-    
+        
+        if (forceRefresh) {
+             classDetailsContent.innerHTML = '<div class="spinner"></div>';
+        }
+
         try {
-            const response = await fetch(`${backendUrl}/class/details/${classId}`);
-            currentClassData = await response.json(); // Stocke les données complètes
+            if (forceRefresh) {
+                const response = await fetch(`${backendUrl}/class/details/${classId}`);
+                currentClassData = await response.json();
+            }
+           
             classDetailsContent.innerHTML = ''; 
     
-            // NOUVELLE VUE : Cartes par élève
             const studentsGrid = document.createElement('div');
             studentsGrid.className = 'details-grid';
             
             if (currentClassData.studentsWithResults && currentClassData.studentsWithResults.length > 0) {
                  currentClassData.studentsWithResults.forEach(student => {
                     const card = document.createElement('div');
-                    card.className = 'details-card student-card'; // Style différent
+                    card.className = 'details-card student-card';
                     card.innerHTML = `
                         <div class="card-title"><i class="fa-solid fa-user"></i> ${student.email.split('@')[0]}</div>
                         <div class="card-info">${student.results.length} test(s) complété(s)</div>
@@ -217,17 +232,20 @@ document.addEventListener('DOMContentLoaded', () => {
         studentResultsTitle.textContent = `Résultats de ${studentEmail.split('@')[0]}`;
         studentResultsContent.innerHTML = '';
 
-        // Trier les résultats par type
         const resultsByType = { quiz: [], exercices: [], revision: [] };
+        
         studentData.results.forEach(result => {
-            const content = currentClassData.quizzes.find(q => q.id === result.quizId);
-            if (content && content.type) {
-                 if (!resultsByType[content.type]) resultsByType[content.type] = [];
-                 resultsByType[content.type].push(result);
-            }
+             // On utilise le type directement depuis le résultat si disponible, sinon on cherche dans les quizzes
+            const type = result.type || (currentClassData.quizzes.find(q => q.id === result.quizId) || {}).type || 'quiz';
+            if (!resultsByType[type]) resultsByType[type] = [];
+            resultsByType[type].push(result);
         });
 
-        // Afficher chaque catégorie
+        if(Object.values(resultsByType).every(arr => arr.length === 0)) {
+            studentResultsContent.innerHTML = '<p>Cet élève n\'a complété aucun test pour le moment.</p>';
+            return;
+        }
+
         Object.keys(resultsByType).forEach(type => {
             if (resultsByType[type].length > 0) {
                 const section = document.createElement('div');
@@ -238,7 +256,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 resultsByType[type].forEach(result => {
                      const card = document.createElement('div');
                     card.className = 'details-card result-card';
-                    const scorePercentage = (result.score / result.totalQuestions) * 100;
+                    const scorePercentage = result.totalQuestions > 0 ? (result.score / result.totalQuestions) * 100 : 0;
                     card.innerHTML = `
                         <div class="card-title">${result.quizTitle}</div>
                         <div class="score-display">
@@ -257,7 +275,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function displayStudentResultDetails(resultId) {
         let result;
-        // Trouver le résultat dans la structure de données
         for (const student of currentClassData.studentsWithResults) {
             result = student.results.find(r => r.resultId === resultId);
             if (result) break;
@@ -265,7 +282,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!result) return;
 
         const content = currentClassData.quizzes.find(q => q.id === result.quizId);
-        if (!content) return;
+        if (!content || !content.questions) return;
 
         const modal = document.getElementById('result-details-modal');
         const modalTitle = document.getElementById('result-modal-title');
@@ -287,6 +304,77 @@ document.addEventListener('DOMContentLoaded', () => {
         modalContent.innerHTML = contentHTML;
         modal.classList.remove('hidden');
     }
+    
+    // --- GESTION DE CLASSE ---
+    
+    function openManageClassModal() {
+        manageClassModalTitle.textContent = `Gérer la classe "${currentClassData.className}"`;
+        studentListManagement.innerHTML = '';
+        
+        (currentClassData.studentsWithResults || []).forEach(student => {
+            const studentItem = document.createElement('div');
+            studentItem.className = 'student-list-item';
+            studentItem.innerHTML = `<span>${student.email}</span><button class="remove-student-btn" data-student-email="${student.email}">&times;</button>`;
+            studentListManagement.appendChild(studentItem);
+        });
+        
+        manageClassModal.classList.remove('hidden');
+    }
+    
+    async function handleRemoveStudent(studentEmail) {
+        try {
+            const response = await fetch(`${backendUrl}/class/remove-student`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ classId: currentClassData.id, teacherEmail: currentUser.email, studentEmail })
+            });
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.error);
+            
+            // Mettre à jour l'UI
+            currentClassData.studentsWithResults = currentClassData.studentsWithResults.filter(s => s.email !== studentEmail);
+            openManageClassModal(); // Rafraîchir la modale
+            showClassDetails(currentClassData.id, currentClassData.className, false); // Mettre à jour la vue de fond
+        } catch (error) {
+            document.getElementById('remove-student-error').textContent = error.message;
+        }
+    }
+    
+    async function handleAddStudent(studentEmail) {
+         try {
+            const response = await fetch(`${backendUrl}/class/add-student`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ classId: currentClassData.id, teacherEmail: currentUser.email, studentEmail })
+            });
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.error);
+            
+            // Mettre à jour l'UI
+            currentClassData.studentsWithResults.push({ email: studentEmail, results: [] });
+            openManageClassModal();
+            showClassDetails(currentClassData.id, currentClassData.className, false);
+            addStudentForm.reset();
+        } catch (error) {
+            document.getElementById('add-student-error').textContent = error.message;
+        }
+    }
+    
+    async function handleDeleteClass() {
+        try {
+            const response = await fetch(`${backendUrl}/class/${currentClassData.id}/${currentUser.email}`, { method: 'DELETE' });
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.error);
+            
+            manageClassModal.classList.add('hidden');
+            changePage('teacher-dashboard');
+            await fetchAndDisplayClasses(); // Rafraîchir la liste des classes
+            
+        } catch(error) {
+            document.getElementById('delete-class-error').textContent = error.message;
+        }
+    }
+
 
     // --- LOGIQUE ÉLÈVE ---
     async function fetchAndDisplayStudentContent() {
@@ -310,10 +398,6 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 studentCompletedList.innerHTML = '<p>Aucun exercice terminé pour le moment.</p>';
             }
-            
-            const hasContent = (todo && todo.length > 0) || (completed && completed.length > 0);
-            document.getElementById('student-work-area').classList.toggle('hidden', !hasContent);
-
 
         } catch (error) { console.error("Erreur de récupération des modules:", error); }
     }
@@ -468,7 +552,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     score,
                     totalQuestions: quizData.questions.length,
                     quizTitle: quizData.title,
-                    answers: userAnswers
+                    answers: userAnswers,
+                    type: quizData.type
                 })
             });
             await fetchAndDisplayStudentContent();
@@ -536,13 +621,14 @@ document.addEventListener('DOMContentLoaded', () => {
             lycee: 'programmes-lycee.json'
         };
         try {
-            const response = await fetch(`/${fileMap[cycle]}`); // Changé pour un chemin relatif
+            // NOTE: Le backend sert maintenant ces fichiers, donc on ne met pas l'URL complète.
+            const response = await fetch(`/${fileMap[cycle]}`); 
             if (!response.ok) throw new Error(`Fichier non trouvé: ${fileMap[cycle]}`);
             programmesData = await response.json();
             populateSelect(levelSelect, Object.keys(programmesData), "-- Choisir la classe --");
         } catch (e) { 
             console.error("Erreur chargement programmes pour le cycle:", cycle, e); 
-            alert(`Impossible de charger le programme pour le cycle "${cycle}". Vérifiez que le fichier "${fileMap[cycle]}" existe et est accessible.`);
+            alert(`Impossible de charger le programme pour le cycle "${cycle}". Vérifiez que le fichier "${fileMap[cycle]}" existe dans le dossier "public" de votre backend.`);
         }
     }
 
@@ -579,7 +665,7 @@ document.addEventListener('DOMContentLoaded', () => {
         logoutBtn.addEventListener('click', logout);
         
         backToTeacherDashboardBtn.addEventListener('click', () => changePage('teacher-dashboard'));
-        backToClassDetailsBtn.addEventListener('click', () => showClassDetails(currentClassData.id, currentClassData.className));
+        backToClassDetailsBtn.addEventListener('click', () => showClassDetails(currentClassData.id, currentClassData.className, false));
 
 
         document.querySelectorAll('.modal-overlay').forEach(modal => {
@@ -706,8 +792,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 await fetchAndDisplayClasses();
             } catch (error) { alert(`Erreur: ${error.message}`); }
         });
-        
-        // La logique pour le formulaire join-class-form a été supprimée
 
         classDetailsContent.addEventListener('click', (e) => {
             const button = e.target.closest('button[data-student-email]');
@@ -722,6 +806,33 @@ document.addEventListener('DOMContentLoaded', () => {
                 displayStudentResultDetails(button.dataset.resultId);
             }
         });
+        
+        manageClassBtn.addEventListener('click', openManageClassModal);
+        
+        studentListManagement.addEventListener('click', (e) => {
+            if(e.target.classList.contains('remove-student-btn')) {
+                handleRemoveStudent(e.target.dataset.studentEmail);
+            }
+        });
+        
+        addStudentForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const email = addStudentForm.querySelector('input').value;
+            handleAddStudent(email);
+        });
+        
+        deleteClassBtn.addEventListener('click', () => {
+            deleteClassBtn.classList.add('hidden');
+            deleteClassConfirmation.classList.remove('hidden');
+        });
+        
+        cancelDeleteClassBtn.addEventListener('click', () => {
+            deleteClassBtn.classList.remove('hidden');
+            deleteClassConfirmation.classList.add('hidden');
+        });
+        
+        confirmDeleteClassBtn.addEventListener('click', handleDeleteClass);
+
 
     }
 

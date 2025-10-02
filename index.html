@@ -115,9 +115,6 @@
                     <div id="student-completed-list" class="class-grid"></div>
                 </div>
             </div>
-
-            <!-- Le panneau pour rejoindre une classe a été supprimé -->
-
         </section>
 
         <!-- PAGE 5 : AFFICHAGE DU CONTENU (QUIZ, ETC.) -->
@@ -137,8 +134,11 @@
         <!-- PAGE 6 : DÉTAILS DE LA CLASSE POUR LE PROFESSEUR -->
         <section id="class-details-page" class="page">
             <div class="class-details-container">
-                <button id="back-to-teacher-dashboard" class="btn-secondary"><i class="fa-solid fa-arrow-left"></i> Retour</button>
-                <h2 id="class-details-title">Détails de la classe</h2>
+                <div class="class-details-header">
+                    <button id="back-to-teacher-dashboard" class="btn-secondary"><i class="fa-solid fa-arrow-left"></i> Retour</button>
+                    <h2 id="class-details-title">Détails de la classe</h2>
+                    <button id="manage-class-btn" class="btn-main"><i class="fa-solid fa-gear"></i> Gérer la classe</button>
+                </div>
                 <div id="class-details-content">
                     <!-- Contenus et Résultats seront injectés ici -->
                 </div>
@@ -216,6 +216,44 @@
             <div id="result-modal-content"></div>
         </div>
     </div>
+    
+    <!-- NOUVELLE MODALE : GESTION DE LA CLASSE -->
+    <div id="manage-class-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <h2 id="manage-class-modal-title">Gérer la classe</h2>
+            
+            <div class="manage-section">
+                <h3>Élèves inscrits</h3>
+                <div id="student-list-management">
+                    <!-- La liste des élèves sera injectée ici -->
+                </div>
+                 <p class="error-message" id="remove-student-error"></p>
+            </div>
+
+            <div class="manage-section">
+                <h3>Ajouter un élève</h3>
+                <form id="add-student-form">
+                    <input type="email" id="add-student-email" placeholder="Email de l'élève" required>
+                    <button type="submit" class="btn-secondary">Ajouter</button>
+                </form>
+                 <p class="error-message" id="add-student-error"></p>
+            </div>
+
+            <div class="manage-section delete-zone">
+                <h3>Supprimer la classe</h3>
+                <p>Cette action est irréversible et supprimera la classe pour tous les élèves.</p>
+                <button id="delete-class-btn" class="btn-danger">Supprimer cette classe</button>
+                <div id="delete-class-confirmation" class="hidden">
+                    <p><strong>Êtes-vous sûr ?</strong></p>
+                    <button id="confirm-delete-class-btn" class="btn-danger">Oui, supprimer</button>
+                    <button id="cancel-delete-class-btn" class="btn-secondary">Annuler</button>
+                </div>
+                <p class="error-message" id="delete-class-error"></p>
+            </div>
+        </div>
+    </div>
+
 
     <script src="script.js"></script>
 </body>
