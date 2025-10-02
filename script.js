@@ -176,7 +176,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const classCard = document.createElement('div');
                 classCard.className = 'dashboard-card';
                 classCard.innerHTML = `<h4><i class="fa-solid fa-users"></i> ${cls.className}</h4><p>${(cls.students || []).length} élève(s)</p><p>${(cls.quizzes || []).length} contenu(s)</p>`;
-                classCard.addEventListener('click', () => showClassDetails(cls.id, cls.className));
+                classCard.addEventListener('click', () => showClassDetails(cls.id, cls.className, true));
                 classListContainer.appendChild(classCard);
                 assignClassSelect.add(new Option(cls.className, cls.id));
             });
@@ -187,41 +187,39 @@ document.addEventListener('DOMContentLoaded', () => {
         changePage('class-details-page');
         classDetailsTitle.textContent = `Détails de la classe : ${className}`;
         
-        if (forceRefresh) {
-             classDetailsContent.innerHTML = '<div class="spinner"></div>';
-        }
-
-        try {
-            if (forceRefresh) {
+        if (forceRefresh || !currentClassData || currentClassData.id !== classId) {
+            classDetailsContent.innerHTML = '<div class="spinner"></div>';
+            try {
                 const response = await fetch(`${backendUrl}/class/details/${classId}`);
+                if (!response.ok) throw new Error((await response.json()).error);
                 currentClassData = await response.json();
+            } catch (error) {
+                 console.error("Erreur lors de l'affichage des détails de la classe:", error);
+                classDetailsContent.innerHTML = `<p class="error-message">Erreur lors du chargement des détails.</p>`;
+                return;
             }
-           
-            classDetailsContent.innerHTML = ''; 
-    
-            const studentsGrid = document.createElement('div');
-            studentsGrid.className = 'details-grid';
-            
-            if (currentClassData.studentsWithResults && currentClassData.studentsWithResults.length > 0) {
-                 currentClassData.studentsWithResults.forEach(student => {
-                    const card = document.createElement('div');
-                    card.className = 'details-card student-card';
-                    card.innerHTML = `
-                        <div class="card-title"><i class="fa-solid fa-user"></i> ${student.email.split('@')[0]}</div>
-                        <div class="card-info">${student.results.length} test(s) complété(s)</div>
-                        <button class="btn-secondary" data-student-email="${student.email}">Voir les résultats</button>
-                    `;
-                    studentsGrid.appendChild(card);
-                });
-            } else {
-                studentsGrid.innerHTML = '<p>Aucun élève dans cette classe pour le moment.</p>';
-            }
-            classDetailsContent.appendChild(studentsGrid);
-    
-        } catch (error) {
-            console.error("Erreur lors de l'affichage des détails de la classe:", error);
-            classDetailsContent.innerHTML = "<p>Erreur lors du chargement des détails.</p>";
         }
+           
+        classDetailsContent.innerHTML = ''; 
+    
+        const studentsGrid = document.createElement('div');
+        studentsGrid.className = 'details-grid';
+        
+        if (currentClassData.studentsWithResults && currentClassData.studentsWithResults.length > 0) {
+             currentClassData.studentsWithResults.forEach(student => {
+                const card = document.createElement('div');
+                card.className = 'details-card student-card';
+                card.innerHTML = `
+                    <div class="card-title"><i class="fa-solid fa-user"></i> ${student.email.split('@')[0]}</div>
+                    <div class="card-info">${student.results.length} test(s) complété(s)</div>
+                    <button class="btn-secondary" data-student-email="${student.email}">Voir les résultats</button>
+                `;
+                studentsGrid.appendChild(card);
+            });
+        } else {
+            studentsGrid.innerHTML = '<p>Aucun élève dans cette classe pour le moment.</p>';
+        }
+        classDetailsContent.appendChild(studentsGrid);
     }
     
     function showStudentResults(studentEmail) {
@@ -235,8 +233,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const resultsByType = { quiz: [], exercices: [], revision: [] };
         
         studentData.results.forEach(result => {
-             // On utilise le type directement depuis le résultat si disponible, sinon on cherche dans les quizzes
-            const type = result.type || (currentClassData.quizzes.find(q => q.id === result.quizId) || {}).type || 'quiz';
+            const type = result.type || 'quiz'; // Fallback au cas où le type ne serait pas enregistré
             if (!resultsByType[type]) resultsByType[type] = [];
             resultsByType[type].push(result);
         });
@@ -323,6 +320,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     async function handleRemoveStudent(studentEmail) {
         try {
+            document.getElementById('remove-student-error').textContent = '';
             const response = await fetch(`${backendUrl}/class/remove-student`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -331,10 +329,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await response.json();
             if (!response.ok) throw new Error(data.error);
             
-            // Mettre à jour l'UI
+            // Mettre à jour les données locales et rafraîchir
             currentClassData.studentsWithResults = currentClassData.studentsWithResults.filter(s => s.email !== studentEmail);
             openManageClassModal(); // Rafraîchir la modale
-            showClassDetails(currentClassData.id, currentClassData.className, false); // Mettre à jour la vue de fond
         } catch (error) {
             document.getElementById('remove-student-error').textContent = error.message;
         }
@@ -342,6 +339,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     async function handleAddStudent(studentEmail) {
          try {
+            document.getElementById('add-student-error').textContent = '';
             const response = await fetch(`${backendUrl}/class/add-student`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -350,10 +348,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await response.json();
             if (!response.ok) throw new Error(data.error);
             
-            // Mettre à jour l'UI
             currentClassData.studentsWithResults.push({ email: studentEmail, results: [] });
             openManageClassModal();
-            showClassDetails(currentClassData.id, currentClassData.className, false);
             addStudentForm.reset();
         } catch (error) {
             document.getElementById('add-student-error').textContent = error.message;
@@ -362,13 +358,14 @@ document.addEventListener('DOMContentLoaded', () => {
     
     async function handleDeleteClass() {
         try {
+            document.getElementById('delete-class-error').textContent = '';
             const response = await fetch(`${backendUrl}/class/${currentClassData.id}/${currentUser.email}`, { method: 'DELETE' });
             const data = await response.json();
             if (!response.ok) throw new Error(data.error);
             
             manageClassModal.classList.add('hidden');
-            changePage('teacher-dashboard');
             await fetchAndDisplayClasses(); // Rafraîchir la liste des classes
+            changePage('teacher-dashboard');
             
         } catch(error) {
             document.getElementById('delete-class-error').textContent = error.message;
@@ -621,7 +618,6 @@ document.addEventListener('DOMContentLoaded', () => {
             lycee: 'programmes-lycee.json'
         };
         try {
-            // NOTE: Le backend sert maintenant ces fichiers, donc on ne met pas l'URL complète.
             const response = await fetch(`/${fileMap[cycle]}`); 
             if (!response.ok) throw new Error(`Fichier non trouvé: ${fileMap[cycle]}`);
             programmesData = await response.json();
@@ -670,7 +666,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         document.querySelectorAll('.modal-overlay').forEach(modal => {
             modal.addEventListener('click', (e) => { if (e.target === modal) modal.classList.add('hidden'); });
-            modal.querySelector('.close-modal')?.addEventListener('click', () => modal.classList.add('hidden'));
+            modal.querySelector('.close-modal')?.addEventListener('click', () => modal.classList.add('hidden'); });
         });
         
         loginForm.addEventListener('submit', (e) => { e.preventDefault(); handleAuth('/auth/login', { email: loginForm.elements['login-email'].value, password: loginForm.elements['login-password'].value }); });

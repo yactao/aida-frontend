@@ -82,7 +82,7 @@ main { padding: 2rem 5%; }
 .hero-buttons { display: flex; justify-content: center; gap: 1rem; margin-top: 2rem; }
 
 /* --- FORMULAIRES & CARTES COMMUNES --- */
-.form-container, .dashboard-main-panel, .dashboard-side-panel, .content-container, .modal-content, .class-details-container, .join-class-container {
+.form-container, .dashboard-main-panel, .dashboard-side-panel, .content-container, .modal-content, .class-details-container {
     background: var(--card-bg-color); padding: 2rem; border-radius: 12px;
     box-shadow: var(--shadow);
 }
