@@ -30,8 +30,6 @@ document.addEventListener('DOMContentLoaded', () => {
     
     const assignClassSelect = document.getElementById('assign-class-select');
     const studentWelcome = document.getElementById('student-welcome');
-    const joinClassPanel = document.getElementById('join-class-panel');
-    const joinClassForm = document.getElementById('join-class-form');
     
     const studentTodoList = document.getElementById('student-todo-list');
     const studentCompletedList = document.getElementById('student-completed-list');
@@ -62,13 +60,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const userEmailDisplay = document.getElementById('user-email-display');
     const logoutBtn = document.getElementById('logout-btn');
     const backToDashboardBtn = document.getElementById('back-to-dashboard-btn');
+    
+    // Nouveaux sélecteurs pour la vue par élève
+    const backToClassDetailsBtn = document.getElementById('back-to-class-details');
+    const studentResultsTitle = document.getElementById('student-results-title');
+    const studentResultsContent = document.getElementById('student-results-content');
 
 
     // --- VARIABLES GLOBALES ---
     let currentUser = null;
-    let generatedContentData = null; // Stockera le JSON structuré
+    let generatedContentData = null; 
     let programmesData = null;
-    let currentClassData = null; // Stockera les données de la classe consultée
+    let currentClassData = null;
 
     // --- SYNTHÈSE VOCALE ---
     function getTextFromContentViewer() {
@@ -98,7 +101,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function changePage(targetId) {
         pages.forEach(page => page.classList.remove('active'));
         document.getElementById(targetId)?.classList.add('active');
-        speechSynthesis.cancel(); // Arrêter la lecture si on change de page
+        speechSynthesis.cancel();
     }
 
     function applyTheme(theme) {
@@ -162,7 +165,7 @@ document.addEventListener('DOMContentLoaded', () => {
             classes.forEach(cls => {
                 const classCard = document.createElement('div');
                 classCard.className = 'dashboard-card';
-                classCard.innerHTML = `<h4><i class="fa-solid fa-users"></i> ${cls.className}</h4><p>${cls.students.length} élève(s)</p><p>${(cls.quizzes || []).length} contenu(s)</p>`;
+                classCard.innerHTML = `<h4><i class="fa-solid fa-users"></i> ${cls.className}</h4><p>${(cls.students || []).length} élève(s)</p><p>${(cls.quizzes || []).length} contenu(s)</p>`;
                 classCard.addEventListener('click', () => showClassDetails(cls.id, cls.className));
                 classListContainer.appendChild(classCard);
                 assignClassSelect.add(new Option(cls.className, cls.id));
@@ -177,77 +180,92 @@ document.addEventListener('DOMContentLoaded', () => {
     
         try {
             const response = await fetch(`${backendUrl}/class/details/${classId}`);
-            currentClassData = await response.json();
-            classDetailsContent.innerHTML = ''; // Nettoyer
+            currentClassData = await response.json(); // Stocke les données complètes
+            classDetailsContent.innerHTML = ''; 
     
-            // Section des contenus assignés (Vue moderne en cartes)
-            const contentsSection = document.createElement('div');
-            contentsSection.className = 'class-details-section';
-            contentsSection.innerHTML = '<h3>Contenus Assignés</h3>';
-            const assignedGrid = document.createElement('div');
-            assignedGrid.className = 'details-grid';
-            if (currentClassData.quizzes && currentClassData.quizzes.length > 0) {
-                currentClassData.quizzes.forEach(content => {
+            // NOUVELLE VUE : Cartes par élève
+            const studentsGrid = document.createElement('div');
+            studentsGrid.className = 'details-grid';
+            
+            if (currentClassData.studentsWithResults && currentClassData.studentsWithResults.length > 0) {
+                 currentClassData.studentsWithResults.forEach(student => {
                     const card = document.createElement('div');
-                    card.className = 'details-card';
+                    card.className = 'details-card student-card'; // Style différent
                     card.innerHTML = `
-                        <div class="card-title">${content.title || 'Contenu sans titre'}</div>
-                        <div class="card-info">Type: ${content.type || 'N/A'}</div>
-                        <button class="btn-secondary" data-content-id="${content.id}">Voir</button>
+                        <div class="card-title"><i class="fa-solid fa-user"></i> ${student.email.split('@')[0]}</div>
+                        <div class="card-info">${student.results.length} test(s) complété(s)</div>
+                        <button class="btn-secondary" data-student-email="${student.email}">Voir les résultats</button>
                     `;
-                    assignedGrid.appendChild(card);
+                    studentsGrid.appendChild(card);
                 });
             } else {
-                assignedGrid.innerHTML = '<p>Aucun contenu assigné pour cette classe.</p>';
+                studentsGrid.innerHTML = '<p>Aucun élève dans cette classe pour le moment.</p>';
             }
-            contentsSection.appendChild(assignedGrid);
-            classDetailsContent.appendChild(contentsSection);
-    
-            // Section des résultats des élèves (Vue moderne en cartes)
-            const resultsSection = document.createElement('div');
-            resultsSection.className = 'class-details-section';
-            resultsSection.innerHTML = '<h3>Résultats des Élèves</h3>';
-            const resultsGrid = document.createElement('div');
-            resultsGrid.className = 'details-grid';
-    
-            if (currentClassData.results && currentClassData.results.length > 0) {
-                currentClassData.results.forEach(result => {
-                    const card = document.createElement('div');
-                    card.className = 'details-card result-card';
-                    const scorePercentage = (result.score / result.totalQuestions) * 100;
-                    card.innerHTML = `
-                        <div class="card-title">${result.studentEmail.split('@')[0]}</div>
-                        <div class="card-info">${result.quizTitle}</div>
-                        <div class="score-display">
-                            <span class="score">${result.score}/${result.totalQuestions}</span>
-                            <div class="score-bar"><div class="score-fill" style="width: ${scorePercentage}%;"></div></div>
-                        </div>
-                        <button class="btn-secondary" data-result-id="${result.resultId}">Détails</button>
-                    `;
-                    resultsGrid.appendChild(card);
-                });
-            } else {
-                resultsGrid.innerHTML = '<p>Aucun élève n\'a encore terminé de contenu.</p>';
-            }
-            resultsSection.appendChild(resultsGrid);
-            classDetailsContent.appendChild(resultsSection);
+            classDetailsContent.appendChild(studentsGrid);
     
         } catch (error) {
             console.error("Erreur lors de l'affichage des détails de la classe:", error);
             classDetailsContent.innerHTML = "<p>Erreur lors du chargement des détails.</p>";
         }
     }
+    
+    function showStudentResults(studentEmail) {
+        const studentData = currentClassData.studentsWithResults.find(s => s.email === studentEmail);
+        if (!studentData) return;
 
-    function displayContentForTeacher(contentId) {
-        const content = currentClassData.quizzes.find(q => q.id === contentId);
-        if (!content) return;
-        displayContent(content, currentClassData.id);
+        changePage('student-results-page');
+        studentResultsTitle.textContent = `Résultats de ${studentEmail.split('@')[0]}`;
+        studentResultsContent.innerHTML = '';
+
+        // Trier les résultats par type
+        const resultsByType = { quiz: [], exercices: [], revision: [] };
+        studentData.results.forEach(result => {
+            const content = currentClassData.quizzes.find(q => q.id === result.quizId);
+            if (content && content.type) {
+                 if (!resultsByType[content.type]) resultsByType[content.type] = [];
+                 resultsByType[content.type].push(result);
+            }
+        });
+
+        // Afficher chaque catégorie
+        Object.keys(resultsByType).forEach(type => {
+            if (resultsByType[type].length > 0) {
+                const section = document.createElement('div');
+                section.className = 'class-details-section';
+                section.innerHTML = `<h3>${type.charAt(0).toUpperCase() + type.slice(1)}s</h3>`;
+                const grid = document.createElement('div');
+                grid.className = 'details-grid';
+                resultsByType[type].forEach(result => {
+                     const card = document.createElement('div');
+                    card.className = 'details-card result-card';
+                    const scorePercentage = (result.score / result.totalQuestions) * 100;
+                    card.innerHTML = `
+                        <div class="card-title">${result.quizTitle}</div>
+                        <div class="score-display">
+                            <span class="score">${result.score}/${result.totalQuestions}</span>
+                            <div class="score-bar"><div class="score-fill" style="width: ${scorePercentage}%;"></div></div>
+                        </div>
+                        <button class="btn-secondary" data-result-id="${result.resultId}">Détails</button>
+                    `;
+                    grid.appendChild(card);
+                });
+                section.appendChild(grid);
+                studentResultsContent.appendChild(section);
+            }
+        });
     }
 
     function displayStudentResultDetails(resultId) {
-        const result = currentClassData.results.find(r => r.resultId === resultId);
+        let result;
+        // Trouver le résultat dans la structure de données
+        for (const student of currentClassData.studentsWithResults) {
+            result = student.results.find(r => r.resultId === resultId);
+            if (result) break;
+        }
+        if (!result) return;
+
         const content = currentClassData.quizzes.find(q => q.id === result.quizId);
-        if (!result || !content) return;
+        if (!content) return;
 
         const modal = document.getElementById('result-details-modal');
         const modalTitle = document.getElementById('result-modal-title');
@@ -261,11 +279,8 @@ document.addEventListener('DOMContentLoaded', () => {
             contentHTML += `<h4>Question ${index + 1}: ${q.question_text}</h4>`;
             q.options.forEach((opt, optIndex) => {
                 let className = '';
-                if (optIndex == studentAnswerIndex) {
-                    className = isCorrect ? 'correct' : 'incorrect';
-                } else if (optIndex == q.correct_answer_index) {
-                    className = 'correct';
-                }
+                if (optIndex == studentAnswerIndex) className = isCorrect ? 'correct' : 'incorrect';
+                else if (optIndex == q.correct_answer_index) className = 'correct';
                 contentHTML += `<div class="answer ${className}">${opt}</div>`;
             });
         });
@@ -296,9 +311,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 studentCompletedList.innerHTML = '<p>Aucun exercice terminé pour le moment.</p>';
             }
             
-            const hasJoinedClass = (todo && todo.length > 0) || (completed && completed.length > 0);
-            joinClassPanel.classList.toggle('hidden', !hasJoinedClass);
-            document.getElementById('student-work-area').classList.toggle('hidden', !hasJoinedClass);
+            const hasContent = (todo && todo.length > 0) || (completed && completed.length > 0);
+            document.getElementById('student-work-area').classList.toggle('hidden', !hasContent);
+
 
         } catch (error) { console.error("Erreur de récupération des modules:", error); }
     }
@@ -564,6 +579,8 @@ document.addEventListener('DOMContentLoaded', () => {
         logoutBtn.addEventListener('click', logout);
         
         backToTeacherDashboardBtn.addEventListener('click', () => changePage('teacher-dashboard'));
+        backToClassDetailsBtn.addEventListener('click', () => showClassDetails(currentClassData.id, currentClassData.className));
+
 
         document.querySelectorAll('.modal-overlay').forEach(modal => {
             modal.addEventListener('click', (e) => { if (e.target === modal) modal.classList.add('hidden'); });
@@ -690,32 +707,22 @@ document.addEventListener('DOMContentLoaded', () => {
             } catch (error) { alert(`Erreur: ${error.message}`); }
         });
         
-        joinClassForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const className = joinClassForm.elements['class-code-input'].value;
-            try {
-                const response = await fetch(`${backendUrl}/class/join`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ className, studentEmail: currentUser.email })
-                });
-                const data = await response.json();
-                if (!response.ok) throw new Error(data.error);
-                alert(data.message);
-                await fetchAndDisplayStudentContent();
-            } catch (error) { document.getElementById('join-class-error').textContent = error.message; }
-        });
+        // La logique pour le formulaire join-class-form a été supprimée
 
         classDetailsContent.addEventListener('click', (e) => {
-            const button = e.target.closest('button');
-            if (!button) return;
-            
-            if (button.dataset.resultId) {
-                displayStudentResultDetails(button.dataset.resultId);
-            } else if (button.dataset.contentId) {
-                displayContentForTeacher(button.dataset.contentId);
+            const button = e.target.closest('button[data-student-email]');
+            if (button) {
+                showStudentResults(button.dataset.studentEmail);
             }
         });
+        
+        studentResultsContent.addEventListener('click', (e) => {
+            const button = e.target.closest('button[data-result-id]');
+             if (button) {
+                displayStudentResultDetails(button.dataset.resultId);
+            }
+        });
+
     }
 
     // --- INITIALISATION ---
