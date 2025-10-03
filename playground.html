@@ -204,7 +204,9 @@
                     lycee: 'programmes-lycee.json'
                 };
                 try {
-                    const response = await fetch(fileMap[cycle]);
+                    // --- CORRECTION ICI ---
+                    // On va chercher le fichier sur le serveur, pas en local
+                    const response = await fetch(`${backendUrl.replace('/api', '')}/${fileMap[cycle]}`);
                     programmesData = await response.json();
                     populateSelect(levelSelect, Object.keys(programmesData), "-- Choisir --");
                 } catch (e) { alert("Impossible de charger les programmes pour ce cycle."); }
@@ -367,4 +369,3 @@
     </script>
 </body>
 </html>
-
