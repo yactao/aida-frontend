@@ -19,43 +19,31 @@ document.addEventListener('DOMContentLoaded', () => {
     const classListContainer = document.getElementById('class-list');
     const noClassesMessage = document.getElementById('no-classes-message');
     const openResourceModalBtn = document.querySelector('.new-resource-btn');
-    
-    // Modales
     const generationModal = document.getElementById('generation-modal');
-    const assignmentModal = document.getElementById('assignment-modal');
-    
     const resourceForm = document.getElementById('resource-form');
     const modalFormStep = document.getElementById('modal-form-step');
     const modalLoadingStep = document.getElementById('modal-loading-step');
-    
+    const modalResultStep = document.getElementById('modal-result-step');
     const assignClassSelect = document.getElementById('assign-class-select');
     const studentWelcome = document.getElementById('student-welcome');
     const joinClassPanel = document.getElementById('join-class-panel');
     const joinClassForm = document.getElementById('join-class-form');
-    
-    const studentTodoList = document.getElementById('student-todo-list');
-    const studentCompletedList = document.getElementById('student-completed-list');
-    
+    const studentModuleList = document.getElementById('student-module-list');
     const contentTitle = document.getElementById('content-title');
     const contentViewer = document.getElementById('content-viewer');
-    const speakContentBtn = document.getElementById('speak-content-btn');
     const submitQuizBtn = document.getElementById('submit-quiz-btn');
     const quizResult = document.getElementById('quiz-result');
-
     const classDetailsTitle = document.getElementById('class-details-title');
     const classDetailsContent = document.getElementById('class-details-content');
     const backToTeacherDashboardBtn = document.getElementById('back-to-teacher-dashboard');
-    
     const cycleSelect = document.getElementById('cycle-select');
     const levelSelect = document.getElementById('level-select');
     const subjectSelect = document.getElementById('subject-select');
     const notionSelect = document.getElementById('notion-select');
     const contentTypeSelect = document.getElementById('content-type-select');
     const resourceFormButton = document.querySelector('#resource-form button');
-    
     const generatedContentEditor = document.getElementById('generated-content-editor');
     const confirmAssignBtn = document.getElementById('confirm-assign-btn');
-    
     const userMenuContainer = document.querySelector('.user-menu-container');
     const userInfoClickable = document.getElementById('user-info-clickable');
     const userDropdown = document.querySelector('.user-dropdown');
@@ -70,35 +58,10 @@ document.addEventListener('DOMContentLoaded', () => {
     let programmesData = null;
     let currentClassData = null; // Stockera les données de la classe consultée
 
-    // --- SYNTHÈSE VOCALE ---
-    function getTextFromContentViewer() {
-        let text = contentTitle.textContent + '. ';
-        contentViewer.querySelectorAll('.quiz-question, .question-feedback, .revision-content').forEach(el => {
-            text += el.innerText + '. ';
-        });
-        return text;
-    }
-
-    function speakText(text, buttonElement) {
-        if (speechSynthesis.speaking) {
-            speechSynthesis.cancel();
-            buttonElement.classList.remove('speaking');
-            return;
-        }
-        if (text) {
-            const utterance = new SpeechSynthesisUtterance(text);
-            utterance.lang = 'fr-FR';
-            utterance.onstart = () => buttonElement.classList.add('speaking');
-            utterance.onend = () => buttonElement.classList.remove('speaking');
-            speechSynthesis.speak(utterance);
-        }
-    }
-
     // --- NAVIGATION ET UI ---
     function changePage(targetId) {
         pages.forEach(page => page.classList.remove('active'));
         document.getElementById(targetId)?.classList.add('active');
-        speechSynthesis.cancel(); // Arrêter la lecture si on change de page
     }
 
     function applyTheme(theme) {
@@ -174,66 +137,49 @@ document.addEventListener('DOMContentLoaded', () => {
         changePage('class-details-page');
         classDetailsTitle.textContent = `Détails de la classe : ${className}`;
         classDetailsContent.innerHTML = '<div class="spinner"></div>';
-    
+
         try {
             const response = await fetch(`${backendUrl}/class/details/${classId}`);
             currentClassData = await response.json();
             classDetailsContent.innerHTML = ''; // Nettoyer
-    
-            // Section des contenus assignés (Vue moderne en cartes)
+
+            // Section des contenus assignés
             const contentsSection = document.createElement('div');
             contentsSection.className = 'class-details-section';
             contentsSection.innerHTML = '<h3>Contenus Assignés</h3>';
-            const assignedGrid = document.createElement('div');
-            assignedGrid.className = 'details-grid';
+            const contentList = document.createElement('ul');
+            contentList.className = 'content-list';
             if (currentClassData.quizzes && currentClassData.quizzes.length > 0) {
                 currentClassData.quizzes.forEach(content => {
-                    const card = document.createElement('div');
-                    card.className = 'details-card';
-                    card.innerHTML = `
-                        <div class="card-title">${content.title || 'Contenu sans titre'}</div>
-                        <div class="card-info">Type: ${content.type || 'N/A'}</div>
-                        <button class="btn-secondary" data-content-id="${content.id}">Voir</button>
-                    `;
-                    assignedGrid.appendChild(card);
+                    const li = document.createElement('li');
+                    li.innerHTML = `${content.title} <button data-content-id="${content.id}">Voir</button>`;
+                    contentList.appendChild(li);
                 });
             } else {
-                assignedGrid.innerHTML = '<p>Aucun contenu assigné pour cette classe.</p>';
+                contentList.innerHTML = '<p>Aucun contenu assigné pour cette classe.</p>';
             }
-            contentsSection.appendChild(assignedGrid);
+            contentsSection.appendChild(contentList);
             classDetailsContent.appendChild(contentsSection);
-    
-            // Section des résultats des élèves (Vue moderne en cartes)
+
+            // Section des résultats
             const resultsSection = document.createElement('div');
             resultsSection.className = 'class-details-section';
             resultsSection.innerHTML = '<h3>Résultats des Élèves</h3>';
-            const resultsGrid = document.createElement('div');
-            resultsGrid.className = 'details-grid';
-    
-            if (currentClassData.results && currentClassData.results.length > 0) {
+             if (currentClassData.results && currentClassData.results.length > 0) {
+                const resultsList = document.createElement('ul');
+                resultsList.className = 'results-list';
                 currentClassData.results.forEach(result => {
-                    const card = document.createElement('div');
-                    card.className = 'details-card result-card';
-                    const scorePercentage = (result.score / result.totalQuestions) * 100;
-                    card.innerHTML = `
-                        <div class="card-title">${result.studentEmail.split('@')[0]}</div>
-                        <div class="card-info">${result.quizTitle}</div>
-                        <div class="score-display">
-                            <span class="score">${result.score}/${result.totalQuestions}</span>
-                            <div class="score-bar"><div class="score-fill" style="width: ${scorePercentage}%;"></div></div>
-                        </div>
-                        <button class="btn-secondary" data-result-id="${result.resultId}">Détails</button>
-                    `;
-                    resultsGrid.appendChild(card);
+                    const li = document.createElement('li');
+                    li.innerHTML = `${result.studentEmail.split('@')[0]} - ${result.quizTitle}: ${result.score}/${result.totalQuestions} <button data-result-id="${result.resultId}">Voir détails</button>`;
+                    resultsList.appendChild(li);
                 });
-            } else {
-                resultsGrid.innerHTML = '<p>Aucun élève n\'a encore terminé de contenu.</p>';
-            }
-            resultsSection.appendChild(resultsGrid);
+                resultsSection.appendChild(resultsList);
+             } else {
+                 resultsSection.innerHTML += '<p>Aucun élève n\'a encore terminé de contenu.</p>';
+             }
             classDetailsContent.appendChild(resultsSection);
-    
+
         } catch (error) {
-            console.error("Erreur lors de l'affichage des détails de la classe:", error);
             classDetailsContent.innerHTML = "<p>Erreur lors du chargement des détails.</p>";
         }
     }
@@ -241,7 +187,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function displayContentForTeacher(contentId) {
         const content = currentClassData.quizzes.find(q => q.id === contentId);
         if (!content) return;
-        displayContent(content, currentClassData.id);
+        alert(`Prévisualisation de : ${content.title}\n\n` + JSON.stringify(content, null, 2));
     }
 
     function displayStudentResultDetails(resultId) {
@@ -278,67 +224,29 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!currentUser) return;
         try {
             const response = await fetch(`${backendUrl}/student/classes/${currentUser.email}`);
-            const data = await response.json();
-            studentTodoList.innerHTML = '';
-            studentCompletedList.innerHTML = '';
-
-            const { todo, completed } = data;
-
-            if(todo && todo.length > 0) {
-                todo.forEach(content => createStudentCard(content, studentTodoList));
-            } else {
-                studentTodoList.innerHTML = '<p>Bravo, tu as tout terminé !</p>';
-            }
-
-            if(completed && completed.length > 0) {
-                completed.forEach(content => createStudentCard(content, studentCompletedList));
-            } else {
-                studentCompletedList.innerHTML = '<p>Aucun exercice terminé pour le moment.</p>';
-            }
+            const classes = await response.json();
+            studentModuleList.innerHTML = '';
+            joinClassPanel.classList.toggle('hidden', classes.length > 0);
             
-            const hasJoinedClass = (todo && todo.length > 0) || (completed && completed.length > 0);
-            joinClassPanel.classList.toggle('hidden', hasJoinedClass);
-            document.getElementById('student-work-area').classList.toggle('hidden', !hasJoinedClass);
+            let hasContent = false;
+            classes.forEach(cls => {
+                if (cls.quizzes && cls.quizzes.length > 0) {
+                    hasContent = true;
+                    cls.quizzes.forEach(content => {
+                        const card = document.createElement('div');
+                        card.className = 'dashboard-card';
+                        card.innerHTML = `<h4>${content.title}</h4><p>Classe: ${cls.className}</p><button class="btn-secondary">Commencer</button>`;
+                        card.querySelector('button').addEventListener('click', () => displayContent(content, cls.id));
+                        studentModuleList.appendChild(card);
+                    });
+                }
+            });
+
+            if (!hasContent) {
+                studentModuleList.innerHTML = '<p>Aucun module n\'est disponible pour le moment.</p>';
+            }
 
         } catch (error) { console.error("Erreur de récupération des modules:", error); }
-    }
-
-    function createStudentCard(content, container) {
-        const card = document.createElement('div');
-        card.className = 'dashboard-card-student';
-        const isCompleted = content.status === 'completed';
-
-        const dateToShow = isCompleted ? content.completedAt : content.assignedAt;
-        const formattedDate = new Date(dateToShow).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' });
-        const dateLabel = isCompleted ? 'Terminé le' : 'Reçu le';
-
-        let subject = 'autre';
-        if (content.title.toLowerCase().includes('math')) subject = 'maths';
-        if (content.title.toLowerCase().includes('français')) subject = 'francais';
-        if (content.title.toLowerCase().includes('science')) subject = 'sciences';
-        if (content.title.toLowerCase().includes('histoire')) subject = 'histoire';
-
-        card.innerHTML = `
-            <div class="card-header">
-                <span class="subject-tag tag-${subject}">${subject.charAt(0).toUpperCase() + subject.slice(1)}</span>
-                ${content.isNewest && !isCompleted ? '<span class="new-tag">Nouveau</span>' : ''}
-            </div>
-            <div class="card-content">
-                <h4>${content.title}</h4>
-                <p>Classe: ${content.className}</p>
-            </div>
-            <div class="card-footer">
-                <span class="card-date">${dateLabel} ${formattedDate}</span>
-                <button class="btn-secondary ${isCompleted ? 'btn-termine' : ''}" ${isCompleted ? 'disabled' : ''}>
-                    ${isCompleted ? 'Terminé' : 'Commencer'}
-                </button>
-            </div>
-        `;
-
-        if (!isCompleted) {
-            card.querySelector('button').addEventListener('click', () => displayContent(content, content.classId));
-        }
-        container.appendChild(card);
     }
     
     function displayContent(contentData, classId) {
@@ -347,22 +255,9 @@ document.addEventListener('DOMContentLoaded', () => {
         submitQuizBtn.classList.add('hidden');
         quizResult.classList.add('hidden');
         
-        const isTeacherPreview = currentUser.role === 'teacher';
-
         switch(contentData.type) {
             case 'quiz':
-                displayQuiz(contentData, classId, isTeacherPreview);
-                break;
-            case 'revision':
-                const formattedContent = contentData.content
-                    .replace(/### (.*)/g, '<h3>$1</h3>')
-                    .replace(/## (.*)/g, '<h2>$1</h2>')
-                    .replace(/\* (.*)/g, '<li>$1</li>')
-                    .replace(/\n/g, '<br>');
-                contentViewer.innerHTML = `<div class="revision-content">${formattedContent}</div>`;
-                break;
-            case 'exercices':
-                 contentViewer.innerHTML = `<div class="revision-content">${contentData.content.replace(/\n/g, '<br>')}</div>`;
+                displayQuiz(contentData, classId);
                 break;
             default:
                 contentViewer.innerHTML = `<p>${contentData.content || "Ce type de contenu n'est pas encore supporté."}</p>`;
@@ -370,79 +265,32 @@ document.addEventListener('DOMContentLoaded', () => {
         changePage('content-page');
     }
     
-    function displayQuiz(quizData, classId, isTeacherPreview) {
+    function displayQuiz(quizData, classId) {
         quizData.questions.forEach((q, index) => {
             const questionElement = document.createElement('div');
             questionElement.className = 'quiz-question';
-            const optionsHTML = q.options.map((option, i) => `<label><input type="radio" name="question-${index}" value="${i}" ${isTeacherPreview ? 'disabled' : ''}> ${option}</label>`).join('');
+            const optionsHTML = q.options.map((option, i) => `<label><input type="radio" name="question-${index}" value="${i}"> ${option}</label>`).join('');
             questionElement.innerHTML = `<p><strong>${index + 1}. ${q.question_text}</strong></p><div class="quiz-options">${optionsHTML}</div>`;
             contentViewer.appendChild(questionElement);
         });
-        
-        if (!isTeacherPreview) {
-            submitQuizBtn.classList.remove('hidden');
-            submitQuizBtn.onclick = () => submitQuiz(quizData, classId);
-        }
+        submitQuizBtn.classList.remove('hidden');
+        submitQuizBtn.onclick = () => submitQuiz(quizData, classId); // Attacher l'événement
     }
 
     async function submitQuiz(quizData, classId) {
+        let score = 0;
         const userAnswers = [];
         quizData.questions.forEach((q, index) => {
             const selectedInput = document.querySelector(`input[name="question-${index}"]:checked`);
-            userAnswers.push(selectedInput ? parseInt(selectedInput.value) : -1);
+            const answerIndex = selectedInput ? parseInt(selectedInput.value) : -1;
+            userAnswers.push(answerIndex);
+            if (answerIndex == q.correct_answer_index) {
+                score++;
+            }
         });
 
-        submitQuizBtn.classList.add('hidden');
-        contentViewer.innerHTML = '';
-
-        for (let i = 0; i < quizData.questions.length; i++) {
-            const q = quizData.questions[i];
-            const studentAnswerIndex = userAnswers[i];
-            const isCorrect = studentAnswerIndex == q.correct_answer_index;
-
-            const feedbackElement = document.createElement('div');
-            feedbackElement.className = `question-feedback ${isCorrect ? 'correct' : 'incorrect'}`;
-            
-            let optionsHTML = q.options.map((option, idx) => {
-                let className = '';
-                if (idx == studentAnswerIndex) className = isCorrect ? 'correct' : 'incorrect';
-                else if (idx == q.correct_answer_index) className = 'correct';
-                return `<div class="answer ${className}">${option}</div>`;
-            }).join('');
-
-            feedbackElement.innerHTML = `<p><strong>${i + 1}. ${q.question_text}</strong></p>${optionsHTML}`;
-
-            if (!isCorrect) {
-                const explanationSpinner = document.createElement('div');
-                explanationSpinner.className = 'spinner';
-                feedbackElement.appendChild(explanationSpinner);
-
-                try {
-                    const response = await fetch(`${backendUrl}/generate/explanation`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            question: q.question_text,
-                            studentAnswer: q.options[studentAnswerIndex] || "Aucune réponse",
-                            correctAnswer: q.options[q.correct_answer_index]
-                        })
-                    });
-                    const data = await response.json();
-                    explanationSpinner.remove();
-                    const explanationDiv = document.createElement('div');
-                    explanationDiv.className = 'aida-explanation';
-                    explanationDiv.innerHTML = `💡 **AIDA dit :** ${data.explanation}`;
-                    feedbackElement.appendChild(explanationDiv);
-                } catch (error) {
-                    explanationSpinner.remove();
-                    console.error("Erreur explication:", error);
-                }
-            }
-            contentViewer.appendChild(feedbackElement);
-        }
-
+        // Envoyer les résultats au backend
         try {
-            let score = userAnswers.reduce((acc, ans, idx) => acc + (ans == quizData.questions[idx].correct_answer_index ? 1 : 0), 0);
             await fetch(`${backendUrl}/quiz/submit`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -456,10 +304,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     answers: userAnswers
                 })
             });
-            await fetchAndDisplayStudentContent();
         } catch (error) {
             console.error("Erreur lors de l'envoi du score:", error);
         }
+
+        // Afficher la correction
+        quizResult.textContent = `Votre score : ${score} / ${quizData.questions.length}`;
+        quizResult.classList.remove('hidden');
+        submitQuizBtn.classList.add('hidden');
     }
 
     // --- INITIALISATION & GESTION DES ÉVÉNEMENTS ---
@@ -507,6 +359,7 @@ document.addEventListener('DOMContentLoaded', () => {
         programmesData = null;
         modalFormStep.classList.remove('hidden');
         modalLoadingStep.classList.add('hidden');
+        modalResultStep.classList.add('hidden');
     }
 
     async function loadProgrammesForCycle(cycle) {
@@ -521,7 +374,7 @@ document.addEventListener('DOMContentLoaded', () => {
             lycee: 'programmes-lycee.json'
         };
         try {
-            const response = await fetch(`/${fileMap[cycle]}`); // Changé pour un chemin relatif
+            const response = await fetch(fileMap[cycle]);
             if (!response.ok) throw new Error(`Fichier non trouvé: ${fileMap[cycle]}`);
             programmesData = await response.json();
             populateSelect(levelSelect, Object.keys(programmesData), "-- Choisir la classe --");
@@ -538,11 +391,6 @@ document.addEventListener('DOMContentLoaded', () => {
         backToDashboardBtn.addEventListener('click', () => {
             if(currentUser.role === 'teacher') changePage('teacher-dashboard');
             else changePage('student-dashboard');
-        });
-
-        speakContentBtn.addEventListener('click', () => {
-            const textToRead = getTextFromContentViewer();
-            speakText(textToRead, speakContentBtn);
         });
 
         themeToggleBtn.addEventListener('click', () => {
@@ -586,8 +434,8 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         openResourceModalBtn.addEventListener('click', () => {
-            initializeResourceModal();
             generationModal.classList.remove('hidden');
+            initializeResourceModal();
         });
 
         cycleSelect.addEventListener('change', () => loadProgrammesForCycle(cycleSelect.value));
@@ -654,13 +502,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (!response.ok) throw new Error(data.error);
                 
                 generatedContentEditor.value = data.text_representation;
-                generatedContentData = data.structured_content;
+                generatedContentData = data.structured_content; // Garder le JSON en mémoire
                 
-                generationModal.classList.add('hidden');
-                assignmentModal.classList.remove('hidden');
+                modalLoadingStep.classList.add('hidden');
+                modalResultStep.classList.remove('hidden');
             } catch (err) {
                 alert("Erreur de génération: " + err.message);
-            } finally {
                 initializeResourceModal();
             }
         });
@@ -685,7 +532,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
                 if (!assignResponse.ok) throw new Error((await assignResponse.json()).error);
                 alert("Contenu assigné avec succès !");
-                assignmentModal.classList.add('hidden');
+                generationModal.classList.add('hidden');
                 await fetchAndDisplayClasses();
             } catch (error) { alert(`Erreur: ${error.message}`); }
         });
@@ -707,13 +554,10 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         classDetailsContent.addEventListener('click', (e) => {
-            const button = e.target.closest('button');
-            if (!button) return;
-            
-            if (button.dataset.resultId) {
-                displayStudentResultDetails(button.dataset.resultId);
-            } else if (button.dataset.contentId) {
-                displayContentForTeacher(button.dataset.contentId);
+            if (e.target.matches('button[data-result-id]')) {
+                displayStudentResultDetails(e.target.getAttribute('data-result-id'));
+            } else if (e.target.matches('button[data-content-id]')) {
+                displayContentForTeacher(e.target.getAttribute('data-content-id'));
             }
         });
     }
