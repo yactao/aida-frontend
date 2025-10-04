@@ -5,90 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AIDA - Terrain de Jeux</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
-        :root {
-            --primary-color: #6D28D9;
-            --secondary-color: #EC4899;
-            --background-color: #F3F4F6;
-            --text-color: #1F2937;
-            --card-bg-color: #FFFFFF;
-            --shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
-        }
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body {
-            font-family: 'Poppins', sans-serif;
-            background-color: var(--background-color);
-            color: var(--text-color);
-            display: flex;
-            flex-direction: column;
-            min-height: 100vh;
-        }
-        header {
-            padding: 1rem 5%;
-            background-color: var(--card-bg-color);
-            box-shadow: var(--shadow);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .logo a { display: flex; align-items: center; text-decoration: none; }
-        .logo-icon { width: 40px; height: 40px; background: linear-gradient(45deg, var(--primary-color), var(--secondary-color)); color: white; display: grid; place-items: center; border-radius: 10px; font-weight: 700; font-size: 1.5rem; margin-right: 10px; }
-        .logo span { font-size: 1.5rem; font-weight: 700; color: var(--text-color); }
-        .main-container {
-            flex-grow: 1;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 2rem;
-        }
-        .playground-card {
-            background-color: var(--card-bg-color);
-            padding: 2rem;
-            border-radius: 12px;
-            box-shadow: var(--shadow);
-            width: 100%;
-            max-width: 500px;
-            text-align: center;
-        }
-        .playground-card h1, .playground-card h2 {
-            font-size: 2rem;
-            margin-bottom: 0.5rem;
-            background: linear-gradient(45deg, var(--primary-color), var(--secondary-color));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-        .playground-card p { margin-bottom: 2rem; color: #6B7280; }
-        .form-group { margin-bottom: 1.5rem; text-align: left; }
-        .form-group label { display: block; margin-bottom: 0.5rem; font-weight: 600; }
-        input, select { width: 100%; padding: 12px; border: 1px solid #D1D5DB; border-radius: 8px; font-size: 1rem; }
-        .btn-main { padding: 12px 24px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.3s ease; text-decoration: none; background: linear-gradient(45deg, var(--primary-color), var(--secondary-color)); color: #FFF; font-size: 1rem; width: 100%; }
-        .chat-container {
-            width: 100%;
-            max-width: 800px;
-            height: 80vh;
-            display: flex;
-            flex-direction: column;
-            background: var(--card-bg-color);
-            box-shadow: var(--shadow);
-            border-radius: 12px;
-        }
-        .chat-header { padding: 1rem; border-bottom: 1px solid #E5E7EB; text-align: center; font-weight: 600; }
-        .chat-messages { flex-grow: 1; padding: 1rem; overflow-y: auto; }
-        .message { margin-bottom: 1rem; display: flex; }
-        .message.user { justify-content: flex-end; }
-        .message-bubble { padding: 0.75rem 1rem; border-radius: 18px; max-width: 75%; white-space: pre-wrap; }
-        .message.user .message-bubble { background: linear-gradient(45deg, var(--primary-color), var(--secondary-color)); color: white; border-bottom-right-radius: 4px; }
-        .message.aida .message-bubble { background-color: #E5E7EB; color: #1F2937; border-bottom-left-radius: 4px; }
-        .chat-input { display: flex; padding: 1rem; border-top: 1px solid #E5E7EB; }
-        .chat-input input { flex-grow: 1; padding: 12px; border: 1px solid #D1D5DB; border-radius: 20px; font-size: 1rem; margin-right: 0.5rem; }
-        .chat-input button { background: var(--primary-color); color: white; border: none; border-radius: 50%; width: 45px; height: 45px; font-size: 1.2rem; cursor: pointer; flex-shrink: 0; }
-        .hidden { display: none !important; }
-        .typing-indicator .message-bubble span { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background-color: #9CA3AF; margin: 0 2px; animation: bounce 1.4s infinite ease-in-out both; }
-        .typing-indicator .message-bubble span:nth-child(1) { animation-delay: -0.32s; }
-        .typing-indicator .message-bubble span:nth-child(2) { animation-delay: -0.16s; }
-        @keyframes bounce { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1.0); } }
-    </style>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <header>
@@ -98,6 +15,9 @@
                 <span>AIDA</span>
             </a>
         </div>
+        <nav>
+            <a href="index.html" class="btn-secondary">Retour au tableau de bord</a>
+        </nav>
     </header>
 
     <main class="main-container">
@@ -175,10 +95,8 @@
             const chatMessages = document.getElementById('chat-messages');
             const userInput = document.getElementById('user-input');
             const hintBtn = document.getElementById('hint-btn');
-            const sendBtn = document.getElementById('send-btn');
             
             let studentName = '';
-            let selectedNotionContext = '';
             let programmesData = null;
             let conversationHistory = [];
 
@@ -198,18 +116,14 @@
                 resetSelect(subjectSelect, "-- D'abord choisir une classe --");
                 resetSelect(notionSelect, "-- D'abord choisir une matière --");
                 if (!cycle) return;
-                const fileMap = {
-                    primaire: 'programmes-primaire.json',
-                    college: 'programmes-college.json',
-                    lycee: 'programmes-lycee.json'
-                };
+                const fileMap = { primaire: 'programmes-primaire.json', college: 'programmes-college.json', lycee: 'programmes-lycee.json' };
                 try {
-                    // --- CORRECTION ICI ---
-                    // On va chercher le fichier sur le serveur, pas en local
+                    // CORRIGÉ : On va chercher le fichier sur le serveur backend
                     const response = await fetch(`${backendUrl.replace('/api', '')}/${fileMap[cycle]}`);
+                    if (!response.ok) throw new Error("Le fichier programme n'a pas pu être chargé.");
                     programmesData = await response.json();
                     populateSelect(levelSelect, Object.keys(programmesData), "-- Choisir --");
-                } catch (e) { alert("Impossible de charger les programmes pour ce cycle."); }
+                } catch (e) { alert("Impossible de charger les programmes pour ce cycle."); console.error(e); }
             });
 
             levelSelect.addEventListener('change', () => {
@@ -217,10 +131,7 @@
                 resetSelect(notionSelect, "-- D'abord choisir une matière --");
                 const level = levelSelect.value;
                 if (level && programmesData[level]) {
-                     const subjects = Object.keys(programmesData[level]).map(key => ({
-                        key: key,
-                        name: programmesData[level][key].nom
-                    }));
+                     const subjects = Object.keys(programmesData[level]).map(key => ({ key: key, name: programmesData[level][key].nom }));
                     populateSelect(subjectSelect, subjects, "-- Choisir --", true);
                 }
             });
@@ -231,19 +142,12 @@
                 const subject = subjectSelect.value;
                 if (subject && programmesData[level]?.[subject]) {
                     const subjectData = programmesData[level][subject];
-                    let allNotions = [];
-                    Object.keys(subjectData).forEach(mainNotionKey => {
-                        if (mainNotionKey === 'nom') return;
-                        const mainNotion = subjectData[mainNotionKey];
-                        if (mainNotion && mainNotion.sous_notions) {
-                             Object.keys(mainNotion.sous_notions).forEach(subNotionKey => {
-                                const subNotion = mainNotion.sous_notions[subNotionKey];
-                                if (subNotion && subNotion.nom) {
-                                    allNotions.push({ key: `${mainNotionKey},${subNotionKey}`, name: subNotion.nom });
-                                }
-                            });
-                        }
-                    });
+                    const allNotions = Object.keys(subjectData).filter(k => k !== 'nom').flatMap(mainKey => 
+                        Object.keys(subjectData[mainKey].sous_notions).map(subKey => ({
+                            key: `${mainKey},${subKey}`,
+                            name: subjectData[mainKey].sous_notions[subKey].nom
+                        }))
+                    );
                     populateSelect(notionSelect, allNotions, "-- Choisir --", true);
                 }
             });
@@ -254,22 +158,15 @@
             
             selectionForm.addEventListener('submit', (e) => {
                 e.preventDefault();
-                const levelName = levelSelect.options[levelSelect.selectedIndex].text;
-                const subjectName = subjectSelect.options[subjectSelect.selectedIndex].text;
                 const notionName = notionSelect.options[notionSelect.selectedIndex].text;
-
-                const [mainNotionKey, subNotionKey] = notionSelect.value.split(',');
-                const competences = programmesData[levelSelect.value][subjectSelect.value][mainNotionKey].sous_notions[subNotionKey].competences;
-                
-                selectedNotionContext = `Niveau: ${levelName}, Matière: ${subjectName}, Notion: ${notionName}. Compétences clés: "${competences.join(', ')}"`;
                 chatHeaderTitle.textContent = `Aide sur : ${notionName}`;
                 
                 conversationHistory = [{
                     role: "system",
-                    content: `Tu es AIDA, une enseignante personnelle bienveillante. Tu aides ${studentName} (niveau ${levelName}). La discussion porte sur: ${notionName}. Réponds de manière structurée avec des retours à la ligne. N'utilise que du texte simple.`
+                    content: `Tu es AIDA, une enseignante IA bienveillante. Tu aides ${studentName}. La discussion porte sur: ${notionName}. Réponds de manière simple et structurée.`
                 }];
 
-                addMessage(`Bonjour ${studentName} ! Je suis là pour t'aider avec la notion '${notionName}' en ${subjectName} (niveau ${levelName}). Pose-moi ta première question !`, "aida");
+                addMessage(`Bonjour ${studentName} ! Prêt(e) à explorer la notion '${notionName}' ? Pose-moi ta première question !`, "aida");
 
                 selectionStep.classList.add('hidden');
                 chatStep.classList.remove('hidden');
@@ -281,21 +178,17 @@
             });
 
             hintBtn.addEventListener('click', async () => {
-                if (conversationHistory.length <= 1) return; // Pas d'indice sans question
+                if (conversationHistory.length <= 1) return;
                 addTypingIndicator();
                 try {
-                     const response = await fetch(`${backendUrl}/aida/hint`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ history: conversationHistory })
-                    });
+                     const response = await fetch(`${backendUrl}/aida/hint`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ history: conversationHistory }) });
                     const data = await response.json();
                     if (!response.ok) throw new Error(data.error);
                     removeTypingIndicator();
                     addMessage(data.hint, "aida");
                 } catch(error) {
                     removeTypingIndicator();
-                    addMessage("Désolée, je n'ai pas trouvé d'indice pour le moment.", "aida");
+                    addMessage("Désolée, je n'ai pas trouvé d'indice.", "aida");
                 }
             });
             
@@ -309,11 +202,7 @@
                 addTypingIndicator();
 
                 try {
-                    const response = await fetch(`${backendUrl}/aida/chat`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ history: conversationHistory })
-                    });
+                    const response = await fetch(`${backendUrl}/aida/chat`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ history: conversationHistory }) });
                     const data = await response.json();
                     if (!response.ok) throw new Error(data.error);
                     removeTypingIndicator();
@@ -369,3 +258,4 @@
     </script>
 </body>
 </html>
+
