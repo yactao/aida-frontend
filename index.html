@@ -15,6 +15,7 @@
             <span>AIDA</span>
         </a>
         <div class="header-controls">
+            <a href="playground.html" class="btn-secondary">Playground</a>
             <button class="btn-register">S'inscrire / Se connecter</button>
             <div class="user-menu-container hidden">
                 <div class="user-info-header" id="user-info-clickable">
@@ -101,15 +102,7 @@
         <!-- Tableau de bord Élève -->
         <section id="student-dashboard" class="page">
              <h2 id="student-welcome"></h2>
-             <div id="join-class-panel">
-                <h3>Rejoindre une nouvelle classe</h3>
-                <form id="join-class-form" class="inline-form">
-                    <input type="text" id="class-code-input" placeholder="Nom de la classe" required>
-                    <button type="submit" class="btn-main">Rejoindre</button>
-                </form>
-                <p id="join-class-error" class="error-message"></p>
-            </div>
-            <div id="student-work-area" class="hidden">
+            <div id="student-work-area">
                 <div class="student-tasks">
                     <h3><i class="fa-solid fa-list-check"></i> À faire</h3>
                     <div id="student-todo-list" class="dashboard-grid-student"></div>
@@ -126,7 +119,10 @@
             <div class="page-header">
                  <button id="back-to-dashboard-btn" class="btn-secondary back-btn"><i class="fa-solid fa-arrow-left"></i> Retour</button>
                  <h2 id="content-title"></h2>
-                 <button id="speak-content-btn" class="btn-secondary icon-btn"><i class="fa-solid fa-volume-high"></i></button>
+                 <div>
+                    <button id="aida-help-btn" class="btn-secondary icon-btn hidden" title="Demander de l'aide à AIDA"><i class="fa-solid fa-brain"></i></button>
+                    <button id="speak-content-btn" class="btn-secondary icon-btn"><i class="fa-solid fa-volume-high"></i></button>
+                 </div>
             </div>
             <div id="content-viewer"></div>
             <button id="submit-quiz-btn" class="btn-main hidden">Valider mes réponses</button>
@@ -200,6 +196,25 @@
             <button class="close-modal">&times;</button>
             <h3 id="result-modal-title"></h3>
             <div id="result-modal-content"></div>
+        </div>
+    </div>
+
+    <!-- Modale d'aide d'AIDA -->
+    <div id="aida-help-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <button class="close-modal">&times;</button>
+            <h3>Besoin d'un coup de main ?</h3>
+            <div class="help-context">
+                <p><strong>Question :</strong></p>
+                <p id="help-question-context"></p>
+            </div>
+            <form id="aida-help-form">
+                <textarea id="help-user-query" placeholder="Pose ta question à AIDA ici..." required></textarea>
+                <button type="submit" class="btn-main">Demander de l'aide</button>
+            </form>
+            <div id="aida-help-response" class="hidden">
+                 <div class="spinner"></div>
+            </div>
         </div>
     </div>
 
