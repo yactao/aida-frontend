@@ -108,13 +108,11 @@
     document.addEventListener('DOMContentLoaded', () => {
         const backendUrl = 'https://aida-backend-bqd0fnd2a3c7dadf.francecentral-01.azurewebsites.net/api';
         
-        // --- State ---
         let currentUser = null;
         let teacherClasses = [];
         let generatedContent = null;
         let currentClassId = null;
 
-        // --- Selectors ---
         const main = document.querySelector('main');
         const modalContainer = document.getElementById('modal-container');
         const loginNavBtn = document.getElementById('login-nav-btn');
@@ -126,7 +124,6 @@
         const userDropdown = document.getElementById('user-dropdown');
         const logoutBtn = document.getElementById('logout-btn');
 
-        // --- Templates ---
         const authPageTemplate = `
             <div class="card" style="margin-top: 2rem;">
                 <div id="login-form-container">
@@ -163,7 +160,6 @@
             </div>`;
         }
         
-        // --- API & Logic ---
         async function apiRequest(endpoint, method = 'GET', body = null) {
             try {
                 const options = { method, headers: { 'Content-Type': 'application/json' } };
@@ -191,13 +187,10 @@
                 userMenuContainer.classList.remove('hidden');
                 playgroundLink.classList.remove('hidden');
                 userNameDisplay.textContent = currentUser.firstName;
-
                 if (currentUser.role === 'teacher') {
                     renderTeacherDashboard();
-                    changePage('teacher-dashboard-page');
                 } else {
                     renderStudentDashboard();
-                    changePage('student-dashboard-page');
                 }
             } else {
                 loginNavBtn.classList.remove('hidden');
@@ -212,13 +205,13 @@
             modalContainer.querySelector('.close-modal')?.addEventListener('click', () => modalContainer.innerHTML = '');
         }
 
-        // --- Auth ---
         function renderAuthPage() {
             document.getElementById('auth-page').innerHTML = authPageTemplate;
             document.getElementById('login-form').addEventListener('submit', handleLogin);
             document.getElementById('signup-form').addEventListener('submit', handleSignup);
             document.getElementById('show-signup').addEventListener('click', toggleAuthForms);
             document.getElementById('show-login').addEventListener('click', toggleAuthForms);
+            changePage('auth-page');
         }
 
         async function handleLogin(e) {
@@ -250,7 +243,6 @@
             document.getElementById('signup-form-container').classList.toggle('hidden');
         }
         
-        // --- Teacher ---
         async function renderTeacherDashboard() {
             const page = document.getElementById('teacher-dashboard-page');
             page.innerHTML = `
@@ -262,75 +254,88 @@
             page.querySelector('#open-class-modal').addEventListener('click', showCreateClassModal);
             page.querySelector('#open-gen-modal').addEventListener('click', showGenerationModal);
 
-            teacherClasses = await apiRequest(`/teacher/classes?teacherEmail=${currentUser.email}`);
-            const grid = page.querySelector('#class-grid');
-            grid.innerHTML = teacherClasses.length === 0 ? "<p>Aucune classe créée pour le moment.</p>" : "";
-            teacherClasses.forEach(c => {
-                const card = document.createElement('div');
-                card.className = 'dashboard-card';
-                card.innerHTML = `<h4>${c.className}</h4><p>${c.students.length} élève(s)</p>`;
-                card.addEventListener('click', () => renderClassDetailsPage(c.id));
-                grid.appendChild(card);
-            });
+            try {
+                teacherClasses = await apiRequest(`/teacher/classes?teacherEmail=${currentUser.email}`);
+                const grid = page.querySelector('#class-grid');
+                grid.innerHTML = teacherClasses.length === 0 ? "<p>Aucune classe créée pour le moment.</p>" : "";
+                teacherClasses.forEach(c => {
+                    const card = document.createElement('div');
+                    card.className = 'dashboard-card';
+                    card.innerHTML = `<h4>${c.className}</h4><p>${c.students.length} élève(s)</p>`;
+                    card.addEventListener('click', () => renderClassDetailsPage(c.id));
+                    grid.appendChild(card);
+                });
+            } catch (error) {
+                 page.querySelector('#class-grid').innerHTML = `<p class="error-message">Impossible de charger les classes.</p>`;
+            }
+            changePage('teacher-dashboard-page');
         }
         
         async function renderClassDetailsPage(classId) {
             currentClassId = classId;
             const page = document.getElementById('class-details-page');
             page.innerHTML = `<button id="back-to-teacher" class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> Retour</button><div class="spinner"></div>`;
-            page.querySelector('#back-to-teacher').addEventListener('click', () => changePage('teacher-dashboard-page'));
+            page.querySelector('#back-to-teacher').addEventListener('click', renderTeacherDashboard);
+            changePage('class-details-page');
 
-            const classData = await apiRequest(`/teacher/classes/${classId}`);
-            
-            let resultsHtml = '<table><tr><th>Élève</th><th>Quiz</th><th>Score</th><th>Date</th></tr>';
-            if(classData.results && classData.results.length > 0) {
-                 classData.results.forEach(res => {
-                    const quizTitle = classData.content.find(c => c.id === res.contentId)?.title || 'Quiz supprimé';
-                    resultsHtml += `<tr><td>${res.studentEmail}</td><td>${quizTitle}</td><td>${res.score}/${res.totalQuestions}</td><td>${new Date(res.submittedAt).toLocaleDateString('fr-FR')}</td></tr>`;
+            try {
+                const classData = await apiRequest(`/teacher/classes/${classId}`);
+                
+                let resultsHtml = '<table><thead><tr><th>Élève</th><th>Quiz</th><th>Score</th><th>Date</th></tr></thead><tbody>';
+                if(classData.results && classData.results.length > 0) {
+                     classData.results.forEach(res => {
+                        const quizTitle = (classData.content || []).find(c => c.id === res.contentId)?.title || 'Contenu supprimé';
+                        resultsHtml += `<tr><td>${res.studentEmail.split('@')[0]}</td><td>${quizTitle}</td><td>${res.score}/${res.totalQuestions}</td><td>${new Date(res.submittedAt).toLocaleDateString('fr-FR')}</td></tr>`;
+                    });
+                } else {
+                    resultsHtml += '<tr><td colspan="4" style="text-align: center;">Aucun résultat pour le moment.</td></tr>';
+                }
+                resultsHtml += '</tbody></table>';
+
+                page.innerHTML = `
+                    <button id="back-to-teacher" class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> Retour</button>
+                    <h2>${classData.className}</h2>
+                    <div class="card" style="margin-top: 1rem;">
+                        <h4>Ajouter un élève</h4>
+                        <form id="add-student-form">
+                            <div class="form-group"><label for="student-email">Email de l'élève</label><input type="email" id="student-email-input" required></div>
+                            <button type="submit" class="btn btn-main">Ajouter</button>
+                            <p class="error-message" id="add-student-error"></p>
+                        </form>
+                    </div>
+                    <h3 style="margin-top: 2rem;">Élèves inscrits</h3>
+                    <div id="student-list" class="dashboard-grid"></div>
+                    <h3 style="margin-top: 2rem;">Résultats des exercices</h3>
+                    <div class="card">${resultsHtml}</div>`;
+                
+                page.querySelector('#back-to-teacher').addEventListener('click', renderTeacherDashboard);
+                page.querySelector('#add-student-form').addEventListener('submit', handleAddStudent);
+                
+                const studentList = page.querySelector('#student-list');
+                studentList.innerHTML = classData.students.length === 0 ? "<p>Aucun élève dans cette classe.</p>" : "";
+                (classData.students || []).forEach(email => {
+                    const studentCard = document.createElement('div');
+                    studentCard.className = 'dashboard-card';
+                    studentCard.style.cursor = 'default';
+                    studentCard.innerHTML = `<p><i class="fa-solid fa-user"></i> ${email}</p>`;
+                    studentList.appendChild(studentCard);
                 });
-            } else {
-                resultsHtml += '<tr><td colspan="4">Aucun résultat pour le moment.</td></tr>';
+            } catch (error) {
+                page.innerHTML = `<button id="back-to-teacher" class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> Retour</button><h2>Erreur</h2><p>Impossible de charger les détails.</p>`;
+                page.querySelector('#back-to-teacher').addEventListener('click', renderTeacherDashboard);
             }
-            resultsHtml += '</table>';
-
-            page.innerHTML = `
-                <button id="back-to-teacher" class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> Retour</button>
-                <h2>${classData.className}</h2>
-                <div class="card" style="margin-top: 1rem;">
-                    <h4>Ajouter un élève</h4>
-                    <form id="add-student-form">
-                        <div class="form-group"><label for="student-email">Email de l'élève</label><input type="email" id="student-email-input" required></div>
-                        <button class="btn btn-main">Ajouter</button>
-                        <p class="error-message" id="add-student-error"></p>
-                    </form>
-                </div>
-                <h3 style="margin-top: 2rem;">Élèves inscrits</h3>
-                <div id="student-list" class="dashboard-grid"></div>
-                <h3 style="margin-top: 2rem;">Résultats des exercices</h3>
-                <div class="card">${resultsHtml}</div>`;
-            
-            page.querySelector('#back-to-teacher').addEventListener('click', () => changePage('teacher-dashboard-page'));
-            page.querySelector('#add-student-form').addEventListener('submit', handleAddStudent);
-            
-            const studentList = page.querySelector('#student-list');
-            studentList.innerHTML = classData.students.length === 0 ? "<p>Aucun élève dans cette classe.</p>" : "";
-            classData.students.forEach(email => {
-                const studentCard = document.createElement('div');
-                studentCard.className = 'dashboard-card';
-                studentCard.style.cursor = 'default';
-                studentCard.innerHTML = `<p><i class="fa-solid fa-user"></i> ${email}</p>`;
-                studentList.appendChild(studentCard);
-            });
         }
         
         async function handleAddStudent(e) {
             e.preventDefault();
             const studentEmail = document.getElementById('student-email-input').value;
+            const errorP = document.getElementById('add-student-error');
             try {
+                errorP.textContent = '';
                 await apiRequest(`/teacher/classes/${currentClassId}/add-student`, 'POST', { studentEmail });
                 renderClassDetailsPage(currentClassId);
             } catch (err) {
-                document.getElementById('add-student-error').textContent = err.message;
+                errorP.textContent = err.message;
             }
         }
         
@@ -354,7 +359,7 @@
              renderModal(getModalTemplate('generation-modal', 'Générer du contenu', `
                 <form id="generation-form">
                     <div class="form-group"><label for="content-type-select">Type</label><select id="content-type-select"><option value="quiz">Quiz</option></select></div>
-                    <div class="form-group"><label for="competences-input">Compétences</label><textarea id="competences-input" rows="3" required></textarea></div>
+                    <div class="form-group"><label for="competences-input">Compétences</label><textarea id="competences-input" rows="3" required placeholder="Ex: Additions de nombres à deux chiffres"></textarea></div>
                     <button type="submit" class="btn btn-main">Générer</button>
                 </form>
                 <div id="generation-spinner" class="spinner hidden"></div>`));
@@ -372,7 +377,7 @@
         function showPreviewModal() {
             renderModal(getModalTemplate('preview-modal', 'Aperçu et assignation', `
                 <h4 id="preview-title">${generatedContent.title}</h4>
-                <div id="preview-content" style="margin-bottom: 1rem;">${generatedContent.questions.map(q => `<p>${q.question_text}</p>`).join('')}</div>
+                <div id="preview-content" style="margin-bottom: 1rem;">${generatedContent.questions.map(q => `<p><strong>Q:</strong> ${q.question_text}</p>`).join('')}</div>
                 <form id="assign-form">
                     <div class="form-group"><label for="assign-class-select">Assigner à</label><select id="assign-class-select" required></select></div>
                     <button type="submit" class="btn btn-main">Assigner</button>
@@ -382,15 +387,16 @@
             document.getElementById('assign-form').addEventListener('submit', async e => {
                 e.preventDefault();
                 const classId = select.value;
+                if (!classId) return;
                 await apiRequest('/teacher/assign-content', 'POST', { classId, contentData: generatedContent });
                 modalContainer.innerHTML = '';
             });
         }
 
-        // --- Student ---
         async function renderStudentDashboard() {
             const page = document.getElementById('student-dashboard-page');
             page.innerHTML = `<div class="spinner"></div>`;
+            changePage('student-dashboard-page');
             const data = await apiRequest(`/student/dashboard?studentEmail=${currentUser.email}`);
             page.innerHTML = `
                 <h2>Bonjour ${currentUser.firstName} !</h2>
@@ -433,7 +439,7 @@
                         <button type="submit" id="submit-quiz-btn" class="btn btn-main" style="margin-top: 1rem;">Valider</button>
                     </form>
                  </div>`;
-            page.querySelector('#back-to-student').addEventListener('click', () => changePage('student-dashboard-page'));
+            page.querySelector('#back-to-student').addEventListener('click', renderStudentDashboard);
             
             const viewer = page.querySelector('#content-viewer');
             if (content.type === 'quiz') {
@@ -447,6 +453,8 @@
                     e.preventDefault();
                     handleSubmitQuiz(content);
                 });
+            } else {
+                 page.querySelector('#quiz-form').classList.add('hidden');
             }
             changePage('content-viewer-page');
         }
@@ -466,14 +474,10 @@
                 totalQuestions: content.questions.length
             });
             renderStudentDashboard();
-            changePage('student-dashboard-page');
         }
 
         // --- Init & Event Listeners ---
-        loginNavBtn.addEventListener('click', () => {
-            renderAuthPage();
-            changePage('auth-page');
-        });
+        loginNavBtn.addEventListener('click', renderAuthPage);
         homeLink.addEventListener('click', () => changePage('home-page'));
         logoutBtn.addEventListener('click', () => {
             currentUser = null;
