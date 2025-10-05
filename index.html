@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AIDA - Assistant Intelligent pour le Devoir et l'Apprentissage</title>
+    <title>AIDA - Assistant Intelligent</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
@@ -25,23 +25,13 @@
             color: var(--text-color);
             line-height: 1.6;
         }
-        .page { display: none; }
+        .page { display: none; padding: 2rem 5%; }
         .page.active { display: block; animation: fadeIn 0.5s; }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
         /* --- Header --- */
-        header {
-            padding: 1rem 5%;
-            background-color: var(--card-bg-color);
-            box-shadow: var(--shadow);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            position: sticky;
-            top: 0;
-            z-index: 1000;
-        }
-        .logo { display: flex; align-items: center; text-decoration: none; }
+        header { padding: 1rem 5%; background-color: var(--card-bg-color); box-shadow: var(--shadow); display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 1000; }
+        .logo { display: flex; align-items: center; text-decoration: none; cursor: pointer; }
         .logo-icon { width: 40px; height: 40px; background: linear-gradient(45deg, var(--primary-color), var(--secondary-color)); color: white; display: grid; place-items: center; border-radius: 10px; font-weight: 700; font-size: 1.5rem; margin-right: 10px; }
         .logo span { font-size: 1.5rem; font-weight: 700; color: var(--text-color); }
         .main-nav { display: flex; align-items: center; gap: 1rem; }
@@ -52,16 +42,14 @@
         .btn-main { background: linear-gradient(45deg, var(--primary-color), var(--secondary-color)); color: #FFF; }
         .btn-main:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.1); }
         .btn-secondary { background-color: #E5E7EB; color: var(--text-color); }
-        .btn-secondary:hover { background-color: #D1D5DB; }
-        .btn-danger { background-color: var(--error-color); color: #FFF; }
-        
         .form-group { margin-bottom: 1.5rem; text-align: left; }
         .form-group label { display: block; margin-bottom: 0.5rem; font-weight: 600; }
         input, select, textarea { width: 100%; padding: 12px; border: 1px solid #D1D5DB; border-radius: 8px; font-size: 1rem; font-family: 'Poppins', sans-serif; }
-        .error-message { color: var(--error-color); margin-top: 0.5rem; }
-
+        .error-message { color: var(--error-color); margin-top: 0.5rem; font-size: 0.9rem; }
+        .spinner { border: 4px solid #f3f3f3; border-top: 4px solid var(--primary-color); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 2rem auto; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
         /* --- Containers & Cards --- */
-        .main-container { padding: 2rem 5%; }
         .card { background-color: var(--card-bg-color); padding: 2rem; border-radius: 12px; box-shadow: var(--shadow); }
         .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; }
         .dashboard-card { padding: 1.5rem; border-radius: 12px; background: var(--card-bg-color); box-shadow: var(--shadow); cursor: pointer; transition: all 0.3s ease; }
@@ -69,94 +57,308 @@
         .dashboard-card h4 { margin-bottom: 0.5rem; font-size: 1.2rem; }
 
         /* --- Modals --- */
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 2000; animation: fadeIn 0.3s; }
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.6); display: flex; justify-content: center; align-items: center; z-index: 2000; animation: fadeIn 0.3s; }
         .modal-content { background: var(--card-bg-color); padding: 2rem; border-radius: 12px; width: 90%; max-width: 500px; position: relative; }
-        .close-modal { position: absolute; top: 1rem; right: 1rem; background: none; border: none; font-size: 1.5rem; cursor: pointer; }
+        .close-modal { position: absolute; top: 1rem; right: 1rem; background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #9CA3AF; }
 
         /* --- Specific Page Styles --- */
         #auth-page .card { max-width: 400px; margin: 2rem auto; }
-        #class-details-page .details-grid { margin-top: 1.5rem; }
-        #content-viewer-page .card { max-width: 800px; margin: auto; }
+        #home-page { text-align: center; padding-top: 4rem; }
+        #home-page h1 { font-size: 3rem; background: linear-gradient(45deg, var(--primary-color), var(--secondary-color)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
         .quiz-question { margin-bottom: 1.5rem; }
         .quiz-options label { display: block; margin: 0.5rem 0; padding: 10px; border: 1px solid #eee; border-radius: 8px; cursor: pointer; }
-        .quiz-options label:hover { background: #f9f9f9; }
-
-        /* --- Playground Chat --- */
-        .chat-container { width: 100%; max-width: 800px; height: 80vh; margin: auto; display: flex; flex-direction: column; background: var(--card-bg-color); box-shadow: var(--shadow); border-radius: 12px; }
-        .chat-header { padding: 1rem; border-bottom: 1px solid #E5E7EB; text-align: center; font-weight: 600; }
-        .chat-messages { flex-grow: 1; padding: 1rem; overflow-y: auto; }
-        .message { margin-bottom: 1rem; display: flex; }
-        .message.user { justify-content: flex-end; }
-        .message-bubble { padding: 0.75rem 1rem; border-radius: 18px; max-width: 75%; white-space: pre-wrap; line-height: 1.4; }
-        .message.user .message-bubble { background: linear-gradient(45deg, var(--primary-color), var(--secondary-color)); color: white; border-bottom-right-radius: 4px; }
-        .message.aida .message-bubble { background-color: #E5E7EB; color: #1F2937; border-bottom-left-radius: 4px; }
-        .chat-input { display: flex; padding: 1rem; border-top: 1px solid #E5E7EB; gap: 0.5rem; }
-        .chat-input input { flex-grow: 1; border-radius: 20px; }
-        .chat-input button { border-radius: 50%; width: 45px; height: 45px; flex-shrink: 0; }
+        .user-dropdown { position: absolute; top: 100%; right: 0; margin-top: 0.5rem; width: 200px; z-index: 10; }
+        .user-menu-container { position: relative; }
     </style>
 </head>
 <body>
 
     <header>
-        <a href="#" class="logo" id="home-link">
+        <div class="logo" id="home-link">
             <div class="logo-icon">A</div>
             <span>AIDA</span>
-        </a>
+        </div>
         <nav class="main-nav">
-            <a href="#" class="btn btn-secondary hidden" id="playground-link">
+            <a href="playground.html" class="btn btn-secondary hidden" id="playground-link">
                 <i class="fa-solid fa-flask"></i> Terrain de Jeux
             </a>
             <div class="user-menu-container hidden">
                 <button class="btn btn-secondary" id="user-info-clickable">
-                    <span id="user-email-display"></span> <i class="fa-solid fa-chevron-down"></i>
+                    <span id="user-name-display"></span> <i class="fa-solid fa-chevron-down"></i>
                 </button>
-                <div class="user-dropdown card hidden">
+                <div class="user-dropdown card hidden" id="user-dropdown">
                     <button class="btn" id="logout-btn"><i class="fa-solid fa-right-from-bracket"></i> Déconnexion</button>
                 </div>
             </div>
-            <button class="btn btn-main" id="register-btn">Connexion</button>
+            <button class="btn btn-main" id="login-nav-btn">Connexion</button>
         </nav>
     </header>
 
     <main>
-        <!-- PAGES DE L'APPLICATION -->
         <div class="page active" id="home-page">
-            <!-- Contenu de la page d'accueil -->
+            <h1>Bienvenue sur AIDA</h1>
+            <p>Votre assistant personnel pour l'apprentissage.</p>
         </div>
 
         <div class="page" id="auth-page">
-            <!-- Contenu de la page de connexion/inscription -->
+            <div class="card">
+                <div id="login-form-container">
+                    <h3>Connexion</h3>
+                    <form id="login-form">
+                        <div class="form-group"><label for="login-email">Email</label><input type="email" id="login-email" required></div>
+                        <div class="form-group"><label for="login-password">Mot de passe</label><input type="password" id="login-password" required></div>
+                        <button type="submit" class="btn btn-main">Se connecter</button>
+                        <p class="error-message" id="login-error"></p>
+                    </form>
+                    <p>Pas de compte ? <a href="#" id="show-signup">Inscrivez-vous</a></p>
+                </div>
+                <div id="signup-form-container" class="hidden">
+                    <h3>Inscription</h3>
+                    <form id="signup-form">
+                        <div class="form-group"><label for="signup-email">Email</label><input type="email" id="signup-email" required></div>
+                        <div class="form-group"><label for="signup-password">Mot de passe</label><input type="password" id="signup-password" required></div>
+                        <div class="form-group"><label for="signup-role">Je suis un(e)</label><select id="signup-role"><option value="student">Élève</option><option value="teacher">Enseignant</option></select></div>
+                        <button type="submit" class="btn btn-main">S'inscrire</button>
+                        <p class="error-message" id="signup-error"></p>
+                    </form>
+                     <p>Déjà un compte ? <a href="#" id="show-login">Connectez-vous</a></p>
+                </div>
+            </div>
         </div>
 
         <div class="page" id="teacher-dashboard-page">
-            <!-- Tableau de bord du professeur -->
+            <h2 id="teacher-welcome"></h2>
+            <button class="btn btn-main" id="open-resource-modal-btn"><i class="fa-solid fa-plus"></i> Nouveau Contenu</button>
+            <button class="btn btn-secondary" id="open-class-modal-btn"><i class="fa-solid fa-users"></i> Nouvelle Classe</button>
+            <div id="class-list" class="dashboard-grid" style="margin-top: 2rem;"></div>
         </div>
 
         <div class="page" id="student-dashboard-page">
-            <!-- Tableau de bord de l'élève -->
+            <h2 id="student-welcome"></h2>
+            <h3>À faire</h3>
+            <div id="student-todo-list" class="dashboard-grid"></div>
+            <h3 style="margin-top: 2rem;">Terminés</h3>
+            <div id="student-completed-list" class="dashboard-grid"></div>
         </div>
         
         <div class="page" id="class-details-page">
-            <!-- Détails d'une classe pour le professeur -->
+            <button id="back-to-teacher-dashboard" class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> Retour</button>
+            <h2 id="class-details-title"></h2>
+            <div id="class-details-content" class="dashboard-grid"></div>
         </div>
         
         <div class="page" id="content-viewer-page">
-            <!-- Visionneuse de contenu (quiz, etc.) -->
-        </div>
-        
-        <div class="page" id="playground-page">
-            <!-- Terrain de jeux AIDA -->
+             <button id="back-to-dashboard-btn" class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> Retour</button>
+             <div class="card" style="margin-top: 1rem;">
+                <h2 id="content-title"></h2>
+                <div id="content-viewer"></div>
+                <button id="submit-quiz-btn" class="btn btn-main hidden" style="margin-top: 1rem;">Valider mes réponses</button>
+             </div>
         </div>
     </main>
-
-    <!-- MODALES DE L'APPLICATION -->
-    <div class="modal-overlay hidden" id="create-class-modal"></div>
-    <div class="modal-overlay hidden" id="generation-modal"></div>
-    <div class="modal-overlay hidden" id="manage-class-modal"></div>
-    <div class="modal-overlay hidden" id="preview-modal"></div>
-
+    
     <script>
-        // Le code JavaScript complet de l'application sera ici
+    document.addEventListener('DOMContentLoaded', () => {
+        const backendUrl = 'https://aida-backend-bqd0fnd2a3c7dadf.francecentral-01.azurewebsites.net/api';
+        
+        // --- State Management ---
+        let currentUser = null;
+
+        // --- Selectors ---
+        const pages = document.querySelectorAll('.page');
+        const loginNavBtn = document.getElementById('login-nav-btn');
+        const homeLink = document.getElementById('home-link');
+        const playgroundLink = document.getElementById('playground-link');
+        const loginForm = document.getElementById('login-form');
+        const signupForm = document.getElementById('signup-form');
+        const showSignup = document.getElementById('show-signup');
+        const showLogin = document.getElementById('show-login');
+        const userMenuContainer = document.querySelector('.user-menu-container');
+        const userNameDisplay = document.getElementById('user-name-display');
+        const userInfoClickable = document.getElementById('user-info-clickable');
+        const userDropdown = document.getElementById('user-dropdown');
+        const logoutBtn = document.getElementById('logout-btn');
+        const teacherWelcome = document.getElementById('teacher-welcome');
+        const studentWelcome = document.getElementById('student-welcome');
+        const classList = document.getElementById('class-list');
+        const studentTodoList = document.getElementById('student-todo-list');
+        const studentCompletedList = document.getElementById('student-completed-list');
+        const classDetailsTitle = document.getElementById('class-details-title');
+        const classDetailsContent = document.getElementById('class-details-content');
+        const backToTeacherDashboardBtn = document.getElementById('back-to-teacher-dashboard');
+        const contentTitle = document.getElementById('content-title');
+        const contentViewer = document.getElementById('content-viewer');
+        const submitQuizBtn = document.getElementById('submit-quiz-btn');
+        const backToDashboardBtn = document.getElementById('back-to-dashboard-btn');
+        
+        // --- Navigation ---
+        function changePage(pageId) {
+            pages.forEach(p => p.classList.remove('active'));
+            const page = document.getElementById(pageId);
+            if (page) page.classList.add('active');
+        }
+
+        // --- UI Updates ---
+        function updateUIForUser() {
+            if (currentUser) {
+                loginNavBtn.classList.add('hidden');
+                userMenuContainer.classList.remove('hidden');
+                playgroundLink.classList.remove('hidden');
+                userNameDisplay.textContent = currentUser.firstName;
+                if (currentUser.role === 'teacher') {
+                    teacherWelcome.textContent = `Bonjour ${currentUser.firstName}`;
+                    fetchTeacherClasses();
+                    changePage('teacher-dashboard-page');
+                } else {
+                    studentWelcome.textContent = `Bonjour ${currentUser.firstName}`;
+                    fetchStudentDashboard();
+                    changePage('student-dashboard-page');
+                }
+            } else {
+                loginNavBtn.classList.remove('hidden');
+                userMenuContainer.classList.add('hidden');
+                playgroundLink.classList.add('hidden');
+                changePage('home-page');
+            }
+        }
+
+        // --- API Calls ---
+        async function apiRequest(endpoint, method = 'GET', body = null) {
+            try {
+                const options = {
+                    method,
+                    headers: { 'Content-Type': 'application/json' }
+                };
+                if (body) options.body = JSON.stringify(body);
+                const response = await fetch(`${backendUrl}${endpoint}`, options);
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Une erreur est survenue');
+                }
+                return response.json();
+            } catch (error) {
+                console.error(`API Error on ${method} ${endpoint}:`, error);
+                throw error;
+            }
+        }
+
+        // --- Authentication Logic ---
+        async function login(email, password) {
+            const data = await apiRequest('/auth/login', 'POST', { email, password });
+            currentUser = data.user;
+            updateUIForUser();
+        }
+
+        function logout() {
+            currentUser = null;
+            updateUIForUser();
+        }
+        
+        // --- Teacher Logic ---
+        async function fetchTeacherClasses() {
+            const classes = await apiRequest(`/teacher/classes?teacherEmail=${currentUser.email}`);
+            classList.innerHTML = '';
+            classes.forEach(c => {
+                const card = document.createElement('div');
+                card.className = 'dashboard-card';
+                card.innerHTML = `<h4>${c.className}</h4><p>${c.students.length} élève(s)</p>`;
+                card.addEventListener('click', () => showClassDetails(c.id));
+                classList.appendChild(card);
+            });
+        }
+        
+        async function showClassDetails(classId) {
+             const classData = await apiRequest(`/teacher/classes/${classId}`);
+             classDetailsTitle.textContent = classData.className;
+             classDetailsContent.innerHTML = '';
+             (classData.students || []).forEach(studentEmail => {
+                 const studentCard = document.createElement('div');
+                 studentCard.className = 'card';
+                 studentCard.textContent = studentEmail;
+                 classDetailsContent.appendChild(studentCard);
+             });
+             changePage('class-details-page');
+        }
+
+        // --- Student Logic ---
+        async function fetchStudentDashboard() {
+            const data = await apiRequest(`/student/dashboard?studentEmail=${currentUser.email}`);
+            studentTodoList.innerHTML = '';
+            (data.todo || []).forEach(item => {
+                const card = createContentCard(item);
+                card.querySelector('button').addEventListener('click', () => displayContent(item));
+                studentTodoList.appendChild(card);
+            });
+            studentCompletedList.innerHTML = '';
+             (data.completed || []).forEach(item => {
+                const card = createContentCard(item, true);
+                studentCompletedList.appendChild(card);
+            });
+        }
+        
+        function createContentCard(content, isCompleted = false) {
+            const card = document.createElement('div');
+            card.className = 'dashboard-card';
+            const date = new Date(isCompleted ? content.completedAt : content.assignedAt).toLocaleDateString('fr-FR');
+            card.innerHTML = `
+                <h4>${content.title}</h4>
+                <p>Classe: ${content.className}</p>
+                <p>${isCompleted ? 'Terminé le' : 'Assigné le'}: ${date}</p>
+                <button class="btn ${isCompleted ? 'btn-secondary' : 'btn-main'}" ${isCompleted ? 'disabled' : ''}>
+                    ${isCompleted ? 'Terminé' : 'Commencer'}
+                </button>
+            `;
+            return card;
+        }
+
+        function displayContent(content) {
+            contentTitle.textContent = content.title;
+            contentViewer.innerHTML = '';
+            if (content.type === 'quiz') {
+                content.questions.forEach((q, index) => {
+                    const qElem = document.createElement('div');
+                    qElem.className = 'quiz-question';
+                    let optionsHTML = q.options.map((opt, i) => `<label><input type="radio" name="q${index}" value="${i}"> ${opt}</label>`).join('');
+                    qElem.innerHTML = `<p><strong>${q.question_text}</strong></p><div class="quiz-options">${optionsHTML}</div>`;
+                    contentViewer.appendChild(qElem);
+                });
+                submitQuizBtn.classList.remove('hidden');
+                submitQuizBtn.onclick = () => console.log("Submit quiz"); // Placeholder
+            }
+            changePage('content-viewer-page');
+        }
+
+        // --- Event Listeners ---
+        loginNavBtn.addEventListener('click', () => changePage('auth-page'));
+        homeLink.addEventListener('click', () => changePage('home-page'));
+        showSignup.addEventListener('click', (e) => {
+            e.preventDefault();
+            document.getElementById('login-form-container').classList.add('hidden');
+            document.getElementById('signup-form-container').classList.remove('hidden');
+        });
+        showLogin.addEventListener('click', (e) => {
+            e.preventDefault();
+            document.getElementById('signup-form-container').classList.add('hidden');
+            document.getElementById('login-form-container').classList.remove('hidden');
+        });
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+            try {
+                await login(email, password);
+            } catch (error) {
+                document.getElementById('login-error').textContent = error.message;
+            }
+        });
+        
+        userInfoClickable.addEventListener('click', () => userDropdown.classList.toggle('hidden'));
+        logoutBtn.addEventListener('click', logout);
+        backToTeacherDashboardBtn.addEventListener('click', () => changePage('teacher-dashboard-page'));
+        backToDashboardBtn.addEventListener('click', updateUIForUser); // Re-route to correct dashboard
+        
+        updateUIForUser(); // Initial state
+    });
     </script>
 </body>
 </html>
