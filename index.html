@@ -110,9 +110,9 @@
         let currentUser = null;
         let teacherClasses = [];
         let generatedContent = null;
+        let currentClassId = null;
 
         // --- Selectors ---
-        const pages = document.querySelectorAll('.page');
         const main = document.querySelector('main');
         const modalContainer = document.getElementById('modal-container');
         const loginNavBtn = document.getElementById('login-nav-btn');
@@ -126,7 +126,7 @@
 
         // --- Templates ---
         const authPageTemplate = `
-            <div class="card">
+            <div class="card" style="margin-top: 2rem;">
                 <div id="login-form-container">
                     <h3>Connexion</h3>
                     <form id="login-form">
@@ -149,58 +149,17 @@
                      <p>Déjà un compte ? <a href="#" id="show-login">Connectez-vous</a></p>
                 </div>
             </div>`;
-
-        const createClassModalTemplate = `
-            <div class="modal-overlay" id="create-class-modal">
+        
+        function getModalTemplate(id, title, formHtml) {
+            return `
+            <div class="modal-overlay" id="${id}">
                 <div class="modal-content">
                     <button class="close-modal">&times;</button>
-                    <h3>Créer une nouvelle classe</h3>
-                    <form id="create-class-form">
-                        <div class="form-group">
-                            <label for="class-name-input">Nom de la classe</label>
-                            <input type="text" id="class-name-input" required>
-                        </div>
-                        <button type="submit" class="btn btn-main">Créer</button>
-                        <p class="error-message" id="class-creation-error"></p>
-                    </form>
+                    <h3>${title}</h3>
+                    ${formHtml}
                 </div>
             </div>`;
-        
-        const generationModalTemplate = `
-            <div class="modal-overlay" id="generation-modal">
-                <div class="modal-content">
-                    <button class="close-modal">&times;</button>
-                    <h3>Générer du contenu</h3>
-                    <form id="generation-form">
-                        <div class="form-group">
-                            <label for="content-type-select">Type de contenu</label>
-                            <select id="content-type-select"><option value="quiz">Quiz</option></select>
-                        </div>
-                         <div class="form-group">
-                            <label for="competences-input">Compétences à évaluer</label>
-                            <textarea id="competences-input" rows="3" required></textarea>
-                        </div>
-                        <button type="submit" class="btn btn-main">Générer</button>
-                    </form>
-                    <div id="generation-spinner" class="spinner hidden"></div>
-                </div>
-            </div>`;
-        
-        const previewModalTemplate = `
-            <div class="modal-overlay" id="preview-modal">
-                <div class="modal-content">
-                     <button class="close-modal">&times;</button>
-                     <h3 id="preview-title">Aperçu du contenu</h3>
-                     <div id="preview-content" style="margin-bottom: 1rem;"></div>
-                     <form id="assign-form">
-                        <div class="form-group">
-                            <label for="assign-class-select">Assigner à la classe</label>
-                            <select id="assign-class-select" required></select>
-                        </div>
-                        <button type="submit" class="btn btn-main">Assigner</button>
-                     </form>
-                </div>
-            </div>`;
+        }
         
         // --- API & Logic ---
         async function apiRequest(endpoint, method = 'GET', body = null) {
@@ -208,9 +167,11 @@
                 const options = { method, headers: { 'Content-Type': 'application/json' } };
                 if (body) options.body = JSON.stringify(body);
                 const response = await fetch(`${backendUrl}${endpoint}`, options);
-                const data = await response.json();
-                if (!response.ok) throw new Error(data.error || 'Une erreur est survenue');
-                return data;
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || `Erreur ${response.status}`);
+                }
+                return response.status === 204 ? null : response.json();
             } catch (error) {
                 console.error(`API Error on ${method} ${endpoint}:`, error);
                 throw error;
@@ -218,7 +179,7 @@
         }
         
         function changePage(pageId) {
-            pages.forEach(p => p.classList.remove('active'));
+            main.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
             document.getElementById(pageId).classList.add('active');
         }
 
@@ -246,23 +207,45 @@
 
         function renderModal(template) {
             modalContainer.innerHTML = template;
-            modalContainer.querySelector('.close-modal').addEventListener('click', () => modalContainer.innerHTML = '');
+            modalContainer.querySelector('.close-modal')?.addEventListener('click', () => modalContainer.innerHTML = '');
         }
 
         // --- Auth ---
         function renderAuthPage() {
             document.getElementById('auth-page').innerHTML = authPageTemplate;
-            document.getElementById('login-form').addEventListener('submit', async e => {
-                e.preventDefault();
-                const email = document.getElementById('login-email').value;
-                const password = document.getElementById('login-password').value;
-                try {
-                    const data = await apiRequest('/auth/login', 'POST', { email, password });
-                    currentUser = data.user;
-                    updateUI();
-                } catch (err) { document.getElementById('login-error').textContent = err.message; }
-            });
-            // ... signup form event listener
+            document.getElementById('login-form').addEventListener('submit', handleLogin);
+            document.getElementById('signup-form').addEventListener('submit', handleSignup);
+            document.getElementById('show-signup').addEventListener('click', toggleAuthForms);
+            document.getElementById('show-login').addEventListener('click', toggleAuthForms);
+        }
+
+        async function handleLogin(e) {
+            e.preventDefault();
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+            try {
+                const data = await apiRequest('/auth/login', 'POST', { email, password });
+                currentUser = data.user;
+                updateUI();
+            } catch (err) { document.getElementById('login-error').textContent = err.message; }
+        }
+
+        async function handleSignup(e) {
+            e.preventDefault();
+            const email = document.getElementById('signup-email').value;
+            const password = document.getElementById('signup-password').value;
+            const role = document.getElementById('signup-role').value;
+            try {
+                const data = await apiRequest('/auth/signup', 'POST', { email, password, role });
+                currentUser = data.user;
+                updateUI();
+            } catch (err) { document.getElementById('signup-error').textContent = err.message; }
+        }
+
+        function toggleAuthForms(e) {
+            e.preventDefault();
+            document.getElementById('login-form-container').classList.toggle('hidden');
+            document.getElementById('signup-form-container').classList.toggle('hidden');
         }
         
         // --- Teacher ---
@@ -272,51 +255,116 @@
                 <h2>Bonjour ${currentUser.firstName} !</h2>
                 <button class="btn btn-main" id="open-gen-modal"><i class="fa-solid fa-plus"></i> Nouveau Contenu</button>
                 <button class="btn btn-secondary" id="open-class-modal"><i class="fa-solid fa-users"></i> Nouvelle Classe</button>
-                <div id="class-grid" class="dashboard-grid" style="margin-top: 2rem;"></div>`;
+                <div id="class-grid" class="dashboard-grid" style="margin-top: 2rem;"><div class="spinner"></div></div>`;
             
-            page.querySelector('#open-class-modal').addEventListener('click', () => {
-                renderModal(createClassModalTemplate);
-                document.getElementById('create-class-form').addEventListener('submit', async e => {
-                    e.preventDefault();
-                    const className = document.getElementById('class-name-input').value;
-                    await apiRequest('/teacher/classes', 'POST', { className, teacherEmail: currentUser.email });
-                    modalContainer.innerHTML = '';
-                    renderTeacherDashboard();
-                });
-            });
-
-            page.querySelector('#open-gen-modal').addEventListener('click', () => {
-                renderModal(generationModalTemplate);
-                document.getElementById('generation-form').addEventListener('submit', async e => {
-                    e.preventDefault();
-                    const competences = document.getElementById('competences-input').value;
-                    const contentType = document.getElementById('content-type-select').value;
-                    document.getElementById('generation-spinner').classList.remove('hidden');
-                    const data = await apiRequest('/ai/generate-content', 'POST', { competences, contentType });
-                    generatedContent = data.structured_content;
-                    renderPreviewModal();
-                });
-            });
+            page.querySelector('#open-class-modal').addEventListener('click', showCreateClassModal);
+            page.querySelector('#open-gen-modal').addEventListener('click', showGenerationModal);
 
             teacherClasses = await apiRequest(`/teacher/classes?teacherEmail=${currentUser.email}`);
             const grid = page.querySelector('#class-grid');
-            grid.innerHTML = '';
+            grid.innerHTML = teacherClasses.length === 0 ? "<p>Aucune classe créée pour le moment.</p>" : "";
             teacherClasses.forEach(c => {
                 const card = document.createElement('div');
                 card.className = 'dashboard-card';
                 card.innerHTML = `<h4>${c.className}</h4><p>${c.students.length} élève(s)</p>`;
+                card.addEventListener('click', () => renderClassDetailsPage(c.id));
                 grid.appendChild(card);
             });
         }
         
-        function renderPreviewModal() {
-            renderModal(previewModalTemplate);
-            document.getElementById('preview-title').textContent = generatedContent.title;
-            const contentDiv = document.getElementById('preview-content');
-            contentDiv.innerHTML = generatedContent.questions.map(q => `<p>${q.question_text}</p>`).join('');
+        async function renderClassDetailsPage(classId) {
+            currentClassId = classId;
+            const page = document.getElementById('class-details-page');
+            page.innerHTML = `<button id="back-to-teacher" class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> Retour</button><div class="spinner"></div>`;
+            page.querySelector('#back-to-teacher').addEventListener('click', () => changePage('teacher-dashboard-page'));
+
+            const classData = await apiRequest(`/teacher/classes/${classId}`);
+            page.innerHTML = `
+                <button id="back-to-teacher" class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> Retour</button>
+                <h2>${classData.className}</h2>
+                <div class="card" style="margin-top: 1rem;">
+                    <h4>Ajouter un élève</h4>
+                    <form id="add-student-form">
+                        <div class="form-group">
+                            <label for="student-email">Email de l'élève</label>
+                            <input type="email" id="student-email-input" required>
+                        </div>
+                        <button class="btn btn-main">Ajouter</button>
+                        <p class="error-message" id="add-student-error"></p>
+                    </form>
+                </div>
+                <h3 style="margin-top: 2rem;">Élèves inscrits</h3>
+                <div id="student-list" class="dashboard-grid"></div>`;
+            
+            page.querySelector('#back-to-teacher').addEventListener('click', () => changePage('teacher-dashboard-page'));
+            page.querySelector('#add-student-form').addEventListener('submit', handleAddStudent);
+            
+            const studentList = page.querySelector('#student-list');
+            studentList.innerHTML = classData.students.length === 0 ? "<p>Aucun élève dans cette classe.</p>" : "";
+            classData.students.forEach(email => {
+                const studentCard = document.createElement('div');
+                studentCard.className = 'dashboard-card';
+                studentCard.innerHTML = `<p><i class="fa-solid fa-user"></i> ${email}</p>`;
+                studentList.appendChild(studentCard);
+            });
+        }
+        
+        async function handleAddStudent(e) {
+            e.preventDefault();
+            const studentEmail = document.getElementById('student-email-input').value;
+            try {
+                await apiRequest(`/teacher/classes/${currentClassId}/add-student`, 'POST', { studentEmail });
+                renderClassDetailsPage(currentClassId);
+            } catch (err) {
+                document.getElementById('add-student-error').textContent = err.message;
+            }
+        }
+        
+        function showCreateClassModal() {
+            renderModal(getModalTemplate('create-class-modal', 'Créer une nouvelle classe', `
+                <form id="create-class-form">
+                    <div class="form-group"><label for="class-name-input">Nom de la classe</label><input type="text" id="class-name-input" required></div>
+                    <button type="submit" class="btn btn-main">Créer</button>
+                    <p class="error-message" id="class-creation-error"></p>
+                </form>`));
+            document.getElementById('create-class-form').addEventListener('submit', async e => {
+                e.preventDefault();
+                const className = document.getElementById('class-name-input').value;
+                await apiRequest('/teacher/classes', 'POST', { className, teacherEmail: currentUser.email });
+                modalContainer.innerHTML = '';
+                renderTeacherDashboard();
+            });
+        }
+        
+        function showGenerationModal() {
+             renderModal(getModalTemplate('generation-modal', 'Générer du contenu', `
+                <form id="generation-form">
+                    <div class="form-group"><label for="content-type-select">Type</label><select id="content-type-select"><option value="quiz">Quiz</option></select></div>
+                    <div class="form-group"><label for="competences-input">Compétences</label><textarea id="competences-input" rows="3" required></textarea></div>
+                    <button type="submit" class="btn btn-main">Générer</button>
+                </form>
+                <div id="generation-spinner" class="spinner hidden"></div>`));
+            document.getElementById('generation-form').addEventListener('submit', async e => {
+                e.preventDefault();
+                const competences = document.getElementById('competences-input').value;
+                const contentType = document.getElementById('content-type-select').value;
+                document.getElementById('generation-spinner').classList.remove('hidden');
+                const data = await apiRequest('/ai/generate-content', 'POST', { competences, contentType });
+                generatedContent = data.structured_content;
+                showPreviewModal();
+            });
+        }
+        
+        function showPreviewModal() {
+            renderModal(getModalTemplate('preview-modal', 'Aperçu et assignation', `
+                <h4 id="preview-title">${generatedContent.title}</h4>
+                <div id="preview-content" style="margin-bottom: 1rem;">${generatedContent.questions.map(q => `<p>${q.question_text}</p>`).join('')}</div>
+                <form id="assign-form">
+                    <div class="form-group"><label for="assign-class-select">Assigner à</label><select id="assign-class-select" required></select></div>
+                    <button type="submit" class="btn btn-main">Assigner</button>
+                </form>`));
             const select = document.getElementById('assign-class-select');
             teacherClasses.forEach(c => select.add(new Option(c.className, c.id)));
-            
             document.getElementById('assign-form').addEventListener('submit', async e => {
                 e.preventDefault();
                 const classId = select.value;
@@ -324,10 +372,11 @@
                 modalContainer.innerHTML = '';
             });
         }
-        
+
         // --- Student ---
         async function renderStudentDashboard() {
             const page = document.getElementById('student-dashboard-page');
+            page.innerHTML = `<div class="spinner"></div>`;
             const data = await apiRequest(`/student/dashboard?studentEmail=${currentUser.email}`);
             page.innerHTML = `
                 <h2>Bonjour ${currentUser.firstName} !</h2>
@@ -335,14 +384,69 @@
                 <h3 style="margin-top: 2rem;">Terminés</h3><div id="completed-grid" class="dashboard-grid"></div>`;
             
             const todoGrid = page.querySelector('#todo-grid');
+            if(data.todo.length === 0) todoGrid.innerHTML = "<p>Bravo, tu n'as plus rien à faire !</p>";
             data.todo.forEach(item => todoGrid.appendChild(createContentCard(item)));
+
+            const completedGrid = page.querySelector('#completed-grid');
+            if(data.completed.length === 0) completedGrid.innerHTML = "<p>Aucun devoir terminé pour le moment.</p>";
+            data.completed.forEach(item => completedGrid.appendChild(createContentCard(item, true)));
         }
 
         function createContentCard(content, isCompleted = false) {
              const card = document.createElement('div');
             card.className = 'dashboard-card';
-            card.innerHTML = `<h4>${content.title}</h4><p>${content.className}</p><button class="btn btn-main">Commencer</button>`;
+            const date = new Date(isCompleted ? content.completedAt : content.assignedAt).toLocaleDateString('fr-FR');
+            card.innerHTML = `
+                <h4>${content.title}</h4>
+                <p>Classe: ${content.className}</p>
+                <p>${isCompleted ? 'Terminé le' : 'Assigné le'}: ${date}</p>
+                <button class="btn ${isCompleted ? 'btn-secondary' : 'btn-main'}" ${isCompleted ? 'disabled' : ''}>
+                    ${isCompleted ? 'Terminé' : 'Commencer'}
+                </button>
+            `;
+            if (!isCompleted) card.querySelector('button').addEventListener('click', () => renderContentViewer(content));
             return card;
+        }
+
+        function renderContentViewer(content) {
+            const page = document.getElementById('content-viewer-page');
+            page.innerHTML = `
+                 <button id="back-to-student" class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> Retour</button>
+                 <div class="card" style="margin-top: 1rem;">
+                    <h2 id="content-title">${content.title}</h2>
+                    <div id="content-viewer"></div>
+                    <button id="submit-quiz-btn" class="btn btn-main" style="margin-top: 1rem;">Valider</button>
+                 </div>`;
+            page.querySelector('#back-to-student').addEventListener('click', () => changePage('student-dashboard-page'));
+            
+            const viewer = page.querySelector('#content-viewer');
+            if (content.type === 'quiz') {
+                content.questions.forEach((q, index) => {
+                    const qElem = document.createElement('div');
+                    qElem.className = 'quiz-question';
+                    qElem.innerHTML = `<p><strong>${q.question_text}</strong></p><div class="quiz-options">${q.options.map((opt, i) => `<label><input type="radio" name="q${index}" value="${i}"> ${opt}</label>`).join('')}</div>`;
+                    viewer.appendChild(qElem);
+                });
+                page.querySelector('#submit-quiz-btn').addEventListener('click', () => handleSubmitQuiz(content));
+            }
+            changePage('content-viewer-page');
+        }
+
+        async function handleSubmitQuiz(content) {
+            let score = 0;
+            content.questions.forEach((q, index) => {
+                const selected = document.querySelector(`input[name="q${index}"]:checked`);
+                if (selected && selected.value == q.correct_answer_index) score++;
+            });
+            await apiRequest('/student/submit-quiz', 'POST', { 
+                studentEmail: currentUser.email,
+                classId: content.classId,
+                contentId: content.id,
+                score: score,
+                totalQuestions: content.questions.length
+            });
+            renderStudentDashboard();
+            changePage('student-dashboard-page');
         }
 
         // --- Init & Event Listeners ---
