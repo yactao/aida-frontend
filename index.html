@@ -29,7 +29,6 @@
         .page.active { display: block; animation: fadeIn 0.5s; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-        /* --- Header --- */
         header { padding: 1rem 5%; background-color: var(--card-bg-color); box-shadow: var(--shadow); display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 1000; }
         .logo { display: flex; align-items: center; text-decoration: none; cursor: pointer; }
         .logo-icon { width: 40px; height: 40px; background: linear-gradient(45deg, var(--primary-color), var(--secondary-color)); color: white; display: grid; place-items: center; border-radius: 10px; font-weight: 700; font-size: 1.5rem; margin-right: 10px; }
@@ -37,7 +36,6 @@
         .main-nav { display: flex; align-items: center; gap: 1rem; }
         .hidden { display: none !important; }
 
-        /* --- Buttons & Forms --- */
         .btn { padding: 10px 20px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.3s ease; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; }
         .btn-main { background: linear-gradient(45deg, var(--primary-color), var(--secondary-color)); color: #FFF; }
         .btn-main:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.1); }
@@ -49,19 +47,16 @@
         .spinner { border: 4px solid #f3f3f3; border-top: 4px solid var(--primary-color); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 2rem auto; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         
-        /* --- Containers & Cards --- */
         .card { background-color: var(--card-bg-color); padding: 2rem; border-radius: 12px; box-shadow: var(--shadow); }
         .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; }
         .dashboard-card { padding: 1.5rem; border-radius: 12px; background: var(--card-bg-color); box-shadow: var(--shadow); cursor: pointer; transition: all 0.3s ease; }
         .dashboard-card:hover { transform: translateY(-5px); box-shadow: 0 8px 25px rgba(0,0,0,0.1); }
         .dashboard-card h4 { margin-bottom: 0.5rem; font-size: 1.2rem; }
 
-        /* --- Modals --- */
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.6); display: flex; justify-content: center; align-items: center; z-index: 2000; animation: fadeIn 0.3s; }
-        .modal-content { background: var(--card-bg-color); padding: 2rem; border-radius: 12px; width: 90%; max-width: 500px; position: relative; }
+        .modal-content { background: var(--card-bg-color); padding: 2rem; border-radius: 12px; width: 90%; max-width: 600px; position: relative; }
         .close-modal { position: absolute; top: 1rem; right: 1rem; background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #9CA3AF; }
 
-        /* --- Specific Page Styles --- */
         #auth-page .card { max-width: 400px; margin: 2rem auto; }
         #home-page { text-align: center; padding-top: 4rem; }
         #home-page h1 { font-size: 3rem; background: linear-gradient(45deg, var(--primary-color), var(--secondary-color)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
@@ -99,8 +94,38 @@
             <h1>Bienvenue sur AIDA</h1>
             <p>Votre assistant personnel pour l'apprentissage.</p>
         </div>
+        <div class="page" id="auth-page"></div>
+        <div class="page" id="teacher-dashboard-page"></div>
+        <div class="page" id="student-dashboard-page"></div>
+        <div class="page" id="class-details-page"></div>
+        <div class="page" id="content-viewer-page"></div>
+    </main>
+    <div id="modal-container"></div>
+    
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const backendUrl = 'https://aida-backend-bqd0fnd2a3c7dadf.francecentral-01.azurewebsites.net/api';
+        
+        // --- State ---
+        let currentUser = null;
+        let teacherClasses = [];
+        let generatedContent = null;
 
-        <div class="page" id="auth-page">
+        // --- Selectors ---
+        const pages = document.querySelectorAll('.page');
+        const main = document.querySelector('main');
+        const modalContainer = document.getElementById('modal-container');
+        const loginNavBtn = document.getElementById('login-nav-btn');
+        const homeLink = document.getElementById('home-link');
+        const playgroundLink = document.getElementById('playground-link');
+        const userMenuContainer = document.querySelector('.user-menu-container');
+        const userNameDisplay = document.getElementById('user-name-display');
+        const userInfoClickable = document.getElementById('user-info-clickable');
+        const userDropdown = document.getElementById('user-dropdown');
+        const logoutBtn = document.getElementById('logout-btn');
+
+        // --- Templates ---
+        const authPageTemplate = `
             <div class="card">
                 <div id="login-form-container">
                     <h3>Connexion</h3>
@@ -123,95 +148,92 @@
                     </form>
                      <p>Déjà un compte ? <a href="#" id="show-login">Connectez-vous</a></p>
                 </div>
-            </div>
-        </div>
+            </div>`;
 
-        <div class="page" id="teacher-dashboard-page">
-            <h2 id="teacher-welcome"></h2>
-            <button class="btn btn-main" id="open-resource-modal-btn"><i class="fa-solid fa-plus"></i> Nouveau Contenu</button>
-            <button class="btn btn-secondary" id="open-class-modal-btn"><i class="fa-solid fa-users"></i> Nouvelle Classe</button>
-            <div id="class-list" class="dashboard-grid" style="margin-top: 2rem;"></div>
-        </div>
-
-        <div class="page" id="student-dashboard-page">
-            <h2 id="student-welcome"></h2>
-            <h3>À faire</h3>
-            <div id="student-todo-list" class="dashboard-grid"></div>
-            <h3 style="margin-top: 2rem;">Terminés</h3>
-            <div id="student-completed-list" class="dashboard-grid"></div>
-        </div>
+        const createClassModalTemplate = `
+            <div class="modal-overlay" id="create-class-modal">
+                <div class="modal-content">
+                    <button class="close-modal">&times;</button>
+                    <h3>Créer une nouvelle classe</h3>
+                    <form id="create-class-form">
+                        <div class="form-group">
+                            <label for="class-name-input">Nom de la classe</label>
+                            <input type="text" id="class-name-input" required>
+                        </div>
+                        <button type="submit" class="btn btn-main">Créer</button>
+                        <p class="error-message" id="class-creation-error"></p>
+                    </form>
+                </div>
+            </div>`;
         
-        <div class="page" id="class-details-page">
-            <button id="back-to-teacher-dashboard" class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> Retour</button>
-            <h2 id="class-details-title"></h2>
-            <div id="class-details-content" class="dashboard-grid"></div>
-        </div>
+        const generationModalTemplate = `
+            <div class="modal-overlay" id="generation-modal">
+                <div class="modal-content">
+                    <button class="close-modal">&times;</button>
+                    <h3>Générer du contenu</h3>
+                    <form id="generation-form">
+                        <div class="form-group">
+                            <label for="content-type-select">Type de contenu</label>
+                            <select id="content-type-select"><option value="quiz">Quiz</option></select>
+                        </div>
+                         <div class="form-group">
+                            <label for="competences-input">Compétences à évaluer</label>
+                            <textarea id="competences-input" rows="3" required></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-main">Générer</button>
+                    </form>
+                    <div id="generation-spinner" class="spinner hidden"></div>
+                </div>
+            </div>`;
         
-        <div class="page" id="content-viewer-page">
-             <button id="back-to-dashboard-btn" class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> Retour</button>
-             <div class="card" style="margin-top: 1rem;">
-                <h2 id="content-title"></h2>
-                <div id="content-viewer"></div>
-                <button id="submit-quiz-btn" class="btn btn-main hidden" style="margin-top: 1rem;">Valider mes réponses</button>
-             </div>
-        </div>
-    </main>
-    
-    <script>
-    document.addEventListener('DOMContentLoaded', () => {
-        const backendUrl = 'https://aida-backend-bqd0fnd2a3c7dadf.francecentral-01.azurewebsites.net/api';
+        const previewModalTemplate = `
+            <div class="modal-overlay" id="preview-modal">
+                <div class="modal-content">
+                     <button class="close-modal">&times;</button>
+                     <h3 id="preview-title">Aperçu du contenu</h3>
+                     <div id="preview-content" style="margin-bottom: 1rem;"></div>
+                     <form id="assign-form">
+                        <div class="form-group">
+                            <label for="assign-class-select">Assigner à la classe</label>
+                            <select id="assign-class-select" required></select>
+                        </div>
+                        <button type="submit" class="btn btn-main">Assigner</button>
+                     </form>
+                </div>
+            </div>`;
         
-        // --- State Management ---
-        let currentUser = null;
-
-        // --- Selectors ---
-        const pages = document.querySelectorAll('.page');
-        const loginNavBtn = document.getElementById('login-nav-btn');
-        const homeLink = document.getElementById('home-link');
-        const playgroundLink = document.getElementById('playground-link');
-        const loginForm = document.getElementById('login-form');
-        const signupForm = document.getElementById('signup-form');
-        const showSignup = document.getElementById('show-signup');
-        const showLogin = document.getElementById('show-login');
-        const userMenuContainer = document.querySelector('.user-menu-container');
-        const userNameDisplay = document.getElementById('user-name-display');
-        const userInfoClickable = document.getElementById('user-info-clickable');
-        const userDropdown = document.getElementById('user-dropdown');
-        const logoutBtn = document.getElementById('logout-btn');
-        const teacherWelcome = document.getElementById('teacher-welcome');
-        const studentWelcome = document.getElementById('student-welcome');
-        const classList = document.getElementById('class-list');
-        const studentTodoList = document.getElementById('student-todo-list');
-        const studentCompletedList = document.getElementById('student-completed-list');
-        const classDetailsTitle = document.getElementById('class-details-title');
-        const classDetailsContent = document.getElementById('class-details-content');
-        const backToTeacherDashboardBtn = document.getElementById('back-to-teacher-dashboard');
-        const contentTitle = document.getElementById('content-title');
-        const contentViewer = document.getElementById('content-viewer');
-        const submitQuizBtn = document.getElementById('submit-quiz-btn');
-        const backToDashboardBtn = document.getElementById('back-to-dashboard-btn');
+        // --- API & Logic ---
+        async function apiRequest(endpoint, method = 'GET', body = null) {
+            try {
+                const options = { method, headers: { 'Content-Type': 'application/json' } };
+                if (body) options.body = JSON.stringify(body);
+                const response = await fetch(`${backendUrl}${endpoint}`, options);
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.error || 'Une erreur est survenue');
+                return data;
+            } catch (error) {
+                console.error(`API Error on ${method} ${endpoint}:`, error);
+                throw error;
+            }
+        }
         
-        // --- Navigation ---
         function changePage(pageId) {
             pages.forEach(p => p.classList.remove('active'));
-            const page = document.getElementById(pageId);
-            if (page) page.classList.add('active');
+            document.getElementById(pageId).classList.add('active');
         }
 
-        // --- UI Updates ---
-        function updateUIForUser() {
+        function updateUI() {
             if (currentUser) {
                 loginNavBtn.classList.add('hidden');
                 userMenuContainer.classList.remove('hidden');
                 playgroundLink.classList.remove('hidden');
                 userNameDisplay.textContent = currentUser.firstName;
+
                 if (currentUser.role === 'teacher') {
-                    teacherWelcome.textContent = `Bonjour ${currentUser.firstName}`;
-                    fetchTeacherClasses();
+                    renderTeacherDashboard();
                     changePage('teacher-dashboard-page');
                 } else {
-                    studentWelcome.textContent = `Bonjour ${currentUser.firstName}`;
-                    fetchStudentDashboard();
+                    renderStudentDashboard();
                     changePage('student-dashboard-page');
                 }
             } else {
@@ -222,142 +244,120 @@
             }
         }
 
-        // --- API Calls ---
-        async function apiRequest(endpoint, method = 'GET', body = null) {
-            try {
-                const options = {
-                    method,
-                    headers: { 'Content-Type': 'application/json' }
-                };
-                if (body) options.body = JSON.stringify(body);
-                const response = await fetch(`${backendUrl}${endpoint}`, options);
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.error || 'Une erreur est survenue');
-                }
-                return response.json();
-            } catch (error) {
-                console.error(`API Error on ${method} ${endpoint}:`, error);
-                throw error;
-            }
+        function renderModal(template) {
+            modalContainer.innerHTML = template;
+            modalContainer.querySelector('.close-modal').addEventListener('click', () => modalContainer.innerHTML = '');
         }
 
-        // --- Authentication Logic ---
-        async function login(email, password) {
-            const data = await apiRequest('/auth/login', 'POST', { email, password });
-            currentUser = data.user;
-            updateUIForUser();
-        }
-
-        function logout() {
-            currentUser = null;
-            updateUIForUser();
+        // --- Auth ---
+        function renderAuthPage() {
+            document.getElementById('auth-page').innerHTML = authPageTemplate;
+            document.getElementById('login-form').addEventListener('submit', async e => {
+                e.preventDefault();
+                const email = document.getElementById('login-email').value;
+                const password = document.getElementById('login-password').value;
+                try {
+                    const data = await apiRequest('/auth/login', 'POST', { email, password });
+                    currentUser = data.user;
+                    updateUI();
+                } catch (err) { document.getElementById('login-error').textContent = err.message; }
+            });
+            // ... signup form event listener
         }
         
-        // --- Teacher Logic ---
-        async function fetchTeacherClasses() {
-            const classes = await apiRequest(`/teacher/classes?teacherEmail=${currentUser.email}`);
-            classList.innerHTML = '';
-            classes.forEach(c => {
+        // --- Teacher ---
+        async function renderTeacherDashboard() {
+            const page = document.getElementById('teacher-dashboard-page');
+            page.innerHTML = `
+                <h2>Bonjour ${currentUser.firstName} !</h2>
+                <button class="btn btn-main" id="open-gen-modal"><i class="fa-solid fa-plus"></i> Nouveau Contenu</button>
+                <button class="btn btn-secondary" id="open-class-modal"><i class="fa-solid fa-users"></i> Nouvelle Classe</button>
+                <div id="class-grid" class="dashboard-grid" style="margin-top: 2rem;"></div>`;
+            
+            page.querySelector('#open-class-modal').addEventListener('click', () => {
+                renderModal(createClassModalTemplate);
+                document.getElementById('create-class-form').addEventListener('submit', async e => {
+                    e.preventDefault();
+                    const className = document.getElementById('class-name-input').value;
+                    await apiRequest('/teacher/classes', 'POST', { className, teacherEmail: currentUser.email });
+                    modalContainer.innerHTML = '';
+                    renderTeacherDashboard();
+                });
+            });
+
+            page.querySelector('#open-gen-modal').addEventListener('click', () => {
+                renderModal(generationModalTemplate);
+                document.getElementById('generation-form').addEventListener('submit', async e => {
+                    e.preventDefault();
+                    const competences = document.getElementById('competences-input').value;
+                    const contentType = document.getElementById('content-type-select').value;
+                    document.getElementById('generation-spinner').classList.remove('hidden');
+                    const data = await apiRequest('/ai/generate-content', 'POST', { competences, contentType });
+                    generatedContent = data.structured_content;
+                    renderPreviewModal();
+                });
+            });
+
+            teacherClasses = await apiRequest(`/teacher/classes?teacherEmail=${currentUser.email}`);
+            const grid = page.querySelector('#class-grid');
+            grid.innerHTML = '';
+            teacherClasses.forEach(c => {
                 const card = document.createElement('div');
                 card.className = 'dashboard-card';
                 card.innerHTML = `<h4>${c.className}</h4><p>${c.students.length} élève(s)</p>`;
-                card.addEventListener('click', () => showClassDetails(c.id));
-                classList.appendChild(card);
+                grid.appendChild(card);
             });
         }
         
-        async function showClassDetails(classId) {
-             const classData = await apiRequest(`/teacher/classes/${classId}`);
-             classDetailsTitle.textContent = classData.className;
-             classDetailsContent.innerHTML = '';
-             (classData.students || []).forEach(studentEmail => {
-                 const studentCard = document.createElement('div');
-                 studentCard.className = 'card';
-                 studentCard.textContent = studentEmail;
-                 classDetailsContent.appendChild(studentCard);
-             });
-             changePage('class-details-page');
+        function renderPreviewModal() {
+            renderModal(previewModalTemplate);
+            document.getElementById('preview-title').textContent = generatedContent.title;
+            const contentDiv = document.getElementById('preview-content');
+            contentDiv.innerHTML = generatedContent.questions.map(q => `<p>${q.question_text}</p>`).join('');
+            const select = document.getElementById('assign-class-select');
+            teacherClasses.forEach(c => select.add(new Option(c.className, c.id)));
+            
+            document.getElementById('assign-form').addEventListener('submit', async e => {
+                e.preventDefault();
+                const classId = select.value;
+                await apiRequest('/teacher/assign-content', 'POST', { classId, contentData: generatedContent });
+                modalContainer.innerHTML = '';
+            });
+        }
+        
+        // --- Student ---
+        async function renderStudentDashboard() {
+            const page = document.getElementById('student-dashboard-page');
+            const data = await apiRequest(`/student/dashboard?studentEmail=${currentUser.email}`);
+            page.innerHTML = `
+                <h2>Bonjour ${currentUser.firstName} !</h2>
+                <h3>À faire</h3><div id="todo-grid" class="dashboard-grid"></div>
+                <h3 style="margin-top: 2rem;">Terminés</h3><div id="completed-grid" class="dashboard-grid"></div>`;
+            
+            const todoGrid = page.querySelector('#todo-grid');
+            data.todo.forEach(item => todoGrid.appendChild(createContentCard(item)));
         }
 
-        // --- Student Logic ---
-        async function fetchStudentDashboard() {
-            const data = await apiRequest(`/student/dashboard?studentEmail=${currentUser.email}`);
-            studentTodoList.innerHTML = '';
-            (data.todo || []).forEach(item => {
-                const card = createContentCard(item);
-                card.querySelector('button').addEventListener('click', () => displayContent(item));
-                studentTodoList.appendChild(card);
-            });
-            studentCompletedList.innerHTML = '';
-             (data.completed || []).forEach(item => {
-                const card = createContentCard(item, true);
-                studentCompletedList.appendChild(card);
-            });
-        }
-        
         function createContentCard(content, isCompleted = false) {
-            const card = document.createElement('div');
+             const card = document.createElement('div');
             card.className = 'dashboard-card';
-            const date = new Date(isCompleted ? content.completedAt : content.assignedAt).toLocaleDateString('fr-FR');
-            card.innerHTML = `
-                <h4>${content.title}</h4>
-                <p>Classe: ${content.className}</p>
-                <p>${isCompleted ? 'Terminé le' : 'Assigné le'}: ${date}</p>
-                <button class="btn ${isCompleted ? 'btn-secondary' : 'btn-main'}" ${isCompleted ? 'disabled' : ''}>
-                    ${isCompleted ? 'Terminé' : 'Commencer'}
-                </button>
-            `;
+            card.innerHTML = `<h4>${content.title}</h4><p>${content.className}</p><button class="btn btn-main">Commencer</button>`;
             return card;
         }
 
-        function displayContent(content) {
-            contentTitle.textContent = content.title;
-            contentViewer.innerHTML = '';
-            if (content.type === 'quiz') {
-                content.questions.forEach((q, index) => {
-                    const qElem = document.createElement('div');
-                    qElem.className = 'quiz-question';
-                    let optionsHTML = q.options.map((opt, i) => `<label><input type="radio" name="q${index}" value="${i}"> ${opt}</label>`).join('');
-                    qElem.innerHTML = `<p><strong>${q.question_text}</strong></p><div class="quiz-options">${optionsHTML}</div>`;
-                    contentViewer.appendChild(qElem);
-                });
-                submitQuizBtn.classList.remove('hidden');
-                submitQuizBtn.onclick = () => console.log("Submit quiz"); // Placeholder
-            }
-            changePage('content-viewer-page');
-        }
-
-        // --- Event Listeners ---
-        loginNavBtn.addEventListener('click', () => changePage('auth-page'));
+        // --- Init & Event Listeners ---
+        loginNavBtn.addEventListener('click', () => {
+            renderAuthPage();
+            changePage('auth-page');
+        });
         homeLink.addEventListener('click', () => changePage('home-page'));
-        showSignup.addEventListener('click', (e) => {
-            e.preventDefault();
-            document.getElementById('login-form-container').classList.add('hidden');
-            document.getElementById('signup-form-container').classList.remove('hidden');
+        logoutBtn.addEventListener('click', () => {
+            currentUser = null;
+            updateUI();
         });
-        showLogin.addEventListener('click', (e) => {
-            e.preventDefault();
-            document.getElementById('signup-form-container').classList.add('hidden');
-            document.getElementById('login-form-container').classList.remove('hidden');
-        });
-        loginForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const email = document.getElementById('login-email').value;
-            const password = document.getElementById('login-password').value;
-            try {
-                await login(email, password);
-            } catch (error) {
-                document.getElementById('login-error').textContent = error.message;
-            }
-        });
-        
         userInfoClickable.addEventListener('click', () => userDropdown.classList.toggle('hidden'));
-        logoutBtn.addEventListener('click', logout);
-        backToTeacherDashboardBtn.addEventListener('click', () => changePage('teacher-dashboard-page'));
-        backToDashboardBtn.addEventListener('click', updateUIForUser); // Re-route to correct dashboard
         
-        updateUIForUser(); // Initial state
+        updateUI();
     });
     </script>
 </body>

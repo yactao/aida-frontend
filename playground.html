@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AIDA - Terrain de Jeux</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
+        :root {
+            --primary-color: #6D28D9;
+            --secondary-color: #EC4899;
+            --background-color: #F3F4F6;
+            --text-color: #1F2937;
+            --card-bg-color: #FFFFFF;
+            --shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Poppins', sans-serif; background-color: var(--background-color); color: var(--text-color); display: flex; flex-direction: column; min-height: 100vh; }
+        header { padding: 1rem 5%; background-color: var(--card-bg-color); box-shadow: var(--shadow); display: flex; justify-content: space-between; align-items: center; }
+        .logo { display: flex; align-items: center; text-decoration: none; }
+        .logo-icon { width: 40px; height: 40px; background: linear-gradient(45deg, var(--primary-color), var(--secondary-color)); color: white; display: grid; place-items: center; border-radius: 10px; font-weight: 700; font-size: 1.5rem; margin-right: 10px; }
+        .logo span { font-size: 1.5rem; font-weight: 700; color: var(--text-color); }
+        .main-container { flex-grow: 1; display: flex; justify-content: center; align-items: center; padding: 2rem; }
+        .card { background-color: var(--card-bg-color); padding: 2rem; border-radius: 12px; box-shadow: var(--shadow); width: 100%; max-width: 500px; text-align: center; }
+        .btn { padding: 10px 20px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.3s ease; text-decoration: none; }
+        .btn-main { background: linear-gradient(45deg, var(--primary-color), var(--secondary-color)); color: #FFF; width: 100%; }
+        .btn-secondary { background-color: #E5E7EB; color: var(--text-color); }
+        .chat-container { width: 100%; max-width: 800px; height: 80vh; display: flex; flex-direction: column; background: var(--card-bg-color); box-shadow: var(--shadow); border-radius: 12px; }
+        .chat-header { padding: 1rem; border-bottom: 1px solid #E5E7EB; text-align: center; font-weight: 600; }
+        .chat-messages { flex-grow: 1; padding: 1rem; overflow-y: auto; }
+        .message { margin-bottom: 1rem; display: flex; }
+        .message.user { justify-content: flex-end; }
+        .message-bubble { padding: 0.75rem 1rem; border-radius: 18px; max-width: 75%; white-space: pre-wrap; line-height: 1.4; }
+        .message.user .message-bubble { background: linear-gradient(45deg, var(--primary-color), var(--secondary-color)); color: white; border-bottom-right-radius: 4px; }
+        .message.aida .message-bubble { background-color: #E5E7EB; color: #1F2937; border-bottom-left-radius: 4px; }
+        .chat-input { display: flex; padding: 1rem; border-top: 1px solid #E5E7EB; gap: 0.5rem; }
+        .chat-input input { flex-grow: 1; padding: 12px; border: 1px solid #D1D5DB; border-radius: 20px; font-size: 1rem; }
+        .chat-input button { background: var(--primary-color); color: white; border: none; border-radius: 50%; width: 45px; height: 45px; font-size: 1.2rem; cursor: pointer; flex-shrink: 0; }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="logo">
+            <a href="index.html">
+                <div class="logo-icon">A</div>
+                <span>AIDA</span>
+            </a>
+        </div>
+        <nav><a href="index.html" class="btn btn-secondary">Retour</a></nav>
+    </header>
+
+    <main class="main-container">
+        <div id="chat-step" class="chat-container">
+            <div class="chat-header">Terrain de Jeux AIDA</div>
+            <div class="chat-messages" id="chat-messages"></div>
+            <form class="chat-input" id="chat-form">
+                <input type="text" id="user-input" placeholder="Pose ta question ici..." autocomplete="off">
+                <button type="submit" id="send-btn"><i class="fa-solid fa-paper-plane"></i></button>
+            </form>
+        </div>
+    </main>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const backendUrl = 'https://aida-backend-bqd0fnd2a3c7dadf.francecentral-01.azurewebsites.net/api';
+        const chatMessages = document.getElementById('chat-messages');
+        const chatForm = document.getElementById('chat-form');
+        const userInput = document.getElementById('user-input');
+        
+        let conversationHistory = [{ role: "system", content: "Tu es AIDA, une IA éducative bienveillante. Réponds de manière simple et encourageante." }];
+
+        function addMessage(text, sender) {
+            const messageElement = document.createElement('div');
+            messageElement.classList.add('message', sender);
+            const bubble = document.createElement('div');
+            bubble.classList.add('message-bubble');
+            bubble.textContent = text;
+            messageElement.appendChild(bubble);
+            chatMessages.appendChild(messageElement);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        chatForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const userMessage = userInput.value.trim();
+            if (!userMessage) return;
+
+            addMessage(userMessage, "user");
+            conversationHistory.push({ role: "user", content: userMessage });
+            userInput.value = '';
+
+            try {
+                const response = await fetch(`${backendUrl}/ai/playground-chat`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ history: conversationHistory })
+                });
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.error);
+                
+                addMessage(data.reply, "aida");
+                conversationHistory.push({ role: "assistant", content: data.reply });
+            } catch(error) {
+                addMessage("Désolée, une erreur est survenue.", "aida");
+            }
+        });
+
+        addMessage("Bonjour ! Sur quoi puis-je t'aider aujourd'hui ?", "aida");
+    });
+    </script>
+</body>
+</html>
+
