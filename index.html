@@ -3,194 +3,161 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AIDA - Assistant Éducatif</title>
-    <link rel="stylesheet" href="style.css">
+    <title>AIDA - Assistant Intelligent pour le Devoir et l'Apprentissage</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
+        :root {
+            --primary-color: #6D28D9;
+            --secondary-color: #EC4899;
+            --background-color: #F3F4F6;
+            --text-color: #1F2937;
+            --card-bg-color: #FFFFFF;
+            --shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+            --success-color: #10B981;
+            --error-color: #EF4444;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html { scroll-behavior: smooth; }
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            line-height: 1.6;
+        }
+        .page { display: none; }
+        .page.active { display: block; animation: fadeIn 0.5s; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        /* --- Header --- */
+        header {
+            padding: 1rem 5%;
+            background-color: var(--card-bg-color);
+            box-shadow: var(--shadow);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+        .logo { display: flex; align-items: center; text-decoration: none; }
+        .logo-icon { width: 40px; height: 40px; background: linear-gradient(45deg, var(--primary-color), var(--secondary-color)); color: white; display: grid; place-items: center; border-radius: 10px; font-weight: 700; font-size: 1.5rem; margin-right: 10px; }
+        .logo span { font-size: 1.5rem; font-weight: 700; color: var(--text-color); }
+        .main-nav { display: flex; align-items: center; gap: 1rem; }
+        .hidden { display: none !important; }
+
+        /* --- Buttons & Forms --- */
+        .btn { padding: 10px 20px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.3s ease; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; }
+        .btn-main { background: linear-gradient(45deg, var(--primary-color), var(--secondary-color)); color: #FFF; }
+        .btn-main:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.1); }
+        .btn-secondary { background-color: #E5E7EB; color: var(--text-color); }
+        .btn-secondary:hover { background-color: #D1D5DB; }
+        .btn-danger { background-color: var(--error-color); color: #FFF; }
+        
+        .form-group { margin-bottom: 1.5rem; text-align: left; }
+        .form-group label { display: block; margin-bottom: 0.5rem; font-weight: 600; }
+        input, select, textarea { width: 100%; padding: 12px; border: 1px solid #D1D5DB; border-radius: 8px; font-size: 1rem; font-family: 'Poppins', sans-serif; }
+        .error-message { color: var(--error-color); margin-top: 0.5rem; }
+
+        /* --- Containers & Cards --- */
+        .main-container { padding: 2rem 5%; }
+        .card { background-color: var(--card-bg-color); padding: 2rem; border-radius: 12px; box-shadow: var(--shadow); }
+        .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; }
+        .dashboard-card { padding: 1.5rem; border-radius: 12px; background: var(--card-bg-color); box-shadow: var(--shadow); cursor: pointer; transition: all 0.3s ease; }
+        .dashboard-card:hover { transform: translateY(-5px); box-shadow: 0 8px 25px rgba(0,0,0,0.1); }
+        .dashboard-card h4 { margin-bottom: 0.5rem; font-size: 1.2rem; }
+
+        /* --- Modals --- */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); display: flex; justify-content: center; align-items: center; z-index: 2000; animation: fadeIn 0.3s; }
+        .modal-content { background: var(--card-bg-color); padding: 2rem; border-radius: 12px; width: 90%; max-width: 500px; position: relative; }
+        .close-modal { position: absolute; top: 1rem; right: 1rem; background: none; border: none; font-size: 1.5rem; cursor: pointer; }
+
+        /* --- Specific Page Styles --- */
+        #auth-page .card { max-width: 400px; margin: 2rem auto; }
+        #class-details-page .details-grid { margin-top: 1.5rem; }
+        #content-viewer-page .card { max-width: 800px; margin: auto; }
+        .quiz-question { margin-bottom: 1.5rem; }
+        .quiz-options label { display: block; margin: 0.5rem 0; padding: 10px; border: 1px solid #eee; border-radius: 8px; cursor: pointer; }
+        .quiz-options label:hover { background: #f9f9f9; }
+
+        /* --- Playground Chat --- */
+        .chat-container { width: 100%; max-width: 800px; height: 80vh; margin: auto; display: flex; flex-direction: column; background: var(--card-bg-color); box-shadow: var(--shadow); border-radius: 12px; }
+        .chat-header { padding: 1rem; border-bottom: 1px solid #E5E7EB; text-align: center; font-weight: 600; }
+        .chat-messages { flex-grow: 1; padding: 1rem; overflow-y: auto; }
+        .message { margin-bottom: 1rem; display: flex; }
+        .message.user { justify-content: flex-end; }
+        .message-bubble { padding: 0.75rem 1rem; border-radius: 18px; max-width: 75%; white-space: pre-wrap; line-height: 1.4; }
+        .message.user .message-bubble { background: linear-gradient(45deg, var(--primary-color), var(--secondary-color)); color: white; border-bottom-right-radius: 4px; }
+        .message.aida .message-bubble { background-color: #E5E7EB; color: #1F2937; border-bottom-left-radius: 4px; }
+        .chat-input { display: flex; padding: 1rem; border-top: 1px solid #E5E7EB; gap: 0.5rem; }
+        .chat-input input { flex-grow: 1; border-radius: 20px; }
+        .chat-input button { border-radius: 50%; width: 45px; height: 45px; flex-shrink: 0; }
+    </style>
 </head>
 <body>
+
     <header>
-        <a href="index.html" id="home-link" class="logo">
+        <a href="#" class="logo" id="home-link">
             <div class="logo-icon">A</div>
             <span>AIDA</span>
         </a>
-        <div class="header-controls">
-            <!-- Le bouton Connexion/Inscription par défaut -->
-            <a href="#" class="btn-register">Connexion</a>
-            
-            <!-- Le menu utilisateur, caché par défaut -->
+        <nav class="main-nav">
+            <a href="#" class="btn btn-secondary hidden" id="playground-link">
+                <i class="fa-solid fa-flask"></i> Terrain de Jeux
+            </a>
             <div class="user-menu-container hidden">
-                <div id="user-info-clickable" class="user-info-header">
-                    <span id="user-email-display"></span>
-                    <i class="fa-solid fa-chevron-down"></i>
-                </div>
-                <div class="user-dropdown hidden">
-                    <div class="dropdown-section">
-                        <span>Thème</span>
-                        <button id="theme-toggle-btn" class="theme-toggle" aria-label="Changer de thème">
-                            <i class="fa-solid fa-moon"></i>
-                        </button>
-                    </div>
-                    <div class="dropdown-section">
-                         <button id="logout-btn" class="btn-logout">
-                            <i class="fa-solid fa-arrow-right-from-bracket"></i>
-                            Déconnexion
-                        </button>
-                    </div>
+                <button class="btn btn-secondary" id="user-info-clickable">
+                    <span id="user-email-display"></span> <i class="fa-solid fa-chevron-down"></i>
+                </button>
+                <div class="user-dropdown card hidden">
+                    <button class="btn" id="logout-btn"><i class="fa-solid fa-right-from-bracket"></i> Déconnexion</button>
                 </div>
             </div>
-        </div>
+            <button class="btn btn-main" id="register-btn">Connexion</button>
+        </nav>
     </header>
+
     <main>
-        <!-- PAGE 1: ACCUEIL -->
-        <section id="home" class="page active">
-            <h1>Bienvenue dans l'école <span class="gradient-text">2.0</span></h1>
-            <p>Le futur de l'éducation, où chaque élève a son propre tuteur AIDA pour l'aider à grandir.</p>
-            <div class="hero-buttons">
-                <a href="#" class="btn-main" data-target="auth-page">Espace Enseignant / Élève</a>
-                <a href="playground.html" class="btn-secondary">Terrain de Jeux (Accès libre)</a>
-            </div>
-        </section>
+        <!-- PAGES DE L'APPLICATION -->
+        <div class="page active" id="home-page">
+            <!-- Contenu de la page d'accueil -->
+        </div>
 
-        <!-- PAGE 2: AUTHENTIFICATION -->
-        <section id="auth-page" class="page">
-            <div class="auth-container">
-                <div class="form-container" id="login-form-container">
-                    <h2>Connexion</h2>
-                    <form id="login-form">
-                        <input type="email" id="login-email" placeholder="Email" required>
-                        <input type="password" id="login-password" placeholder="Mot de passe" required>
-                        <button type="submit" class="btn-main">Se connecter</button>
-                        <p class="error-message" id="login-error"></p>
-                        <p class="form-switch">Pas de compte ? <a href="#" id="show-signup">Inscrivez-vous</a></p>
-                    </form>
-                </div>
-                <div class="form-container hidden" id="signup-form-container">
-                    <h2>Inscription</h2>
-                    <form id="signup-form">
-                        <input type="email" id="signup-email" placeholder="Email" required>
-                        <input type="password" id="signup-password" placeholder="Mot de passe" required>
-                        <select id="signup-role">
-                            <option value="student">Je suis un élève</option>
-                            <option value="teacher">Je suis un professeur</option>
-                        </select>
-                        <button type="submit" class="btn-main">S'inscrire</button>
-                        <p class="error-message" id="signup-error"></p>
-                        <p class="form-switch">Déjà un compte ? <a href="#" id="show-login">Connectez-vous</a></p>
-                    </form>
-                </div>
-            </div>
-        </section>
+        <div class="page" id="auth-page">
+            <!-- Contenu de la page de connexion/inscription -->
+        </div>
 
-        <!-- PAGE 3: TABLEAU DE BORD PROFESSEUR -->
-        <section id="teacher-dashboard" class="page">
-            <h2 id="teacher-welcome">Tableau de bord</h2>
-            <div class="dashboard-grid">
-                <div class="dashboard-main-panel">
-                    <h3>Mes Classes</h3>
-                    <div id="class-list" class="class-grid">
-                        <p id="no-classes-message">Vous n'avez pas encore de classes.</p>
-                    </div>
-                    <button id="open-class-modal-btn" class="btn-secondary"><i class="fa-solid fa-plus"></i> Nouvelle classe</button>
-                </div>
-                <div class="dashboard-side-panel">
-                    <h3>Actions Rapides</h3>
-                    <button class="btn-main new-resource-btn"><i class="fa-solid fa-wand-magic-sparkles"></i> Créer une ressource</button>
-                </div>
-            </div>
-        </section>
+        <div class="page" id="teacher-dashboard-page">
+            <!-- Tableau de bord du professeur -->
+        </div>
 
-        <!-- PAGE 4: TABLEAU DE BORD ÉLÈVE -->
-        <section id="student-dashboard" class="page">
-            <h2 id="student-welcome">Bonjour !</h2>
-            <div id="student-module-list" class="class-grid"></div>
-             <div id="join-class-panel" class="join-class-container">
-                <h3>Rejoindre une nouvelle classe</h3>
-                <form id="join-class-form">
-                    <input type="text" id="class-code-input" placeholder="Entrez le nom de la classe" required>
-                    <button type="submit" class="btn-secondary">Rejoindre</button>
-                    <p class="error-message" id="join-class-error"></p>
-                </form>
-            </div>
-        </section>
-
-        <!-- PAGE 5 : AFFICHAGE DU CONTENU (QUIZ, ETC.) -->
-        <section id="content-page" class="page">
-            <div class="content-container">
-                <button id="back-to-dashboard-btn" class="btn-secondary"><i class="fa-solid fa-arrow-left"></i> Retour</button>
-                <h2 id="content-title">Titre du Contenu</h2>
-                <div id="content-viewer"></div>
-                <button id="submit-quiz-btn" class="btn-main hidden">Valider mes réponses</button>
-                <div id="quiz-result" class="hidden"></div>
-            </div>
-        </section>
+        <div class="page" id="student-dashboard-page">
+            <!-- Tableau de bord de l'élève -->
+        </div>
         
-        <!-- PAGE 6 : DÉTAILS DE LA CLASSE POUR LE PROFESSEUR -->
-        <section id="class-details-page" class="page">
-            <div class="class-details-container">
-                <button id="back-to-teacher-dashboard" class="btn-secondary"><i class="fa-solid fa-arrow-left"></i> Retour</button>
-                <h2 id="class-details-title">Détails de la classe</h2>
-                <div id="class-details-content">
-                    <!-- Contenus et Résultats seront injectés ici -->
-                </div>
-            </div>
-        </section>
-
+        <div class="page" id="class-details-page">
+            <!-- Détails d'une classe pour le professeur -->
+        </div>
+        
+        <div class="page" id="content-viewer-page">
+            <!-- Visionneuse de contenu (quiz, etc.) -->
+        </div>
+        
+        <div class="page" id="playground-page">
+            <!-- Terrain de jeux AIDA -->
+        </div>
     </main>
 
-    <!-- MODALES -->
-    <div id="create-class-modal" class="modal-overlay hidden">
-        <div class="modal-content">
-            <span class="close-modal">&times;</span>
-            <h2>Créer une nouvelle classe</h2>
-            <form id="create-class-form">
-                <input type="text" id="class-name-input" placeholder="Nom de la classe (ex: CE2 - A)" required>
-                <button type="submit" class="btn-main">Créer</button>
-                <p class="error-message" id="class-creation-error"></p>
-            </form>
-        </div>
-    </div>
+    <!-- MODALES DE L'APPLICATION -->
+    <div class="modal-overlay hidden" id="create-class-modal"></div>
+    <div class="modal-overlay hidden" id="generation-modal"></div>
+    <div class="modal-overlay hidden" id="manage-class-modal"></div>
+    <div class="modal-overlay hidden" id="preview-modal"></div>
 
-    <div id="generation-modal" class="modal-overlay hidden">
-        <div class="modal-content">
-            <span class="close-modal">&times;</span>
-            <div id="modal-form-step">
-                <h2>Créer une ressource pédagogique</h2>
-                <form id="resource-form">
-                    <div class="form-group"><label for="cycle-select">Cycle</label><select id="cycle-select"><option value="">-- Choisir --</option><option value="primaire">Primaire</option><option value="college">Collège</option><option value="lycee">Lycée</option></select></div>
-                    <div class="form-group"><label for="level-select">Classe</label><select id="level-select" disabled><option>-- D'abord choisir un cycle --</option></select></div>
-                    <div class="form-group"><label for="subject-select">Matière</label><select id="subject-select" disabled><option>-- D'abord choisir une classe --</option></select></div>
-                    <div class="form-group"><label for="notion-select">Notion</label><select id="notion-select" disabled><option>-- D'abord choisir une matière --</option></select></div>
-                    <div class="form-group"><label for="content-type-select">Type de contenu</label><select id="content-type-select"><option value="quiz">Quiz (QCM)</option><option value="exercices">Exercices</option></select></div>
-                    <button type="submit" class="btn-main" disabled>Générer avec AIDA</button>
-                </form>
-            </div>
-            <div id="modal-loading-step" class="hidden">
-                <h2>AIDA réfléchit...</h2>
-                <div class="spinner"></div>
-            </div>
-            <div id="modal-result-step" class="hidden">
-                <h2>Contenu généré</h2>
-                <p>Vous pouvez modifier le contenu ci-dessous avant de l'assigner.</p>
-                <div class="form-group"><textarea id="generated-content-editor"></textarea></div>
-                <div class="assign-section">
-                    <label for="assign-class-select">Assigner à :</label>
-                    <select id="assign-class-select"></select>
-                    <button class="btn-main" id="confirm-assign-btn">Assigner ce contenu</button>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <div id="result-details-modal" class="modal-overlay hidden">
-        <div class="modal-content">
-            <span class="close-modal">&times;</span>
-            <h2 id="result-modal-title">Détail des réponses</h2>
-            <div id="result-modal-content"></div>
-        </div>
-    </div>
-
-
-    <script src="script.js"></script>
+    <script>
+        // Le code JavaScript complet de l'application sera ici
+    </script>
 </body>
 </html>
 
