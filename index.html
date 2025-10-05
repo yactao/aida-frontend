@@ -64,6 +64,8 @@
         .quiz-options label { display: block; margin: 0.5rem 0; padding: 10px; border: 1px solid #eee; border-radius: 8px; cursor: pointer; }
         .user-dropdown { position: absolute; top: 100%; right: 0; margin-top: 0.5rem; width: 200px; z-index: 10; }
         .user-menu-container { position: relative; }
+        table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+        th, td { text-align: left; padding: 12px; border-bottom: 1px solid #E5E7EB; }
     </style>
 </head>
 <body>
@@ -279,22 +281,33 @@
             page.querySelector('#back-to-teacher').addEventListener('click', () => changePage('teacher-dashboard-page'));
 
             const classData = await apiRequest(`/teacher/classes/${classId}`);
+            
+            let resultsHtml = '<table><tr><th>Élève</th><th>Quiz</th><th>Score</th><th>Date</th></tr>';
+            if(classData.results && classData.results.length > 0) {
+                 classData.results.forEach(res => {
+                    const quizTitle = classData.content.find(c => c.id === res.contentId)?.title || 'Quiz supprimé';
+                    resultsHtml += `<tr><td>${res.studentEmail}</td><td>${quizTitle}</td><td>${res.score}/${res.totalQuestions}</td><td>${new Date(res.submittedAt).toLocaleDateString('fr-FR')}</td></tr>`;
+                });
+            } else {
+                resultsHtml += '<tr><td colspan="4">Aucun résultat pour le moment.</td></tr>';
+            }
+            resultsHtml += '</table>';
+
             page.innerHTML = `
                 <button id="back-to-teacher" class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> Retour</button>
                 <h2>${classData.className}</h2>
                 <div class="card" style="margin-top: 1rem;">
                     <h4>Ajouter un élève</h4>
                     <form id="add-student-form">
-                        <div class="form-group">
-                            <label for="student-email">Email de l'élève</label>
-                            <input type="email" id="student-email-input" required>
-                        </div>
+                        <div class="form-group"><label for="student-email">Email de l'élève</label><input type="email" id="student-email-input" required></div>
                         <button class="btn btn-main">Ajouter</button>
                         <p class="error-message" id="add-student-error"></p>
                     </form>
                 </div>
                 <h3 style="margin-top: 2rem;">Élèves inscrits</h3>
-                <div id="student-list" class="dashboard-grid"></div>`;
+                <div id="student-list" class="dashboard-grid"></div>
+                <h3 style="margin-top: 2rem;">Résultats des exercices</h3>
+                <div class="card">${resultsHtml}</div>`;
             
             page.querySelector('#back-to-teacher').addEventListener('click', () => changePage('teacher-dashboard-page'));
             page.querySelector('#add-student-form').addEventListener('submit', handleAddStudent);
@@ -304,6 +317,7 @@
             classData.students.forEach(email => {
                 const studentCard = document.createElement('div');
                 studentCard.className = 'dashboard-card';
+                studentCard.style.cursor = 'default';
                 studentCard.innerHTML = `<p><i class="fa-solid fa-user"></i> ${email}</p>`;
                 studentList.appendChild(studentCard);
             });
@@ -414,8 +428,10 @@
                  <button id="back-to-student" class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> Retour</button>
                  <div class="card" style="margin-top: 1rem;">
                     <h2 id="content-title">${content.title}</h2>
-                    <div id="content-viewer"></div>
-                    <button id="submit-quiz-btn" class="btn btn-main" style="margin-top: 1rem;">Valider</button>
+                    <form id="quiz-form">
+                        <div id="content-viewer"></div>
+                        <button type="submit" id="submit-quiz-btn" class="btn btn-main" style="margin-top: 1rem;">Valider</button>
+                    </form>
                  </div>`;
             page.querySelector('#back-to-student').addEventListener('click', () => changePage('student-dashboard-page'));
             
@@ -424,10 +440,13 @@
                 content.questions.forEach((q, index) => {
                     const qElem = document.createElement('div');
                     qElem.className = 'quiz-question';
-                    qElem.innerHTML = `<p><strong>${q.question_text}</strong></p><div class="quiz-options">${q.options.map((opt, i) => `<label><input type="radio" name="q${index}" value="${i}"> ${opt}</label>`).join('')}</div>`;
+                    qElem.innerHTML = `<p><strong>${q.question_text}</strong></p><div class="quiz-options">${q.options.map((opt, i) => `<label><input type="radio" name="q${index}" value="${i}" required> ${opt}</label>`).join('')}</div>`;
                     viewer.appendChild(qElem);
                 });
-                page.querySelector('#submit-quiz-btn').addEventListener('click', () => handleSubmitQuiz(content));
+                page.querySelector('#quiz-form').addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    handleSubmitQuiz(content);
+                });
             }
             changePage('content-viewer-page');
         }
@@ -442,6 +461,7 @@
                 studentEmail: currentUser.email,
                 classId: content.classId,
                 contentId: content.id,
+                title: content.title,
                 score: score,
                 totalQuestions: content.questions.length
             });
