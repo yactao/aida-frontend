@@ -37,7 +37,7 @@
         .hidden { display: none !important; }
 
         .btn { padding: 10px 20px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.3s ease; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; }
-        .btn:disabled { background-color: #D1D5DB; cursor: not-allowed; }
+        .btn:disabled { background: #D1D5DB !important; cursor: not-allowed; }
         .btn-main { background: linear-gradient(45deg, var(--primary-color), var(--secondary-color)); color: #FFF; }
         .btn-main:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.1); }
         .btn-secondary { background-color: #E5E7EB; color: var(--text-color); }
@@ -453,19 +453,23 @@
                         </select>
                     </div>
                     <div class="form-group">
-                        <label for="niveau-select">2. Niveau</label>
-                        <select id="niveau-select"><option value="">-- Choisir --</option></select>
+                        <label for="cycle-select">2. Cycle</label>
+                        <select id="cycle-select"><option value="">-- Choisir --</option></select>
                     </div>
                     <div class="form-group">
-                        <label for="matiere-select">3. Matière</label>
+                        <label for="niveau-select">3. Niveau</label>
+                        <select id="niveau-select" disabled><option value="">-- Choisir --</option></select>
+                    </div>
+                    <div class="form-group">
+                        <label for="matiere-select">4. Matière</label>
                         <select id="matiere-select" disabled><option value="">-- Choisir --</option></select>
                     </div>
                     <div class="form-group">
-                        <label for="notion-select">4. Notion</label>
+                        <label for="notion-select">5. Notion</label>
                         <select id="notion-select" disabled><option value="">-- Choisir --</option></select>
                     </div>
                      <div class="form-group">
-                        <label for="competence-select">5. Compétence</label>
+                        <label for="competence-select">6. Compétence</label>
                         <select id="competence-select" disabled><option value="">-- Choisir --</option></select>
                     </div>
                     <button type="submit" class="btn btn-main" id="generate-btn" disabled>Générer</button>
@@ -474,42 +478,62 @@
 
             renderModal(getModalTemplate('generation-modal', 'Générer du contenu pédagogique', modalHtml));
             
+            const cycles = {
+                "Primaire": ["CP", "CE1", "CE2", "CM1", "CM2"],
+                "Collège": ["6eme", "5eme", "4eme", "3eme"],
+                "Lycée": ["Seconde", "Premiere", "Terminale"]
+            };
+
             const typeSelect = document.getElementById('content-type-select');
+            const cycleSelect = document.getElementById('cycle-select');
             const niveauSelect = document.getElementById('niveau-select');
             const matiereSelect = document.getElementById('matiere-select');
             const notionSelect = document.getElementById('notion-select');
             const competenceSelect = document.getElementById('competence-select');
             const generateBtn = document.getElementById('generate-btn');
 
-            Object.keys(programmes).forEach(niveau => niveauSelect.add(new Option(niveau, niveau)));
+            Object.keys(cycles).forEach(cycle => cycleSelect.add(new Option(cycle, cycle)));
+
+            cycleSelect.addEventListener('change', () => {
+                resetSelects([niveauSelect, matiereSelect, notionSelect, competenceSelect]);
+                const selectedCycle = cycleSelect.value;
+                if (selectedCycle) {
+                    cycles[selectedCycle].forEach(level => {
+                        if (programmes[level]) niveauSelect.add(new Option(level, level));
+                    });
+                    niveauSelect.disabled = false;
+                }
+            });
 
             niveauSelect.addEventListener('change', () => {
                 resetSelects([matiereSelect, notionSelect, competenceSelect]);
-                const niveau = programmes[niveauSelect.value];
-                if (niveau) {
-                    Object.keys(niveau).forEach(key => matiereSelect.add(new Option(niveau[key].nom, key)));
+                const niveauData = programmes[niveauSelect.value];
+                if (niveauData) {
+                    Object.keys(niveauData).forEach(key => matiereSelect.add(new Option(niveauData[key].nom, key)));
                     matiereSelect.disabled = false;
                 }
             });
 
             matiereSelect.addEventListener('change', () => {
                 resetSelects([notionSelect, competenceSelect]);
-                const niveau = programmes[niveauSelect.value];
-                const matiere = niveau ? niveau[matiereSelect.value] : null;
-                if (matiere) {
-                    Object.keys(matiere).filter(k => k !== 'nom').forEach(key => notionSelect.add(new Option(matiere[key].nom, key)));
+                const niveauData = programmes[niveauSelect.value];
+                const matiereData = niveauData ? niveauData[matiereSelect.value] : null;
+                if (matiereData) {
+                    Object.keys(matiereData).filter(key => key !== 'nom').forEach(notionKey => {
+                        notionSelect.add(new Option(matiereData[notionKey].nom, notionKey));
+                    });
                     notionSelect.disabled = false;
                 }
             });
             
             notionSelect.addEventListener('change', () => {
                 resetSelects([competenceSelect]);
-                const niveau = programmes[niveauSelect.value];
-                const matiere = niveau ? niveau[matiereSelect.value] : null;
-                const notion = matiere ? matiere[notionSelect.value] : null;
-                if (notion && notion.sous_notions) {
-                     Object.values(notion.sous_notions).forEach(sn => {
-                        (sn.competences || []).forEach(comp => competenceSelect.add(new Option(comp, comp)));
+                const niveauData = programmes[niveauSelect.value];
+                const matiereData = niveauData ? niveauData[matiereSelect.value] : null;
+                const notionData = matiereData ? matiereData[notionSelect.value] : null;
+                if (notionData && notionData.sous_notions) {
+                     Object.values(notionData.sous_notions).forEach(sousNotion => {
+                        (sousNotion.competences || []).forEach(comp => competenceSelect.add(new Option(comp, comp)));
                     });
                     competenceSelect.disabled = false;
                 }
