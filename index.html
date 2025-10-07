@@ -58,6 +58,13 @@
         .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; }
         .dashboard-card { padding: 1.5rem; border-radius: 12px; background: var(--card-bg-color); box-shadow: var(--shadow); cursor: pointer; transition: all 0.3s ease; }
         .dashboard-card:hover { transform: translateY(-5px); box-shadow: 0 8px 25px rgba(0,0,0,0.1); }
+        .tabs { display: flex; gap: 1rem; border-bottom: 1px solid #D1D5DB; margin-bottom: 1.5rem; }
+        .tab-button { background: none; border: none; padding: 10px 15px; cursor: pointer; font-size: 1rem; font-weight: 600; border-bottom: 3px solid transparent; }
+        .tab-button.active { color: var(--primary-color); border-bottom-color: var(--primary-color); }
+        .tab-panel { display: none; }
+        .tab-panel.active { display: block; }
+        .progress-bar { width: 100%; background-color: #E5E7EB; border-radius: 5px; height: 8px; overflow: hidden; }
+        .progress-bar-fill { height: 100%; background-color: var(--primary-color); border-radius: 5px; transition: width 0.5s ease-in-out; }
     </style>
 </head>
 <body>
@@ -93,8 +100,9 @@
         let currentUser = null;
         let teacherClasses = [];
         let generatedContent = null;
-        let currentClassData = null; // Storing full class data
+        let currentClassData = null;
         let programmes = {};
+        let selectedCompetenceInfo = null;
 
         const main = document.querySelector('main');
         const modalContainer = document.getElementById('modal-container');
@@ -178,6 +186,42 @@
             changePage('class-details-page');
             currentClassData = await apiRequest(`/teacher/classes/${id}`);
             
+            page.innerHTML = `
+                <button id="back-to-teacher" class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> Retour</button>
+                <h2>${currentClassData.className}</h2>
+                <div class="tabs">
+                    <button class="tab-button active" data-tab="students-panel">Élèves</button>
+                    <button class="tab-button" data-tab="competencies-panel">Analyse par Compétence</button>
+                </div>
+                <div id="students-panel" class="tab-panel active">
+                    <div class=card><h4>Ajouter un élève</h4><form id=add-student-form><div class=form-group><label for=student-email>Email</label><input type=email id=student-email-input required></div><button type=submit class="btn btn-main">Ajouter</button><p class=error-message id=add-student-error></p></form></div>
+                    <h3 style=margin-top:2rem>Élèves inscrits</h3>
+                    <div id="student-list" class="dashboard-grid"></div>
+                </div>
+                <div id="competencies-panel" class="tab-panel">
+                    <div class="spinner"></div>
+                </div>`;
+            
+            renderStudentListPanel();
+            
+            page.querySelector('#back-to-teacher').addEventListener('click', renderTeacherDashboard);
+            page.querySelector('#add-student-form').addEventListener('submit', handleAddStudent);
+            page.querySelectorAll('.tab-button').forEach(button => {
+                button.addEventListener('click', (e) => {
+                    page.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+                    page.querySelectorAll('.tab-panel').forEach(panel => panel.classList.remove('active'));
+                    e.target.classList.add('active');
+                    const panelId = e.target.dataset.tab;
+                    document.getElementById(panelId).classList.add('active');
+
+                    if (panelId === 'competencies-panel') {
+                        renderCompetencyReport(id);
+                    }
+                });
+            });
+        }
+        
+        function renderStudentListPanel() {
             let studentCardsHtml = (currentClassData.students || []).map(studentEmail => {
                 const studentResults = (currentClassData.results || []).filter(r => r.studentEmail === studentEmail);
                 const assignedContentCount = (currentClassData.content || []).length;
@@ -188,19 +232,44 @@
                             <p>${studentResults.length} / ${assignedContentCount} exercice(s) fait(s)</p>
                         </div>`;
             }).join('');
-
-            page.innerHTML = `
-                <button id="back-to-teacher" class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> Retour</button>
-                <h2>${currentClassData.className}</h2>
-                <div class=card style=margin-top:1rem><h4>Ajouter un élève</h4><form id=add-student-form><div class=form-group><label for=student-email>Email</label><input type=email id=student-email-input required></div><button type=submit class="btn btn-main">Ajouter</button><p class=error-message id=add-student-error></p></form></div>
-                <h3 style=margin-top:2rem>Élèves</h3>
-                <div id="student-list" class="dashboard-grid">${studentCardsHtml}</div>`;
             
-            page.querySelector('#back-to-teacher').addEventListener('click', renderTeacherDashboard);
-            page.querySelector('#add-student-form').addEventListener('submit', handleAddStudent);
-            page.querySelectorAll('#student-list .dashboard-card').forEach(card => {
+            const studentListContainer = document.getElementById('student-list');
+            studentListContainer.innerHTML = studentCardsHtml;
+            studentListContainer.querySelectorAll('.dashboard-card').forEach(card => {
                 card.addEventListener('click', () => renderStudentDetailsPage(card.dataset.studentEmail));
             });
+        }
+        
+        async function renderCompetencyReport(classId) {
+            const panel = document.getElementById('competencies-panel');
+            panel.innerHTML = '<div class="spinner"></div>';
+            try {
+                const report = await apiRequest(`/teacher/classes/${classId}/competency-report`);
+                if (report.length === 0) {
+                    panel.innerHTML = '<p>Aucun résultat pour analyser les compétences. Les élèves doivent d\'abord compléter des exercices.</p>';
+                    return;
+                }
+                
+                let reportHtml = '<table><thead><tr><th>Compétence</th><th>Taux de réussite moyen</th></tr></thead><tbody>';
+                report.forEach(item => {
+                    reportHtml += `<tr>
+                        <td>${item.competence} <small>(${item.level})</small></td>
+                        <td>
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <span>${item.averageScore}%</span>
+                                <div class="progress-bar">
+                                    <div class="progress-bar-fill" style="width: ${item.averageScore}%;"></div>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>`;
+                });
+                reportHtml += '</tbody></table>';
+                panel.innerHTML = reportHtml;
+
+            } catch (error) {
+                panel.innerHTML = '<p class="error-message">Impossible de charger le rapport.</p>';
+            }
         }
 
         function renderStudentDetailsPage(studentEmail) {
@@ -435,7 +504,7 @@
             m.addEventListener('change', () => { resetSelects([no, co]); const d = programmes[cy.value][n.value]?.[m.value]; if (d) { Object.keys(d).filter(k => k !== 'nom').forEach(nk => { no.add(new Option(d[nk].nom, nk)); }); no.disabled = false; } });
             no.addEventListener('change', () => { resetSelects([co]); const d = programmes[cy.value][n.value]?.[m.value]?.[no.value]; if (d && d.sous_notions) { Object.values(d.sous_notions).forEach(sn => { (sn.competences || []).forEach(c => co.add(new Option(c, c))); }); co.disabled = false; } });
             co.addEventListener('change', () => { gen.disabled = !co.value; });
-            document.getElementById('generation-form').addEventListener('submit', async e => { e.preventDefault(); const comp = `Pour un élève de ${n.value}, ${co.value}`; document.getElementById('generation-spinner').classList.remove('hidden'); const d = await apiRequest('/ai/generate-content', 'POST', { competences: comp, contentType: document.getElementById('content-type-select').value }); generatedContent = d.structured_content; showPreviewModal(); });
+            document.getElementById('generation-form').addEventListener('submit', async e => { e.preventDefault(); selectedCompetenceInfo = { level: n.value, competence: co.value }; const comp = `Pour un élève de ${n.value}, ${co.value}`; document.getElementById('generation-spinner').classList.remove('hidden'); const d = await apiRequest('/ai/generate-content', 'POST', { competences: comp, contentType: document.getElementById('content-type-select').value }); generatedContent = d.structured_content; showPreviewModal(); });
         }
 
         function resetSelects(selects) { selects.forEach(s => { s.innerHTML = '<option value="">-- Choisir --</option>'; s.disabled = true; }); document.getElementById('generate-btn').disabled = true; }
@@ -455,7 +524,7 @@
                 e.preventDefault();
                 const id = sel.value;
                 if (!id) return;
-                await apiRequest('/teacher/assign-content', 'POST', { classId: id, contentData: generatedContent });
+                await apiRequest('/teacher/assign-content', 'POST', { classId: id, contentData: { ...generatedContent, competence: selectedCompetenceInfo } });
                 modalContainer.innerHTML = '';
             });
         }
