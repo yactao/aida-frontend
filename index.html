@@ -195,76 +195,6 @@
         async function handleSignup(e) { e.preventDefault(); try { const data = await apiRequest('/auth/signup', 'POST', { email: document.getElementById('signup-email').value, password: document.getElementById('signup-password').value, role: document.getElementById('signup-role').value }); currentUser = data.user; updateUI(); } catch (err) { document.getElementById('signup-error').textContent = err.message; } }
         function toggleAuthForms(e) { e.preventDefault(); document.getElementById('login-form-container').classList.toggle('hidden'); document.getElementById('signup-form-container').classList.toggle('hidden'); }
 
-        async function renderTeacherDashboard() { /* ... (code from previous versions) ... */ }
-        async function renderClassDetailsPage(classId) { /* ... (code from previous versions) ... */ }
-        
-        async function renderStudentDashboard() {
-            const page = document.getElementById('student-dashboard-page');
-            page.innerHTML = `<div class="spinner"></div>`;
-            changePage('student-dashboard-page');
-            const data = await apiRequest(`/student/dashboard?studentEmail=${currentUser.email}`);
-            page.innerHTML = `<h2>Bonjour ${currentUser.firstName} !</h2><h3>À faire</h3><div id="todo-grid" class="dashboard-grid"></div><h3 style="margin-top: 2rem;">Terminés</h3><div id="completed-grid" class="dashboard-grid"></div>`;
-            const todoGrid = page.querySelector('#todo-grid');
-            if(data.todo.length === 0) todoGrid.innerHTML = "<p>Bravo, tu n'as plus rien à faire !</p>";
-            else data.todo.forEach(item => todoGrid.appendChild(createContentCard(item)));
-            const completedGrid = page.querySelector('#completed-grid');
-            if(data.completed.length === 0) completedGrid.innerHTML = "<p>Aucun devoir terminé pour le moment.</p>";
-            else data.completed.forEach(item => completedGrid.appendChild(createContentCard(item, true)));
-        }
-
-        function createContentCard(content, isCompleted = false) {
-             const card = document.createElement('div');
-            card.className = 'dashboard-card';
-            const date = new Date(isCompleted ? content.completedAt : content.assignedAt).toLocaleDateString('fr-FR');
-            card.innerHTML = `<h4>${content.title}</h4><p>Classe: ${content.className}</p><p>${isCompleted ? 'Terminé le' : 'Assigné le'}: ${date}</p><button class="btn ${isCompleted ? 'btn-secondary' : 'btn-main'}" ${isCompleted ? 'disabled' : ''}>${isCompleted ? 'Terminé' : 'Commencer'}</button>`;
-            if (!isCompleted) card.querySelector('button').addEventListener('click', () => renderContentViewer(content));
-            return card;
-        }
-
-        function renderContentViewer(content) {
-            const page = document.getElementById('content-viewer-page');
-            let contentHtml = '';
-            let formNeeded = false;
-            switch(content.type) {
-                case 'quiz':
-                    formNeeded = true;
-                    content.questions.forEach((q, index) => {
-                        contentHtml += `<div class="quiz-question"><div class="question-header"><p><strong>${q.question_text}</strong></p><button class="btn-help" data-question="${q.question_text}"><i class="fa-solid fa-lightbulb"></i> Aide-moi</button></div><div class="quiz-options">${q.options.map((opt, i) => `<label><input type="radio" name="q${index}" value="${i}" required> ${opt}</label>`).join('')}</div></div>`;
-                    });
-                    break;
-                // ... other content types
-            }
-            page.innerHTML = `<button id="back-to-student" class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> Retour</button><div class="card" style="margin-top: 1rem;"><h2 id="content-title">${content.title}</h2><form id="content-form"><div id="viewer">${contentHtml}</div><button type="submit" id="submit-btn" class="btn btn-main" style="margin-top: 1rem;">Valider</button></form></div>`;
-            page.querySelector('#back-to-student').addEventListener('click', renderStudentDashboard);
-            const form = page.querySelector('#content-form');
-            if (formNeeded) {
-                form.addEventListener('submit', e => { e.preventDefault(); handleSubmitQuiz(content); });
-                form.querySelectorAll('.btn-help').forEach(btn => btn.addEventListener('click', handleHelpRequest));
-            } else {
-                form.querySelector('#submit-btn').classList.add('hidden');
-            }
-            changePage('content-viewer-page');
-        }
-        
-        async function handleHelpRequest(e) {
-            e.preventDefault();
-            const questionText = e.target.closest('button').dataset.question;
-            const modalHtml = `<p><strong>Votre question :</strong> ${questionText}</p><div id="hint-container" style="margin-top: 1rem;"><div class="spinner"></div></div>`;
-            renderModal(getModalTemplate('help-modal', 'Indice d\'AIDA', modalHtml));
-            try {
-                const data = await apiRequest('/ai/get-hint', 'POST', { questionText });
-                document.getElementById('hint-container').innerHTML = `<p>${data.hint}</p>`;
-            } catch (error) {
-                 document.getElementById('hint-container').innerHTML = `<p class="error-message">Désolé, impossible d'obtenir un indice pour le moment.</p>`;
-            }
-        }
-        
-        async function handleSubmitQuiz(content) { /* ... (code from previous versions) ... */ }
-        
-        function showGenerationModal() { /* ... (code from previous versions) ... */ }
-        // ... all other functions (resetSelects, showPreviewModal, init, etc.) from previous version are needed here
-        
-        // --- Full versions of previously shortened functions ---
         async function renderTeacherDashboard() {
             const page = document.getElementById('teacher-dashboard-page');
             page.innerHTML = `<h2>Bonjour ${currentUser.firstName} !</h2><button class="btn btn-main" id="open-gen-modal"><i class="fa-solid fa-plus"></i> Nouveau Contenu</button><button class="btn btn-secondary" id="open-class-modal"><i class="fa-solid fa-users"></i> Nouvelle Classe</button><div id="class-grid" class="dashboard-grid" style="margin-top: 2rem;"><div class="spinner"></div></div>`;
@@ -300,7 +230,100 @@
             studentList.innerHTML = (classData.students || []).length === 0 ? "<p>Aucun élève dans cette classe.</p>" : "";
             (classData.students || []).forEach(email => { const studentCard = document.createElement('div'); studentCard.className = 'dashboard-card'; studentCard.style.cursor = 'default'; studentCard.innerHTML = `<p><i class="fa-solid fa-user"></i> ${email}</p>`; studentList.appendChild(studentCard); });
         }
+        
+        async function handleAddStudent(e) {
+            e.preventDefault();
+            const studentEmail = document.getElementById('student-email-input').value;
+            const errorP = document.getElementById('add-student-error');
+            try {
+                errorP.textContent = '';
+                await apiRequest(`/teacher/classes/${currentClassId}/add-student`, 'POST', { studentEmail });
+                renderClassDetailsPage(currentClassId);
+            } catch (err) {
+                errorP.textContent = err.message;
+            }
+        }
 
+        function showCreateClassModal() {
+            renderModal(getModalTemplate('create-class-modal', 'Créer une nouvelle classe', `
+                <form id="create-class-form"><div class="form-group"><label for="class-name-input">Nom de la classe</label><input type="text" id="class-name-input" required></div><button type="submit" class="btn btn-main">Créer</button></form>`));
+            document.getElementById('create-class-form').addEventListener('submit', async e => {
+                e.preventDefault();
+                await apiRequest('/teacher/classes', 'POST', { className: document.getElementById('class-name-input').value, teacherEmail: currentUser.email });
+                modalContainer.innerHTML = '';
+                renderTeacherDashboard();
+            });
+        }
+        
+        async function renderStudentDashboard() {
+            const page = document.getElementById('student-dashboard-page');
+            page.innerHTML = `<div class="spinner"></div>`;
+            changePage('student-dashboard-page');
+            const data = await apiRequest(`/student/dashboard?studentEmail=${currentUser.email}`);
+            page.innerHTML = `<h2>Bonjour ${currentUser.firstName} !</h2><h3>À faire</h3><div id="todo-grid" class="dashboard-grid"></div><h3 style="margin-top: 2rem;">Terminés</h3><div id="completed-grid" class="dashboard-grid"></div>`;
+            const todoGrid = page.querySelector('#todo-grid');
+            if(data.todo.length === 0) todoGrid.innerHTML = "<p>Bravo, tu n'as plus rien à faire !</p>";
+            else data.todo.forEach(item => todoGrid.appendChild(createContentCard(item)));
+            const completedGrid = page.querySelector('#completed-grid');
+            if(data.completed.length === 0) completedGrid.innerHTML = "<p>Aucun devoir terminé pour le moment.</p>";
+            else data.completed.forEach(item => completedGrid.appendChild(createContentCard(item, true)));
+        }
+
+        function createContentCard(content, isCompleted = false) {
+             const card = document.createElement('div');
+            card.className = 'dashboard-card';
+            const date = new Date(isCompleted ? content.completedAt : content.assignedAt).toLocaleDateString('fr-FR');
+            card.innerHTML = `<h4>${content.title}</h4><p>Classe: ${content.className}</p><p>${isCompleted ? 'Terminé le' : 'Assigné le'}: ${date}</p><button class="btn ${isCompleted ? 'btn-secondary' : 'btn-main'}" ${isCompleted ? 'disabled' : ''}>${isCompleted ? 'Terminé' : 'Commencer'}</button>`;
+            if (!isCompleted) card.querySelector('button').addEventListener('click', () => renderContentViewer(content));
+            return card;
+        }
+
+        function renderContentViewer(content) {
+            const page = document.getElementById('content-viewer-page');
+            let contentHtml = '';
+            let formNeeded = false;
+            switch(content.type) {
+                case 'quiz':
+                    formNeeded = true;
+                    content.questions.forEach((q, index) => {
+                        contentHtml += `<div class="quiz-question"><div class="question-header"><p><strong>${q.question_text}</strong></p><button class="btn-help" data-question="${q.question_text}"><i class="fa-solid fa-lightbulb"></i> Aide-moi</button></div><div class="quiz-options">${q.options.map((opt, i) => `<label><input type="radio" name="q${index}" value="${i}" required> ${opt}</label>`).join('')}</div></div>`;
+                    });
+                    break;
+                case 'exercices':
+                    content.content.forEach(ex => {
+                        contentHtml += `<div class="exercice-item"><h4>Exercice</h4><p>${ex.enonce}</p><br><h4>Correction</h4><p>${ex.correction}</p></div>`;
+                    });
+                    break;
+                case 'plan_de_lecon':
+                    contentHtml = `<div class="lesson-plan-section"><h4>Objectifs</h4><ul>${content.objectifs.map(o => `<li>${o}</li>`).join('')}</ul></div><div class="lesson-plan-section"><h4>Déroulement</h4><p>${content.deroulement}</p></div>`;
+                    break;
+            }
+            page.innerHTML = `<button id="back-to-student" class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> Retour</button><div class="card" style="margin-top: 1rem;"><h2 id="content-title">${content.title}</h2><form id="content-form"><div id="viewer">${contentHtml}</div><button type="submit" id="submit-btn" class="btn btn-main" style="margin-top: 1rem;">Valider</button></form></div>`;
+            page.querySelector('#back-to-student').addEventListener('click', renderStudentDashboard);
+            const form = page.querySelector('#content-form');
+            if (formNeeded) {
+                form.addEventListener('submit', e => { e.preventDefault(); handleSubmitQuiz(content); });
+                form.querySelectorAll('.btn-help').forEach(btn => btn.addEventListener('click', handleHelpRequest));
+            } else {
+                form.querySelector('#submit-btn').classList.add('hidden');
+            }
+            changePage('content-viewer-page');
+        }
+        
+        async function handleHelpRequest(e) {
+            e.preventDefault();
+            const button = e.target.closest('button');
+            const questionText = button.dataset.question;
+            const modalHtml = `<p><strong>Votre question :</strong> ${questionText}</p><div id="hint-container" style="margin-top: 1rem;"><div class="spinner"></div></div>`;
+            renderModal(getModalTemplate('help-modal', 'Indice d\'AIDA', modalHtml));
+            try {
+                const data = await apiRequest('/ai/get-hint', 'POST', { questionText });
+                document.getElementById('hint-container').innerHTML = `<p>${data.hint}</p>`;
+            } catch (error) {
+                 document.getElementById('hint-container').innerHTML = `<p class="error-message">Désolé, impossible d'obtenir un indice pour le moment.</p>`;
+            }
+        }
+        
         async function handleSubmitQuiz(content) {
             let score = 0;
             content.questions.forEach((q, index) => { const selected = document.querySelector(`input[name="q${index}"]:checked`); if (selected && selected.value == q.correct_answer_index) score++; });
@@ -324,6 +347,14 @@
             notionSelect.addEventListener('change', () => { resetSelects([competenceSelect]); const niveauData = programmes[cycleSelect.value][niveauSelect.value]; const matiereData = niveauData ? niveauData[matiereSelect.value] : null; const notionData = matiereData ? matiereData[notionSelect.value] : null; if (notionData && notionData.sous_notions) { Object.values(notionData.sous_notions).forEach(sousNotion => { (sousNotion.competences || []).forEach(comp => competenceSelect.add(new Option(comp, comp))); }); competenceSelect.disabled = false; } });
             competenceSelect.addEventListener('change', () => { generateBtn.disabled = !competenceSelect.value; });
             document.getElementById('generation-form').addEventListener('submit', async e => { e.preventDefault(); const fullCompetence = `Pour un élève de ${niveauSelect.value}, ${competenceSelect.value}`; document.getElementById('generation-spinner').classList.remove('hidden'); const data = await apiRequest('/ai/generate-content', 'POST', { competences: fullCompetence, contentType: document.getElementById('content-type-select').value }); generatedContent = data.structured_content; showPreviewModal(); });
+        }
+
+        function resetSelects(selects) {
+            selects.forEach(select => {
+                select.innerHTML = '<option value="">-- Choisir --</option>';
+                select.disabled = true;
+            });
+             document.getElementById('generate-btn').disabled = true;
         }
 
         function showPreviewModal() {
