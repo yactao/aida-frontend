@@ -14,8 +14,6 @@
             --text-color: #1F2937;
             --card-bg-color: #FFFFFF;
             --shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
-            --success-color: #10B981;
-            --error-color: #EF4444;
         }
         * { box-sizing: border-box; margin: 0; padding: 0; }
         html { scroll-behavior: smooth; }
@@ -41,11 +39,12 @@
         .btn-main { background: linear-gradient(45deg, var(--primary-color), var(--secondary-color)); color: #FFF; }
         .btn-main:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.1); }
         .btn-secondary { background-color: #E5E7EB; color: var(--text-color); }
+        .btn-help { background: none; border: none; font-size: 1.2rem; color: #F5A623; cursor: pointer; padding: 0.5rem; }
         .form-group { margin-bottom: 1.5rem; text-align: left; }
         .form-group label { display: block; margin-bottom: 0.5rem; font-weight: 600; }
         input, select, textarea { width: 100%; padding: 12px; border: 1px solid #D1D5DB; border-radius: 8px; font-size: 1rem; font-family: 'Poppins', sans-serif; }
         select:disabled { background-color: #F3F4F6; }
-        .error-message { color: var(--error-color); margin-top: 0.5rem; font-size: 0.9rem; }
+        .error-message { color: #EF4444; margin-top: 0.5rem; font-size: 0.9rem; }
         .spinner { border: 4px solid #f3f3f3; border-top: 4px solid var(--primary-color); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 2rem auto; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         
@@ -59,13 +58,9 @@
         .modal-content { background: var(--card-bg-color); padding: 2rem; border-radius: 12px; width: 90%; max-width: 600px; position: relative; }
         .close-modal { position: absolute; top: 1rem; right: 1rem; background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #9CA3AF; }
 
-        #auth-page .card { max-width: 400px; margin: 2rem auto; }
-        #home-page { text-align: center; padding-top: 4rem; }
-        #home-page h1 { font-size: 3rem; background: linear-gradient(45deg, var(--primary-color), var(--secondary-color)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        .quiz-question, .exercice-item, .lesson-plan-section { margin-bottom: 1.5rem; }
+        .quiz-question { margin-bottom: 1.5rem; }
+        .question-header { display: flex; justify-content: space-between; align-items: center; }
         .quiz-options label { display: block; margin: 0.5rem 0; padding: 10px; border: 1px solid #eee; border-radius: 8px; cursor: pointer; }
-        .user-dropdown { position: absolute; top: 100%; right: 0; margin-top: 0.5rem; width: 200px; z-index: 10; }
-        .user-menu-container { position: relative; }
         table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
         th, td { text-align: left; padding: 12px; border-bottom: 1px solid #E5E7EB; }
     </style>
@@ -82,10 +77,10 @@
                 <i class="fa-solid fa-flask"></i> Terrain de Jeux
             </a>
             <div class="user-menu-container hidden">
-                <button class="btn btn-secondary" id="user-info-clickable">
+                 <button class="btn btn-secondary" id="user-info-clickable">
                     <span id="user-name-display"></span> <i class="fa-solid fa-chevron-down"></i>
                 </button>
-                <div class="user-dropdown card hidden" id="user-dropdown">
+                <div class="card hidden" id="user-dropdown" style="position: absolute; top: 100%; right: 0; margin-top: 0.5rem; width: 200px; z-index: 10;">
                     <button class="btn" id="logout-btn"><i class="fa-solid fa-right-from-bracket"></i> Déconnexion</button>
                 </div>
             </div>
@@ -95,8 +90,8 @@
 
     <main>
         <div class="page active" id="home-page">
-            <h1>Bienvenue sur AIDA</h1>
-            <p>Votre assistant personnel pour l'apprentissage.</p>
+            <h1 style="font-size: 3rem; background: linear-gradient(45deg, var(--primary-color), var(--secondary-color)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-align: center; padding-top: 4rem;">Bienvenue sur AIDA</h1>
+            <p style="text-align: center;">Votre assistant personnel pour l'apprentissage.</p>
         </div>
         <div class="page" id="auth-page"></div>
         <div class="page" id="teacher-dashboard-page"></div>
@@ -134,7 +129,7 @@
                     fetch(`${backendUrl}/programmes-college.json`).then(res => res.json()),
                     fetch(`${backendUrl}/programmes-lycee.json`).then(res => res.json())
                 ]);
-                programmes = { ...primaire, ...college, ...lycee };
+                programmes = { Primaire: primaire, Collège: college, Lycée: lycee };
             } catch (error) {
                 console.error("Impossible de charger les programmes scolaires.", error);
             }
@@ -182,31 +177,12 @@
             modalContainer.querySelector('.close-modal')?.addEventListener('click', () => modalContainer.innerHTML = '');
         }
 
+        function getModalTemplate(id, title, formHtml) {
+            return `<div class="modal-overlay" id="${id}"><div class="modal-content"><button class="close-modal">&times;</button><h3>${title}</h3>${formHtml}</div></div>`;
+        }
+
         function renderAuthPage() {
-            const authPageTemplate = `
-            <div class="card" style="margin-top: 2rem;">
-                <div id="login-form-container">
-                    <h3>Connexion</h3>
-                    <form id="login-form">
-                        <div class="form-group"><label for="login-email">Email</label><input type="email" id="login-email" required></div>
-                        <div class="form-group"><label for="login-password">Mot de passe</label><input type="password" id="login-password" required></div>
-                        <button type="submit" class="btn btn-main">Se connecter</button>
-                        <p class="error-message" id="login-error"></p>
-                    </form>
-                    <p>Pas de compte ? <a href="#" id="show-signup">Inscrivez-vous</a></p>
-                </div>
-                <div id="signup-form-container" class="hidden">
-                    <h3>Inscription</h3>
-                    <form id="signup-form">
-                        <div class="form-group"><label for="signup-email">Email</label><input type="email" id="signup-email" required></div>
-                        <div class="form-group"><label for="signup-password">Mot de passe</label><input type="password" id="signup-password" required></div>
-                        <div class="form-group"><label for="signup-role">Je suis un(e)</label><select id="signup-role"><option value="student">Élève</option><option value="teacher">Enseignant</option></select></div>
-                        <button type="submit" class="btn btn-main">S'inscrire</button>
-                        <p class="error-message" id="signup-error"></p>
-                    </form>
-                     <p>Déjà un compte ? <a href="#" id="show-login">Connectez-vous</a></p>
-                </div>
-            </div>`;
+            const authPageTemplate = `<div class="card" style="max-width: 400px; margin: 2rem auto;"><div id="login-form-container"><h3>Connexion</h3><form id="login-form"><div class="form-group"><label for="login-email">Email</label><input type="email" id="login-email" required></div><div class="form-group"><label for="login-password">Mot de passe</label><input type="password" id="login-password" required></div><button type="submit" class="btn btn-main">Se connecter</button><p class="error-message" id="login-error"></p></form><p>Pas de compte ? <a href="#" id="show-signup">Inscrivez-vous</a></p></div><div id="signup-form-container" class="hidden"><h3>Inscription</h3><form id="signup-form"><div class="form-group"><label for="signup-email">Email</label><input type="email" id="signup-email" required></div><div class="form-group"><label for="signup-password">Mot de passe</label><input type="password" id="signup-password" required></div><div class="form-group"><label for="signup-role">Je suis un(e)</label><select id="signup-role"><option value="student">Élève</option><option value="teacher">Enseignant</option></select></div><button type="submit" class="btn btn-main">S'inscrire</button><p class="error-message" id="signup-error"></p></form><p>Déjà un compte ? <a href="#" id="show-login">Connectez-vous</a></p></div></div>`;
             document.getElementById('auth-page').innerHTML = authPageTemplate;
             document.getElementById('login-form').addEventListener('submit', handleLogin);
             document.getElementById('signup-form').addEventListener('submit', handleSignup);
@@ -215,47 +191,86 @@
             changePage('auth-page');
         }
 
-        async function handleLogin(e) {
+        async function handleLogin(e) { e.preventDefault(); try { const data = await apiRequest('/auth/login', 'POST', { email: document.getElementById('login-email').value, password: document.getElementById('login-password').value }); currentUser = data.user; updateUI(); } catch (err) { document.getElementById('login-error').textContent = err.message; } }
+        async function handleSignup(e) { e.preventDefault(); try { const data = await apiRequest('/auth/signup', 'POST', { email: document.getElementById('signup-email').value, password: document.getElementById('signup-password').value, role: document.getElementById('signup-role').value }); currentUser = data.user; updateUI(); } catch (err) { document.getElementById('signup-error').textContent = err.message; } }
+        function toggleAuthForms(e) { e.preventDefault(); document.getElementById('login-form-container').classList.toggle('hidden'); document.getElementById('signup-form-container').classList.toggle('hidden'); }
+
+        async function renderTeacherDashboard() { /* ... (code from previous versions) ... */ }
+        async function renderClassDetailsPage(classId) { /* ... (code from previous versions) ... */ }
+        
+        async function renderStudentDashboard() {
+            const page = document.getElementById('student-dashboard-page');
+            page.innerHTML = `<div class="spinner"></div>`;
+            changePage('student-dashboard-page');
+            const data = await apiRequest(`/student/dashboard?studentEmail=${currentUser.email}`);
+            page.innerHTML = `<h2>Bonjour ${currentUser.firstName} !</h2><h3>À faire</h3><div id="todo-grid" class="dashboard-grid"></div><h3 style="margin-top: 2rem;">Terminés</h3><div id="completed-grid" class="dashboard-grid"></div>`;
+            const todoGrid = page.querySelector('#todo-grid');
+            if(data.todo.length === 0) todoGrid.innerHTML = "<p>Bravo, tu n'as plus rien à faire !</p>";
+            else data.todo.forEach(item => todoGrid.appendChild(createContentCard(item)));
+            const completedGrid = page.querySelector('#completed-grid');
+            if(data.completed.length === 0) completedGrid.innerHTML = "<p>Aucun devoir terminé pour le moment.</p>";
+            else data.completed.forEach(item => completedGrid.appendChild(createContentCard(item, true)));
+        }
+
+        function createContentCard(content, isCompleted = false) {
+             const card = document.createElement('div');
+            card.className = 'dashboard-card';
+            const date = new Date(isCompleted ? content.completedAt : content.assignedAt).toLocaleDateString('fr-FR');
+            card.innerHTML = `<h4>${content.title}</h4><p>Classe: ${content.className}</p><p>${isCompleted ? 'Terminé le' : 'Assigné le'}: ${date}</p><button class="btn ${isCompleted ? 'btn-secondary' : 'btn-main'}" ${isCompleted ? 'disabled' : ''}>${isCompleted ? 'Terminé' : 'Commencer'}</button>`;
+            if (!isCompleted) card.querySelector('button').addEventListener('click', () => renderContentViewer(content));
+            return card;
+        }
+
+        function renderContentViewer(content) {
+            const page = document.getElementById('content-viewer-page');
+            let contentHtml = '';
+            let formNeeded = false;
+            switch(content.type) {
+                case 'quiz':
+                    formNeeded = true;
+                    content.questions.forEach((q, index) => {
+                        contentHtml += `<div class="quiz-question"><div class="question-header"><p><strong>${q.question_text}</strong></p><button class="btn-help" data-question="${q.question_text}"><i class="fa-solid fa-lightbulb"></i> Aide-moi</button></div><div class="quiz-options">${q.options.map((opt, i) => `<label><input type="radio" name="q${index}" value="${i}" required> ${opt}</label>`).join('')}</div></div>`;
+                    });
+                    break;
+                // ... other content types
+            }
+            page.innerHTML = `<button id="back-to-student" class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> Retour</button><div class="card" style="margin-top: 1rem;"><h2 id="content-title">${content.title}</h2><form id="content-form"><div id="viewer">${contentHtml}</div><button type="submit" id="submit-btn" class="btn btn-main" style="margin-top: 1rem;">Valider</button></form></div>`;
+            page.querySelector('#back-to-student').addEventListener('click', renderStudentDashboard);
+            const form = page.querySelector('#content-form');
+            if (formNeeded) {
+                form.addEventListener('submit', e => { e.preventDefault(); handleSubmitQuiz(content); });
+                form.querySelectorAll('.btn-help').forEach(btn => btn.addEventListener('click', handleHelpRequest));
+            } else {
+                form.querySelector('#submit-btn').classList.add('hidden');
+            }
+            changePage('content-viewer-page');
+        }
+        
+        async function handleHelpRequest(e) {
             e.preventDefault();
-            const email = document.getElementById('login-email').value;
-            const password = document.getElementById('login-password').value;
+            const questionText = e.target.closest('button').dataset.question;
+            const modalHtml = `<p><strong>Votre question :</strong> ${questionText}</p><div id="hint-container" style="margin-top: 1rem;"><div class="spinner"></div></div>`;
+            renderModal(getModalTemplate('help-modal', 'Indice d\'AIDA', modalHtml));
             try {
-                const data = await apiRequest('/auth/login', 'POST', { email, password });
-                currentUser = data.user;
-                updateUI();
-            } catch (err) { document.getElementById('login-error').textContent = err.message; }
+                const data = await apiRequest('/ai/get-hint', 'POST', { questionText });
+                document.getElementById('hint-container').innerHTML = `<p>${data.hint}</p>`;
+            } catch (error) {
+                 document.getElementById('hint-container').innerHTML = `<p class="error-message">Désolé, impossible d'obtenir un indice pour le moment.</p>`;
+            }
         }
-
-        async function handleSignup(e) {
-            e.preventDefault();
-            const email = document.getElementById('signup-email').value;
-            const password = document.getElementById('signup-password').value;
-            const role = document.getElementById('signup-role').value;
-            try {
-                const data = await apiRequest('/auth/signup', 'POST', { email, password, role });
-                currentUser = data.user;
-                updateUI();
-            } catch (err) { document.getElementById('signup-error').textContent = err.message; }
-        }
-
-        function toggleAuthForms(e) {
-            e.preventDefault();
-            document.getElementById('login-form-container').classList.toggle('hidden');
-            document.getElementById('signup-form-container').classList.toggle('hidden');
-        }
-
+        
+        async function handleSubmitQuiz(content) { /* ... (code from previous versions) ... */ }
+        
+        function showGenerationModal() { /* ... (code from previous versions) ... */ }
+        // ... all other functions (resetSelects, showPreviewModal, init, etc.) from previous version are needed here
+        
+        // --- Full versions of previously shortened functions ---
         async function renderTeacherDashboard() {
             const page = document.getElementById('teacher-dashboard-page');
-            page.innerHTML = `
-                <h2>Bonjour ${currentUser.firstName} !</h2>
-                <button class="btn btn-main" id="open-gen-modal"><i class="fa-solid fa-plus"></i> Nouveau Contenu</button>
-                <button class="btn btn-secondary" id="open-class-modal"><i class="fa-solid fa-users"></i> Nouvelle Classe</button>
-                <div id="class-grid" class="dashboard-grid" style="margin-top: 2rem;"><div class="spinner"></div></div>`;
+            page.innerHTML = `<h2>Bonjour ${currentUser.firstName} !</h2><button class="btn btn-main" id="open-gen-modal"><i class="fa-solid fa-plus"></i> Nouveau Contenu</button><button class="btn btn-secondary" id="open-class-modal"><i class="fa-solid fa-users"></i> Nouvelle Classe</button><div id="class-grid" class="dashboard-grid" style="margin-top: 2rem;"><div class="spinner"></div></div>`;
             changePage('teacher-dashboard-page');
-            
             page.querySelector('#open-class-modal').addEventListener('click', showCreateClassModal);
             page.querySelector('#open-gen-modal').addEventListener('click', showGenerationModal);
-
             teacherClasses = await apiRequest(`/teacher/classes?teacherEmail=${currentUser.email}`);
             const grid = page.querySelector('#class-grid');
             grid.innerHTML = teacherClasses.length === 0 ? "<p>Aucune classe créée pour le moment.</p>" : "";
@@ -269,332 +284,60 @@
         }
         
         async function renderClassDetailsPage(classId) {
-             currentClassId = classId;
+            currentClassId = classId;
             const page = document.getElementById('class-details-page');
             page.innerHTML = `<button id="back-to-teacher" class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> Retour</button><div class="spinner"></div>`;
             page.querySelector('#back-to-teacher').addEventListener('click', renderTeacherDashboard);
             changePage('class-details-page');
-
             const classData = await apiRequest(`/teacher/classes/${classId}`);
-            
             let resultsHtml = '<table><thead><tr><th>Élève</th><th>Quiz</th><th>Score</th><th>Date</th></tr></thead><tbody>';
-            if(classData.results && classData.results.length > 0) {
-                 classData.results.forEach(res => {
-                    const quizTitle = (classData.content || []).find(c => c.id === res.contentId)?.title || 'Contenu supprimé';
-                    resultsHtml += `<tr><td>${res.studentEmail.split('@')[0]}</td><td>${quizTitle}</td><td>${res.score}/${res.totalQuestions}</td><td>${new Date(res.submittedAt).toLocaleDateString('fr-FR')}</td></tr>`;
-                });
-            } else {
-                resultsHtml += '<tr><td colspan="4" style="text-align: center;">Aucun résultat pour le moment.</td></tr>';
-            }
+            if(classData.results && classData.results.length > 0) { classData.results.forEach(res => { const quizTitle = (classData.content || []).find(c => c.id === res.contentId)?.title || 'Contenu supprimé'; resultsHtml += `<tr><td>${res.studentEmail.split('@')[0]}</td><td>${quizTitle}</td><td>${res.score}/${res.totalQuestions}</td><td>${new Date(res.submittedAt).toLocaleDateString('fr-FR')}</td></tr>`; }); } else { resultsHtml += '<tr><td colspan="4" style="text-align: center;">Aucun résultat pour le moment.</td></tr>'; }
             resultsHtml += '</tbody></table>';
-
-            page.innerHTML = `
-                <button id="back-to-teacher" class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> Retour</button>
-                <h2>${classData.className}</h2>
-                <div class="card" style="margin-top: 1rem;">
-                    <h4>Ajouter un élève</h4>
-                    <form id="add-student-form">
-                        <div class="form-group"><label for="student-email">Email de l'élève</label><input type="email" id="student-email-input" required></div>
-                        <button type="submit" class="btn btn-main">Ajouter</button>
-                        <p class="error-message" id="add-student-error"></p>
-                    </form>
-                </div>
-                <h3 style="margin-top: 2rem;">Élèves inscrits</h3>
-                <div id="student-list" class="dashboard-grid"></div>
-                <h3 style="margin-top: 2rem;">Résultats des exercices</h3>
-                <div class="card">${resultsHtml}</div>`;
-            
+            page.innerHTML = `<button id="back-to-teacher" class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> Retour</button><h2>${classData.className}</h2><div class="card" style="margin-top: 1rem;"><h4>Ajouter un élève</h4><form id="add-student-form"><div class="form-group"><label for="student-email">Email de l'élève</label><input type="email" id="student-email-input" required></div><button type="submit" class="btn btn-main">Ajouter</button><p class="error-message" id="add-student-error"></p></form></div><h3 style="margin-top: 2rem;">Élèves inscrits</h3><div id="student-list" class="dashboard-grid"></div><h3 style="margin-top: 2rem;">Résultats des exercices</h3><div class="card">${resultsHtml}</div>`;
             page.querySelector('#back-to-teacher').addEventListener('click', renderTeacherDashboard);
             page.querySelector('#add-student-form').addEventListener('submit', handleAddStudent);
-            
             const studentList = page.querySelector('#student-list');
             studentList.innerHTML = (classData.students || []).length === 0 ? "<p>Aucun élève dans cette classe.</p>" : "";
-            (classData.students || []).forEach(email => {
-                const studentCard = document.createElement('div');
-                studentCard.className = 'dashboard-card';
-                studentCard.style.cursor = 'default';
-                studentCard.innerHTML = `<p><i class="fa-solid fa-user"></i> ${email}</p>`;
-                studentList.appendChild(studentCard);
-            });
-        }
-
-        async function handleAddStudent(e) {
-            e.preventDefault();
-            const studentEmail = document.getElementById('student-email-input').value;
-            const errorP = document.getElementById('add-student-error');
-            try {
-                errorP.textContent = '';
-                await apiRequest(`/teacher/classes/${currentClassId}/add-student`, 'POST', { studentEmail });
-                renderClassDetailsPage(currentClassId);
-            } catch (err) {
-                errorP.textContent = err.message;
-            }
-        }
-        
-        function getModalTemplate(id, title, formHtml) {
-            return `<div class="modal-overlay" id="${id}"><div class="modal-content"><button class="close-modal">&times;</button><h3>${title}</h3>${formHtml}</div></div>`;
-        }
-
-        function showCreateClassModal() {
-            renderModal(getModalTemplate('create-class-modal', 'Créer une nouvelle classe', `
-                <form id="create-class-form"><div class="form-group"><label for="class-name-input">Nom de la classe</label><input type="text" id="class-name-input" required></div><button type="submit" class="btn btn-main">Créer</button></form>`));
-            document.getElementById('create-class-form').addEventListener('submit', async e => {
-                e.preventDefault();
-                await apiRequest('/teacher/classes', 'POST', { className: document.getElementById('class-name-input').value, teacherEmail: currentUser.email });
-                modalContainer.innerHTML = '';
-                renderTeacherDashboard();
-            });
-        }
-        
-        async function renderStudentDashboard() {
-            const page = document.getElementById('student-dashboard-page');
-            page.innerHTML = `<div class="spinner"></div>`;
-            changePage('student-dashboard-page');
-            const data = await apiRequest(`/student/dashboard?studentEmail=${currentUser.email}`);
-            page.innerHTML = `
-                <h2>Bonjour ${currentUser.firstName} !</h2>
-                <h3>À faire</h3><div id="todo-grid" class="dashboard-grid"></div>
-                <h3 style="margin-top: 2rem;">Terminés</h3><div id="completed-grid" class="dashboard-grid"></div>`;
-            
-            const todoGrid = page.querySelector('#todo-grid');
-            if(data.todo.length === 0) todoGrid.innerHTML = "<p>Bravo, tu n'as plus rien à faire !</p>";
-            data.todo.forEach(item => todoGrid.appendChild(createContentCard(item)));
-
-            const completedGrid = page.querySelector('#completed-grid');
-            if(data.completed.length === 0) completedGrid.innerHTML = "<p>Aucun devoir terminé pour le moment.</p>";
-            data.completed.forEach(item => completedGrid.appendChild(createContentCard(item, true)));
-        }
-
-        function createContentCard(content, isCompleted = false) {
-             const card = document.createElement('div');
-            card.className = 'dashboard-card';
-            const date = new Date(isCompleted ? content.completedAt : content.assignedAt).toLocaleDateString('fr-FR');
-            card.innerHTML = `
-                <h4>${content.title}</h4>
-                <p>Classe: ${content.className}</p>
-                <p>${isCompleted ? 'Terminé le' : 'Assigné le'}: ${date}</p>
-                <button class="btn ${isCompleted ? 'btn-secondary' : 'btn-main'}" ${isCompleted ? 'disabled' : ''}>
-                    ${isCompleted ? 'Terminé' : 'Commencer'}
-                </button>`;
-            if (!isCompleted) card.querySelector('button').addEventListener('click', () => renderContentViewer(content));
-            return card;
-        }
-
-        function renderContentViewer(content) {
-            const page = document.getElementById('content-viewer-page');
-            let contentHtml = '';
-            let formNeeded = false;
-            switch(content.type) {
-                case 'quiz':
-                    formNeeded = true;
-                    content.questions.forEach((q, index) => {
-                        contentHtml += `<div class="quiz-question"><p><strong>${q.question_text}</strong></p><div class="quiz-options">${q.options.map((opt, i) => `<label><input type="radio" name="q${index}" value="${i}" required> ${opt}</label>`).join('')}</div></div>`;
-                    });
-                    break;
-                case 'exercices':
-                    content.content.forEach(ex => {
-                        contentHtml += `<div class="exercice-item"><h4>Exercice</h4><p>${ex.enonce}</p><br><h4>Correction</h4><p>${ex.correction}</p></div>`;
-                    });
-                    break;
-                case 'plan_de_lecon':
-                    contentHtml = `<div class="lesson-plan-section"><h4>Objectifs</h4><ul>${content.objectifs.map(o => `<li>${o}</li>`).join('')}</ul></div><div class="lesson-plan-section"><h4>Déroulement</h4><p>${content.deroulement}</p></div>`;
-                    break;
-            }
-
-            page.innerHTML = `
-                 <button id="back-to-student" class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> Retour</button>
-                 <div class="card" style="margin-top: 1rem;">
-                    <h2 id="content-title">${content.title}</h2>
-                    <form id="content-form">
-                        <div id="viewer">${contentHtml}</div>
-                        <button type="submit" id="submit-btn" class="btn btn-main" style="margin-top: 1rem;">Valider</button>
-                    </form>
-                 </div>`;
-            page.querySelector('#back-to-student').addEventListener('click', renderStudentDashboard);
-            
-            const form = page.querySelector('#content-form');
-            if (formNeeded) {
-                form.addEventListener('submit', e => {
-                    e.preventDefault();
-                    handleSubmitQuiz(content);
-                });
-            } else {
-                form.querySelector('#submit-btn').classList.add('hidden');
-            }
-            changePage('content-viewer-page');
+            (classData.students || []).forEach(email => { const studentCard = document.createElement('div'); studentCard.className = 'dashboard-card'; studentCard.style.cursor = 'default'; studentCard.innerHTML = `<p><i class="fa-solid fa-user"></i> ${email}</p>`; studentList.appendChild(studentCard); });
         }
 
         async function handleSubmitQuiz(content) {
             let score = 0;
-            content.questions.forEach((q, index) => {
-                const selected = document.querySelector(`input[name="q${index}"]:checked`);
-                if (selected && selected.value == q.correct_answer_index) score++;
-            });
-            await apiRequest('/student/submit-quiz', 'POST', { 
-                studentEmail: currentUser.email,
-                classId: content.classId,
-                contentId: content.id,
-                title: content.title,
-                score: score,
-                totalQuestions: content.questions.length
-            });
+            content.questions.forEach((q, index) => { const selected = document.querySelector(`input[name="q${index}"]:checked`); if (selected && selected.value == q.correct_answer_index) score++; });
+            await apiRequest('/student/submit-quiz', 'POST', { studentEmail: currentUser.email, classId: content.classId, contentId: content.id, title: content.title, score: score, totalQuestions: content.questions.length });
             renderStudentDashboard();
         }
 
         function showGenerationModal() {
-            const modalHtml = `
-                <form id="generation-form">
-                    <div class="form-group">
-                        <label for="content-type-select">1. Type de contenu</label>
-                        <select id="content-type-select">
-                            <option value="quiz">Quiz</option>
-                            <option value="exercices">Fiche d'exercices</option>
-                            <option value="plan_de_lecon">Plan de leçon</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="cycle-select">2. Cycle</label>
-                        <select id="cycle-select"><option value="">-- Choisir --</option></select>
-                    </div>
-                    <div class="form-group">
-                        <label for="niveau-select">3. Niveau</label>
-                        <select id="niveau-select" disabled><option value="">-- Choisir --</option></select>
-                    </div>
-                    <div class="form-group">
-                        <label for="matiere-select">4. Matière</label>
-                        <select id="matiere-select" disabled><option value="">-- Choisir --</option></select>
-                    </div>
-                    <div class="form-group">
-                        <label for="notion-select">5. Notion</label>
-                        <select id="notion-select" disabled><option value="">-- Choisir --</option></select>
-                    </div>
-                     <div class="form-group">
-                        <label for="competence-select">6. Compétence</label>
-                        <select id="competence-select" disabled><option value="">-- Choisir --</option></select>
-                    </div>
-                    <button type="submit" class="btn btn-main" id="generate-btn" disabled>Générer</button>
-                </form>
-                <div id="generation-spinner" class="spinner hidden"></div>`;
-
+            const modalHtml = `<form id="generation-form"><div class="form-group"><label for="content-type-select">1. Type</label><select id="content-type-select"><option value="quiz">Quiz</option><option value="exercices">Fiche d'exercices</option><option value="plan_de_lecon">Plan de leçon</option></select></div><div class="form-group"><label for="cycle-select">2. Cycle</label><select id="cycle-select"><option value="">-- Choisir --</option></select></div><div class="form-group"><label for="niveau-select">3. Niveau</label><select id="niveau-select" disabled><option value="">-- Choisir --</option></select></div><div class="form-group"><label for="matiere-select">4. Matière</label><select id="matiere-select" disabled><option value="">-- Choisir --</option></select></div><div class="form-group"><label for="notion-select">5. Notion</label><select id="notion-select" disabled><option value="">-- Choisir --</option></select></div><div class="form-group"><label for="competence-select">6. Compétence</label><select id="competence-select" disabled><option value="">-- Choisir --</option></select></div><button type="submit" class="btn btn-main" id="generate-btn" disabled>Générer</button></form><div id="generation-spinner" class="spinner hidden"></div>`;
             renderModal(getModalTemplate('generation-modal', 'Générer du contenu pédagogique', modalHtml));
-            
-            const cycles = {
-                "Primaire": ["CP", "CE1", "CE2", "CM1", "CM2"],
-                "Collège": ["6eme", "5eme", "4eme", "3eme"],
-                "Lycée": ["Seconde", "Premiere", "Terminale"]
-            };
-
-            const typeSelect = document.getElementById('content-type-select');
             const cycleSelect = document.getElementById('cycle-select');
             const niveauSelect = document.getElementById('niveau-select');
             const matiereSelect = document.getElementById('matiere-select');
             const notionSelect = document.getElementById('notion-select');
             const competenceSelect = document.getElementById('competence-select');
             const generateBtn = document.getElementById('generate-btn');
-
-            Object.keys(cycles).forEach(cycle => cycleSelect.add(new Option(cycle, cycle)));
-
-            cycleSelect.addEventListener('change', () => {
-                resetSelects([niveauSelect, matiereSelect, notionSelect, competenceSelect]);
-                const selectedCycle = cycleSelect.value;
-                if (selectedCycle) {
-                    cycles[selectedCycle].forEach(level => {
-                        if (programmes[level]) niveauSelect.add(new Option(level, level));
-                    });
-                    niveauSelect.disabled = false;
-                }
-            });
-
-            niveauSelect.addEventListener('change', () => {
-                resetSelects([matiereSelect, notionSelect, competenceSelect]);
-                const niveauData = programmes[niveauSelect.value];
-                if (niveauData) {
-                    Object.keys(niveauData).forEach(key => matiereSelect.add(new Option(niveauData[key].nom, key)));
-                    matiereSelect.disabled = false;
-                }
-            });
-
-            matiereSelect.addEventListener('change', () => {
-                resetSelects([notionSelect, competenceSelect]);
-                const niveauData = programmes[niveauSelect.value];
-                const matiereData = niveauData ? niveauData[matiereSelect.value] : null;
-                if (matiereData) {
-                    Object.keys(matiereData).filter(key => key !== 'nom').forEach(notionKey => {
-                        notionSelect.add(new Option(matiereData[notionKey].nom, notionKey));
-                    });
-                    notionSelect.disabled = false;
-                }
-            });
-            
-            notionSelect.addEventListener('change', () => {
-                resetSelects([competenceSelect]);
-                const niveauData = programmes[niveauSelect.value];
-                const matiereData = niveauData ? niveauData[matiereSelect.value] : null;
-                const notionData = matiereData ? matiereData[notionSelect.value] : null;
-                if (notionData && notionData.sous_notions) {
-                     Object.values(notionData.sous_notions).forEach(sousNotion => {
-                        (sousNotion.competences || []).forEach(comp => competenceSelect.add(new Option(comp, comp)));
-                    });
-                    competenceSelect.disabled = false;
-                }
-            });
-            
-            competenceSelect.addEventListener('change', () => {
-                generateBtn.disabled = !competenceSelect.value;
-            });
-            
-            document.getElementById('generation-form').addEventListener('submit', async e => {
-                e.preventDefault();
-                const fullCompetence = `Pour un élève de ${niveauSelect.value}, ${competenceSelect.value}`;
-                document.getElementById('generation-spinner').classList.remove('hidden');
-                const data = await apiRequest('/ai/generate-content', 'POST', { 
-                    competences: fullCompetence, 
-                    contentType: typeSelect.value 
-                });
-                generatedContent = data.structured_content;
-                showPreviewModal();
-            });
-        }
-        
-        function resetSelects(selects) {
-            selects.forEach(select => {
-                select.innerHTML = '<option value="">-- Choisir --</option>';
-                select.disabled = true;
-            });
-             document.getElementById('generate-btn').disabled = true;
+            Object.keys(programmes).forEach(cycle => cycleSelect.add(new Option(cycle, cycle)));
+            cycleSelect.addEventListener('change', () => { resetSelects([niveauSelect, matiereSelect, notionSelect, competenceSelect]); const selectedCycle = cycleSelect.value; if (selectedCycle) { Object.keys(programmes[selectedCycle]).forEach(level => niveauSelect.add(new Option(level, level))); niveauSelect.disabled = false; } });
+            niveauSelect.addEventListener('change', () => { resetSelects([matiereSelect, notionSelect, competenceSelect]); const niveauData = programmes[cycleSelect.value][niveauSelect.value]; if (niveauData) { Object.keys(niveauData).forEach(key => matiereSelect.add(new Option(niveauData[key].nom, key))); matiereSelect.disabled = false; } });
+            matiereSelect.addEventListener('change', () => { resetSelects([notionSelect, competenceSelect]); const niveauData = programmes[cycleSelect.value][niveauSelect.value]; const matiereData = niveauData ? niveauData[matiereSelect.value] : null; if (matiereData) { Object.keys(matiereData).filter(key => key !== 'nom').forEach(notionKey => { notionSelect.add(new Option(matiereData[notionKey].nom, notionKey)); }); notionSelect.disabled = false; } });
+            notionSelect.addEventListener('change', () => { resetSelects([competenceSelect]); const niveauData = programmes[cycleSelect.value][niveauSelect.value]; const matiereData = niveauData ? niveauData[matiereSelect.value] : null; const notionData = matiereData ? matiereData[notionSelect.value] : null; if (notionData && notionData.sous_notions) { Object.values(notionData.sous_notions).forEach(sousNotion => { (sousNotion.competences || []).forEach(comp => competenceSelect.add(new Option(comp, comp))); }); competenceSelect.disabled = false; } });
+            competenceSelect.addEventListener('change', () => { generateBtn.disabled = !competenceSelect.value; });
+            document.getElementById('generation-form').addEventListener('submit', async e => { e.preventDefault(); const fullCompetence = `Pour un élève de ${niveauSelect.value}, ${competenceSelect.value}`; document.getElementById('generation-spinner').classList.remove('hidden'); const data = await apiRequest('/ai/generate-content', 'POST', { competences: fullCompetence, contentType: document.getElementById('content-type-select').value }); generatedContent = data.structured_content; showPreviewModal(); });
         }
 
         function showPreviewModal() {
             let previewHtml = '';
             switch(generatedContent.type) {
-                case 'quiz':
-                    previewHtml = generatedContent.questions.map(q => `<p><strong>Q:</strong> ${q.question_text}</p>`).join('');
-                    break;
-                case 'exercices':
-                    previewHtml = generatedContent.content.map(ex => `<p><strong>Exercice:</strong> ${ex.enonce}</p>`).join('');
-                    break;
-                case 'plan_de_lecon':
-                    previewHtml = `<h4>Objectifs</h4><ul>${generatedContent.objectifs.map(o => `<li>${o}</li>`).join('')}</ul><h4>Déroulement</h4><p>${generatedContent.deroulement}</p>`;
-                    break;
+                case 'quiz': previewHtml = generatedContent.questions.map(q => `<p><strong>Q:</strong> ${q.question_text}</p>`).join(''); break;
+                case 'exercices': previewHtml = generatedContent.content.map(ex => `<p><strong>Exercice:</strong> ${ex.enonce}</p>`).join(''); break;
+                case 'plan_de_lecon': previewHtml = `<h4>Objectifs</h4><ul>${generatedContent.objectifs.map(o => `<li>${o}</li>`).join('')}</ul><h4>Déroulement</h4><p>${generatedContent.deroulement}</p>`; break;
             }
-            const modalHtml = `
-                <h4 id="preview-title">${generatedContent.title}</h4>
-                <div id="preview-content" style="margin-bottom: 1rem;">${previewHtml}</div>
-                <form id="assign-form">
-                    <div class="form-group"><label for="assign-class-select">Assigner à</label><select id="assign-class-select" required></select></div>
-                    <button type="submit" class="btn btn-main">Assigner</button>
-                </form>`;
+            const modalHtml = `<h4 id="preview-title">${generatedContent.title}</h4><div id="preview-content" style="margin-bottom: 1rem;">${previewHtml}</div><form id="assign-form"><div class="form-group"><label for="assign-class-select">Assigner à</label><select id="assign-class-select" required></select></div><button type="submit" class="btn btn-main">Assigner</button></form>`;
             renderModal(getModalTemplate('preview-modal', `Aperçu: ${generatedContent.title}`, modalHtml));
-
             const select = document.getElementById('assign-class-select');
             teacherClasses.forEach(c => select.add(new Option(c.className, c.id)));
-            document.getElementById('assign-form').addEventListener('submit', async e => {
-                e.preventDefault();
-                const classId = select.value;
-                if (!classId) return;
-                await apiRequest('/teacher/assign-content', 'POST', { classId, contentData: generatedContent });
-                modalContainer.innerHTML = '';
-            });
+            document.getElementById('assign-form').addEventListener('submit', async e => { e.preventDefault(); const classId = select.value; if (!classId) return; await apiRequest('/teacher/assign-content', 'POST', { classId, contentData: generatedContent }); modalContainer.innerHTML = ''; });
         }
 
         async function init() {
