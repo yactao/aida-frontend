@@ -172,7 +172,6 @@
         }
         
         async function renderClassDetailsPage(id) {
-            currentClassId = id;
             const page = document.getElementById('class-details-page');
             page.innerHTML = `<button id=back-to-teacher class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> Retour</button><div class=spinner></div>`;
             page.querySelector('#back-to-teacher').addEventListener('click', renderTeacherDashboard);
@@ -221,7 +220,7 @@
                             <td>${result.title}</td>
                             <td>${result.score}/${result.totalQuestions}</td>
                             <td>${new Date(result.submittedAt).toLocaleDateString('fr-FR')}</td>
-                            <td><button class="btn btn-secondary view-details" data-result-id="${result.contentId}-${result.studentEmail}">Voir</button></td>
+                            <td><button class="btn btn-secondary view-details" data-content-id="${result.contentId}">Voir</button></td>
                         </tr>`;
                     }
                 });
@@ -252,11 +251,12 @@
             page.querySelector('#back-to-class-details').addEventListener('click', () => renderClassDetailsPage(currentClassData.id));
             page.querySelectorAll('.view-details').forEach(button => {
                 button.addEventListener('click', (e) => {
-                    const resultId = e.target.dataset.resultId;
-                    const [contentId, email] = resultId.split('-');
-                    const result = studentResults.find(r => r.contentId === contentId && r.studentEmail === email);
+                    const contentId = e.target.closest('button').dataset.contentId;
+                    const result = studentResults.find(r => r.contentId === contentId);
                     const content = allContent.find(c => c.id === contentId);
-                    showResultDetailsModal(result, content);
+                    if (result && content) {
+                        showResultDetailsModal(result, content);
+                    }
                 });
             });
 
