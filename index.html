@@ -55,6 +55,9 @@
         .feedback-item.correct { background-color: #E8F8F5; border-left: 5px solid var(--correct-color); }
         .feedback-item.incorrect { background-color: #FDEDEC; border-left: 5px solid var(--incorrect-color); }
         .aida-explanation { margin-top: 1rem; padding: 1rem; background-color: #EBF5FB; border-radius: 8px; }
+        .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; }
+        .dashboard-card { padding: 1.5rem; border-radius: 12px; background: var(--card-bg-color); box-shadow: var(--shadow); cursor: pointer; transition: all 0.3s ease; }
+        .dashboard-card:hover { transform: translateY(-5px); box-shadow: 0 8px 25px rgba(0,0,0,0.1); }
     </style>
 </head>
 <body>
@@ -78,6 +81,7 @@
         <div class="page" id="teacher-dashboard-page"></div>
         <div class="page" id="student-dashboard-page"></div>
         <div class="page" id="class-details-page"></div>
+        <div class="page" id="student-details-page"></div>
         <div class="page" id="content-viewer-page"></div>
         <div class="page" id="feedback-page"></div>
     </main>
@@ -89,7 +93,7 @@
         let currentUser = null;
         let teacherClasses = [];
         let generatedContent = null;
-        let currentClassId = null;
+        let currentClassData = null; // Storing full class data
         let programmes = {};
 
         const main = document.querySelector('main');
@@ -169,33 +173,109 @@
         
         async function renderClassDetailsPage(id) {
             currentClassId = id;
-            const p = document.getElementById('class-details-page');
-            p.innerHTML = `<button id=back-to-teacher class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> Retour</button><div class=spinner></div>`;
-            p.querySelector('#back-to-teacher').addEventListener('click', renderTeacherDashboard);
+            const page = document.getElementById('class-details-page');
+            page.innerHTML = `<button id=back-to-teacher class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> Retour</button><div class=spinner></div>`;
+            page.querySelector('#back-to-teacher').addEventListener('click', renderTeacherDashboard);
             changePage('class-details-page');
-            const d = await apiRequest(`/teacher/classes/${id}`);
-            let resHtml = '<table><thead><tr><th>Élève</th><th>Quiz</th><th>Score</th><th>Date</th></tr></thead><tbody>';
-            if (d.results && d.results.length > 0) {
-                d.results.forEach(r => {
-                    const t = (d.content || []).find(c => c.id === r.contentId)?.title || 'Contenu supprimé';
-                    resHtml += `<tr><td>${r.studentEmail.split('@')[0]}</td><td>${t}</td><td>${r.score}/${r.totalQuestions}</td><td>${new Date(r.submittedAt).toLocaleDateString('fr-FR')}</td></tr>`;
-                });
-            } else {
-                resHtml += '<tr><td colspan=4 style=text-align:center>Aucun résultat.</td></tr>';
-            }
-            resHtml += '</tbody></table>';
-            p.innerHTML = `<button id=back-to-teacher class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> Retour</button><h2>${d.className}</h2><div class=card style=margin-top:1rem><h4>Ajouter un élève</h4><form id=add-student-form><div class=form-group><label for=student-email>Email</label><input type=email id=student-email-input required></div><button type=submit class="btn btn-main">Ajouter</button><p class=error-message id=add-student-error></p></form></div><h3 style=margin-top:2rem>Élèves</h3><div id=student-list class=dashboard-grid></div><h3 style=margin-top:2rem>Résultats</h3><div class=card>${resHtml}</div>`;
-            p.querySelector('#back-to-teacher').addEventListener('click', renderTeacherDashboard);
-            p.querySelector('#add-student-form').addEventListener('submit', handleAddStudent);
-            const sList = p.querySelector('#student-list');
-            sList.innerHTML = (d.students || []).length === 0 ? "<p>Aucun élève.</p>" : "";
-            (d.students || []).forEach(e => {
-                const card = document.createElement('div');
-                card.className = 'dashboard-card';
-                card.style.cursor = 'default';
-                card.innerHTML = `<p><i class="fa-solid fa-user"></i> ${e}</p>`;
-                sList.appendChild(card);
+            currentClassData = await apiRequest(`/teacher/classes/${id}`);
+            
+            let studentCardsHtml = (currentClassData.students || []).map(studentEmail => {
+                const studentResults = (currentClassData.results || []).filter(r => r.studentEmail === studentEmail);
+                const assignedContentCount = (currentClassData.content || []).length;
+                const completionRate = assignedContentCount > 0 ? (studentResults.length / assignedContentCount) * 100 : 0;
+                return `<div class="dashboard-card" data-student-email="${studentEmail}">
+                            <h4><i class="fa-solid fa-user"></i> ${studentEmail.split('@')[0]}</h4>
+                            <p>Taux de complétion: ${Math.round(completionRate)}%</p>
+                            <p>${studentResults.length} / ${assignedContentCount} exercice(s) fait(s)</p>
+                        </div>`;
+            }).join('');
+
+            page.innerHTML = `
+                <button id="back-to-teacher" class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> Retour</button>
+                <h2>${currentClassData.className}</h2>
+                <div class=card style=margin-top:1rem><h4>Ajouter un élève</h4><form id=add-student-form><div class=form-group><label for=student-email>Email</label><input type=email id=student-email-input required></div><button type=submit class="btn btn-main">Ajouter</button><p class=error-message id=add-student-error></p></form></div>
+                <h3 style=margin-top:2rem>Élèves</h3>
+                <div id="student-list" class="dashboard-grid">${studentCardsHtml}</div>`;
+            
+            page.querySelector('#back-to-teacher').addEventListener('click', renderTeacherDashboard);
+            page.querySelector('#add-student-form').addEventListener('submit', handleAddStudent);
+            page.querySelectorAll('#student-list .dashboard-card').forEach(card => {
+                card.addEventListener('click', () => renderStudentDetailsPage(card.dataset.studentEmail));
             });
+        }
+
+        function renderStudentDetailsPage(studentEmail) {
+            const page = document.getElementById('student-details-page');
+            const studentResults = (currentClassData.results || []).filter(r => r.studentEmail === studentEmail);
+            const allContent = (currentClassData.content || []);
+            const completedContentIds = new Set(studentResults.map(r => r.contentId));
+            const pendingContent = allContent.filter(c => !completedContentIds.has(c.id));
+
+            let resultsHtml = '<h4>Résultats des exercices terminés</h4>';
+            if(studentResults.length > 0) {
+                resultsHtml += '<table><thead><tr><th>Quiz</th><th>Score</th><th>Date</th><th>Détails</th></tr></thead><tbody>';
+                studentResults.forEach(result => {
+                    const content = allContent.find(c => c.id === result.contentId);
+                    if (content) {
+                        resultsHtml += `<tr>
+                            <td>${result.title}</td>
+                            <td>${result.score}/${result.totalQuestions}</td>
+                            <td>${new Date(result.submittedAt).toLocaleDateString('fr-FR')}</td>
+                            <td><button class="btn btn-secondary view-details" data-result-id="${result.contentId}-${result.studentEmail}">Voir</button></td>
+                        </tr>`;
+                    }
+                });
+                resultsHtml += '</tbody></table>';
+            } else {
+                resultsHtml += '<p>Aucun exercice terminé pour le moment.</p>';
+            }
+
+            let pendingHtml = '<h4>Exercices en attente</h4>';
+            if(pendingContent.length > 0) {
+                pendingHtml += '<ul>';
+                pendingContent.forEach(content => {
+                    pendingHtml += `<li>${content.title}</li>`;
+                });
+                pendingHtml += '</ul>';
+            } else {
+                pendingHtml += '<p>Aucun exercice en attente. Bravo !</p>';
+            }
+
+            page.innerHTML = `
+                <button id="back-to-class-details" class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> Retour à la classe</button>
+                <div class="card" style="margin-top: 1rem;">
+                    <h2>Profil de ${studentEmail.split('@')[0]}</h2>
+                    ${resultsHtml}
+                    <div style="margin-top: 2rem;">${pendingHtml}</div>
+                </div>`;
+            
+            page.querySelector('#back-to-class-details').addEventListener('click', () => renderClassDetailsPage(currentClassData.id));
+            page.querySelectorAll('.view-details').forEach(button => {
+                button.addEventListener('click', (e) => {
+                    const resultId = e.target.dataset.resultId;
+                    const [contentId, email] = resultId.split('-');
+                    const result = studentResults.find(r => r.contentId === contentId && r.studentEmail === email);
+                    const content = allContent.find(c => c.id === contentId);
+                    showResultDetailsModal(result, content);
+                });
+            });
+
+            changePage('student-details-page');
+        }
+        
+        function showResultDetailsModal(result, content) {
+            let detailsHtml = '';
+            content.questions.forEach((q, index) => {
+                const studentAnswerIndex = result.answers[index];
+                const correctAnswerIndex = q.correct_answer_index;
+                const isCorrect = studentAnswerIndex === correctAnswerIndex;
+                detailsHtml += `<div class="feedback-item ${isCorrect ? 'correct' : 'incorrect'}">
+                                    <p><strong>${q.question_text}</strong></p>
+                                    <p>Réponse de l'élève : ${studentAnswerIndex > -1 ? q.options[studentAnswerIndex] : 'Aucune'}</p>
+                                    ${!isCorrect ? `<p>Bonne réponse : ${q.options[correctAnswerIndex]}</p>` : ''}
+                                </div>`;
+            });
+            renderModal(getModalTemplate('result-details-modal', `Détail pour : ${result.title}`, detailsHtml));
         }
         
         async function handleAddStudent(e) {
@@ -204,8 +284,8 @@
             const errP = document.getElementById('add-student-error');
             try {
                 errP.textContent = '';
-                await apiRequest(`/teacher/classes/${currentClassId}/add-student`, 'POST', { studentEmail: email });
-                renderClassDetailsPage(currentClassId);
+                await apiRequest(`/teacher/classes/${currentClassData.id}/add-student`, 'POST', { studentEmail: email });
+                renderClassDetailsPage(currentClassData.id);
             } catch (err) {
                 errP.textContent = err.message;
             }
