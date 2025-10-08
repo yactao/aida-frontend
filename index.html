@@ -536,9 +536,10 @@
                                         <button type="button" id="mic-btn" class="btn-voice"><i class="fa-solid fa-microphone"></i></button>
                                     </div>
                                 </div>
-                                <div style="display: flex; gap: 1rem; align-items: center;">
+                                <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
                                     <button type="submit" class="btn btn-main">Corrige-moi, AIDA !</button>
                                     <button type="button" class="btn btn-secondary" id="student-upload-btn"><i class="fa-solid fa-upload"></i> Charger .txt</button>
+                                    <button type="button" id="finish-workspace-btn" class="btn btn-secondary"><i class="fa-solid fa-check"></i> Terminé</button>
                                 </div>
                             </form>
                             <input type="file" id="student-doc-upload" class="hidden" accept=".txt">
@@ -554,6 +555,7 @@
             page.querySelector('#back-to-dashboard-btn').addEventListener('click', renderStudentDashboard);
             page.querySelector('#student-workspace-form').addEventListener('submit', handleStudentWorkspace);
             page.querySelector('#mic-btn').addEventListener('click', () => startRecognition(document.getElementById('student-answer'), document.getElementById('mic-btn')));
+            page.querySelector('#finish-workspace-btn').addEventListener('click', renderStudentDashboard);
             
             const studentUploadBtn = page.querySelector('#student-upload-btn');
             const studentFileInput = page.querySelector('#student-doc-upload');
