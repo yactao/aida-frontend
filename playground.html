@@ -8,32 +8,48 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
         :root {
-            --primary-color: #6D28D9;
-            --secondary-color: #EC4899;
-            --background-color: #F3F4F6;
-            --text-color: #1F2937;
+            --primary-color: #4A90E2;
+            --secondary-color: #50E3C2;
+            --background-color: #F4F7FC;
+            --text-color: #333;
             --card-bg-color: #FFFFFF;
             --shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
         }
+        body.dark-mode {
+            --primary-color: #58a6ff;
+            --secondary-color: #50E3C2;
+            --background-color: #121212;
+            --text-color: #E0E0E0;
+            --card-bg-color: #1E1E1E;
+            --shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+        }
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: 'Poppins', sans-serif; background-color: var(--background-color); color: var(--text-color); line-height: 1.6; display: flex; flex-direction: column; height: 100vh; }
+        body { font-family: 'Poppins', sans-serif; background-color: var(--background-color); color: var(--text-color); line-height: 1.6; display: flex; flex-direction: column; height: 100vh; transition: background-color 0.3s, color 0.3s; }
+        
         header { padding: 1rem 5%; background-color: var(--card-bg-color); box-shadow: var(--shadow); display: flex; justify-content: space-between; align-items: center; z-index: 1000; }
         .logo { display: flex; align-items: center; text-decoration: none; cursor: pointer; }
         .logo-icon { width: 40px; height: 40px; background: linear-gradient(45deg, var(--primary-color), var(--secondary-color)); color: white; display: grid; place-items: center; border-radius: 10px; font-weight: 700; font-size: 1.5rem; margin-right: 10px; }
         .logo span { font-size: 1.5rem; font-weight: 700; color: var(--text-color); }
         .main-nav a { text-decoration: none; color: var(--text-color); font-weight: 600; }
+        .hidden { display: none !important; }
+
         main { flex: 1; display: flex; flex-direction: column; padding: 2rem 5%; }
         .chat-container { width: 100%; max-width: 800px; margin: auto; background: var(--card-bg-color); border-radius: 12px; box-shadow: var(--shadow); display: flex; flex-direction: column; height: 100%; }
         .chat-messages { flex: 1; padding: 1.5rem; overflow-y: auto; }
         .message { margin-bottom: 1rem; display: flex; flex-direction: column; }
         .message.user { align-items: flex-end; }
         .message.aida { align-items: flex-start; }
-        .message-bubble { padding: 10px 15px; border-radius: 18px; max-width: 80%; }
+        .message-bubble { padding: 10px 15px; border-radius: 18px; max-width: 80%; line-break: anywhere; }
         .message.user .message-bubble { background: var(--primary-color); color: white; border-bottom-right-radius: 4px; }
-        .message.aida .message-bubble { background: #E5E7EB; color: var(--text-color); border-bottom-left-radius: 4px; }
-        .chat-input { display: flex; padding: 1rem; border-top: 1px solid #E5E7EB; }
-        .chat-input input { flex: 1; padding: 12px; border: 1px solid #D1D5DB; border-radius: 8px; font-size: 1rem; }
+        .message.aida .message-bubble { background: #E9F2FF; color: var(--text-color); border-bottom-left-radius: 4px; }
+        body.dark-mode .message.aida .message-bubble { background: #2c3e50; }
+        
+        .chat-input { display: flex; padding: 1rem; border-top: 1px solid #eee; }
+        body.dark-mode .chat-input { border-color: #333; }
+        .chat-input input { flex: 1; padding: 12px; border: 1px solid #D1D5DB; border-radius: 8px; font-size: 1rem; background-color: var(--background-color); color: var(--text-color); }
+        body.dark-mode .chat-input input { border-color: #444; }
         .chat-input button { padding: 10px 15px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; background: var(--primary-color); color: white; margin-left: 0.5rem; }
+        
         .btn-voice { background: none; border: none; font-size: 1.5rem; color: var(--primary-color); cursor: pointer; padding: 0.5rem; }
         .btn-voice.active { color: var(--secondary-color); animation: pulse 1.5s infinite; }
         @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.2); } 100% { transform: scale(1); } }
@@ -41,8 +57,13 @@
 </head>
 <body>
     <header>
-        <div class="logo" id="home-link"><div class="logo-icon">A</div><span>AIDA</span></div>
-        <nav class="main-nav"><a href="index.html">Retour à l'application</a></nav>
+        <div class="logo">
+            <div class="logo-icon">A</div>
+            <span>AIDA</span>
+        </div>
+        <nav class="main-nav">
+            <a href="index.html" class="btn btn-secondary">Retour à l'App</a>
+        </nav>
     </header>
 
     <main>

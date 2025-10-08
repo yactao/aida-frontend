@@ -8,71 +8,101 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
         :root {
-            --primary-color: #6D28D9;
-            --secondary-color: #EC4899;
-            --background-color: #F3F4F6;
-            --text-color: #1F2937;
+            --primary-color: #4A90E2;
+            --secondary-color: #50E3C2;
+            --background-color: #F4F7FC;
+            --text-color: #333;
             --card-bg-color: #FFFFFF;
             --shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
-            --correct-color: #10B981;
-            --incorrect-color: #EF4444;
+            --correct-color: #28a745;
+            --incorrect-color: #dc3545;
         }
+        body.dark-mode {
+            --primary-color: #58a6ff;
+            --secondary-color: #50E3C2;
+            --background-color: #121212;
+            --text-color: #E0E0E0;
+            --card-bg-color: #1E1E1E;
+            --shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+        }
+
         * { box-sizing: border-box; margin: 0; padding: 0; }
         html { scroll-behavior: smooth; }
-        body { font-family: 'Poppins', sans-serif; background-color: var(--background-color); color: var(--text-color); line-height: 1.6; }
+        body { font-family: 'Poppins', sans-serif; background-color: var(--background-color); color: var(--text-color); line-height: 1.6; transition: background-color 0.3s, color 0.3s; }
         .page { display: none; padding: 2rem 5%; }
         .page.active { display: block; animation: fadeIn 0.5s; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
         header { padding: 1rem 5%; background-color: var(--card-bg-color); box-shadow: var(--shadow); display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 1000; }
         .logo { display: flex; align-items: center; text-decoration: none; cursor: pointer; }
         .logo-icon { width: 40px; height: 40px; background: linear-gradient(45deg, var(--primary-color), var(--secondary-color)); color: white; display: grid; place-items: center; border-radius: 10px; font-weight: 700; font-size: 1.5rem; margin-right: 10px; }
         .logo span { font-size: 1.5rem; font-weight: 700; color: var(--text-color); }
         .main-nav { display: flex; align-items: center; gap: 1rem; }
         .hidden { display: none !important; }
+
         .btn { padding: 10px 20px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.3s ease; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; }
-        .btn:disabled { background: #D1D5DB !important; cursor: not-allowed; }
+        .btn:disabled { background: #D1D5DB !important; color: #666 !important; cursor: not-allowed; }
         .btn-main { background: linear-gradient(45deg, var(--primary-color), var(--secondary-color)); color: #FFF; }
         .btn-main:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.1); }
-        .btn-secondary { background-color: #E5E7EB; color: var(--text-color); }
-        .btn-help, .btn-voice { background: none; border: none; font-size: 1.2rem; color: var(--primary-color); cursor: pointer; padding: 0.5rem; }
+        .btn-secondary { background-color: #E9F2FF; color: var(--primary-color); }
+        body.dark-mode .btn-secondary { background-color: #333; color: var(--primary-color); }
+        .btn-termine { background-color: #e9f7eb !important; color: #155724 !important; cursor: not-allowed; }
+        body.dark-mode .btn-termine { background-color: #2a3a2e !important; color: #28a745 !important; }
+        .btn-voice { background: none; border: none; font-size: 1.2rem; color: var(--primary-color); cursor: pointer; padding: 0.5rem; }
         .btn-voice.active { color: var(--secondary-color); animation: pulse 1.5s infinite; }
+        
+        .user-menu-container { position: relative; }
+        #user-info-clickable { background: none; border: none; display: flex; align-items: center; gap: 0.5rem; cursor: pointer; }
+        .user-dropdown { position: absolute; top: 120%; right: 0; background-color: var(--card-bg-color); border-radius: 8px; box-shadow: var(--shadow); width: 220px; z-index: 101; padding: 0.5rem; }
+        .dropdown-section { display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; }
+        .dropdown-section:not(:last-child) { border-bottom: 1px solid #eee; }
+        body.dark-mode .dropdown-section:not(:last-child) { border-color: #333; }
+        #theme-toggle-btn { background: none; border: none; font-size: 1.2rem; cursor: pointer; color: var(--text-color); }
+
+        .card { background-color: var(--card-bg-color); padding: 2rem; border-radius: 12px; box-shadow: var(--shadow); }
+        
+        .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.5rem; }
+        .dashboard-card { background: var(--card-bg-color); padding: 1.5rem; border-radius: 12px; box-shadow: var(--shadow); transition: transform 0.3s, box-shadow 0.3s; cursor: pointer; }
+        .dashboard-card:hover { transform: translateY(-5px); box-shadow: 0 8px 25px rgba(0,0,0,0.1); }
+        .dashboard-card h4 { margin-bottom: 0.5rem; }
+        
+        .dashboard-card-student { padding: 0; cursor: default; background: var(--card-bg-color); border-radius: 12px; box-shadow: var(--shadow); }
+        .dashboard-card-student .card-header { padding: 1rem 1.5rem; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; }
+        body.dark-mode .dashboard-card-student .card-header { border-color: #333; }
+        .dashboard-card-student .card-content { padding: 1.5rem; }
+        .dashboard-card-student .card-footer { padding: 1rem 1.5rem; display: flex; justify-content: space-between; align-items: center; background-color: #f9f9f9; border-bottom-left-radius: 12px; border-bottom-right-radius: 12px;}
+        body.dark-mode .dashboard-card-student .card-footer { background-color: #2c2c2c; }
+        .subject-tag { padding: 0.25rem 0.75rem; border-radius: 20px; color: #FFF; font-weight: 600; font-size: 0.8rem; }
+        .tag-maths { background-color: #4A90E2; }
+        .tag-francais { background-color: #D0021B; }
+        .tag-sciences { background-color: #50E3C2; }
+        .tag-histoire { background-color: #F5A623; }
+        .tag-autre { background-color: #777; }
+        
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); display: flex; justify-content: center; align-items: center; z-index: 2000; animation: fadeIn 0.3s; }
+        .modal-content { background: var(--card-bg-color); padding: 2rem; border-radius: 12px; width: 90%; max-width: 600px; position: relative; max-height: 90vh; overflow-y: auto; }
+        .close-modal { position: absolute; top: 1rem; right: 1rem; background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text-color); }
+        
         @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.2); } 100% { transform: scale(1); } }
-        .form-group { margin-bottom: 1.5rem; text-align: left; }
-        .form-group label { display: block; margin-bottom: 0.5rem; font-weight: 600; }
         .textarea-container { position: relative; }
         .textarea-container textarea { width: 100%; padding-right: 45px; }
         .textarea-container .btn-voice { position: absolute; bottom: 5px; right: 5px; }
-        input, select, textarea { width: 100%; padding: 12px; border: 1px solid #D1D5DB; border-radius: 8px; font-size: 1rem; font-family: 'Poppins', sans-serif; }
-        select:disabled { background-color: #F3F4F6; }
+        input, select, textarea { width: 100%; padding: 12px; border: 1px solid #D1D5DB; border-radius: 8px; font-size: 1rem; font-family: 'Poppins', sans-serif; background-color: var(--background-color); color: var(--text-color); }
+        body.dark-mode input, body.dark-mode select, body.dark-mode textarea { border-color: #444; }
         .error-message { color: var(--incorrect-color); margin-top: 0.5rem; font-size: 0.9rem; }
         .spinner { border: 4px solid #f3f3f3; border-top: 4px solid var(--primary-color); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 2rem auto; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .card { background-color: var(--card-bg-color); padding: 2rem; border-radius: 12px; box-shadow: var(--shadow); }
-        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.6); display: flex; justify-content: center; align-items: center; z-index: 2000; animation: fadeIn 0.3s; }
-        .modal-content { background: var(--card-bg-color); padding: 2rem; border-radius: 12px; width: 90%; max-width: 600px; position: relative; max-height: 90vh; overflow-y: auto; }
-        .close-modal { position: absolute; top: 1rem; right: 1rem; background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #9CA3AF; }
-        .quiz-question { margin-bottom: 1.5rem; }
-        .question-header { display: flex; justify-content: space-between; align-items: center; }
-        .quiz-options label { display: block; margin: 0.5rem 0; padding: 10px; border: 1px solid #eee; border-radius: 8px; cursor: pointer; }
-        table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
-        th, td { text-align: left; padding: 12px; border-bottom: 1px solid #E5E7EB; }
-        .feedback-item { margin-bottom: 1.5rem; padding: 1.5rem; border-radius: 8px; }
-        .feedback-item.correct { background-color: #E8F8F5; border-left: 5px solid var(--correct-color); }
-        .feedback-item.incorrect { background-color: #FDEDEC; border-left: 5px solid var(--incorrect-color); }
-        .aida-explanation { margin-top: 1rem; padding: 1rem; background-color: #EBF5FB; border-radius: 8px; }
-        .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; }
-        .dashboard-card { padding: 1.5rem; border-radius: 12px; background: var(--card-bg-color); box-shadow: var(--shadow); cursor: pointer; transition: all 0.3s ease; }
-        .dashboard-card:hover { transform: translateY(-5px); box-shadow: 0 8px 25px rgba(0,0,0,0.1); }
+        body.dark-mode .spinner { border-color: #333; border-top-color: var(--primary-color); }
+        
         .tabs { display: flex; gap: 1rem; border-bottom: 1px solid #D1D5DB; margin-bottom: 1.5rem; }
-        .tab-button { background: none; border: none; padding: 10px 15px; cursor: pointer; font-size: 1rem; font-weight: 600; border-bottom: 3px solid transparent; }
+        .tab-button { background: none; border: none; padding: 10px 15px; cursor: pointer; font-size: 1rem; font-weight: 600; border-bottom: 3px solid transparent; color: var(--text-color); }
         .tab-button.active { color: var(--primary-color); border-bottom-color: var(--primary-color); }
         .tab-panel { display: none; }
         .tab-panel.active { display: block; }
-        .progress-bar { width: 100%; background-color: #E5E7EB; border-radius: 5px; height: 8px; overflow: hidden; }
-        .progress-bar-fill { height: 100%; background-color: var(--primary-color); border-radius: 5px; transition: width 0.5s ease-in-out; }
+        
         .workspace-container { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; align-items: start; }
         .workspace-input, .workspace-output { background: var(--card-bg-color); padding: 2rem; border-radius: 12px; box-shadow: var(--shadow); height: 100%; }
         #edit-form .form-group { border-left: 3px solid #eee; padding-left: 1rem; margin-top: 1.5rem; }
+        body.dark-mode #edit-form .form-group { border-left-color: #333; }
         @media (max-width: 768px) { .workspace-container { grid-template-columns: 1fr; } }
     </style>
 </head>
@@ -83,9 +113,15 @@
             <a href="#" class="btn btn-secondary hidden" id="workspace-link"><i class="fa-solid fa-pen-ruler"></i> Espace de Travail</a>
             <a href="playground.html" class="btn btn-secondary hidden" id="playground-link"><i class="fa-solid fa-flask"></i> Terrain de Jeux</a>
             <div class="user-menu-container hidden">
-                 <button class="btn btn-secondary" id="user-info-clickable"><span id="user-name-display"></span> <i class="fa-solid fa-chevron-down"></i></button>
-                <div class="card hidden" id="user-dropdown" style="position: absolute; top: 100%; right: 0; margin-top: 0.5rem; width: 200px; z-index: 10;">
-                    <button class="btn" id="logout-btn"><i class="fa-solid fa-right-from-bracket"></i> Déconnexion</button>
+                 <button class="btn" id="user-info-clickable"><span id="user-name-display"></span> <i class="fa-solid fa-chevron-down"></i></button>
+                <div class="card user-dropdown hidden" id="user-dropdown">
+                    <div class="dropdown-section">
+                        <span>Thème sombre</span>
+                        <button id="theme-toggle-btn"><i class="fa-solid fa-moon"></i></button>
+                    </div>
+                    <div class="dropdown-section">
+                         <button class="btn" id="logout-btn" style="width: 100%; justify-content: center; background-color: var(--incorrect-color); color: white;"><i class="fa-solid fa-right-from-bracket"></i> Déconnexion</button>
+                    </div>
                 </div>
             </div>
             <button class="btn btn-main" id="login-nav-btn">Connexion</button>
@@ -126,6 +162,7 @@
         const userInfoClickable = document.getElementById('user-info-clickable');
         const userDropdown = document.getElementById('user-dropdown');
         const logoutBtn = document.getElementById('logout-btn');
+        const themeToggleBtn = document.getElementById('theme-toggle-btn');
 
         async function loadProgrammes() { try { const [p, c, l] = await Promise.all([fetch(`${backendUrl}/programmes-primaire.json`).then(r=>r.json()), fetch(`${backendUrl}/programmes-college.json`).then(r=>r.json()), fetch(`${backendUrl}/programmes-lycee.json`).then(r=>r.json())]); programmes = {Primaire:p, Collège:c, Lycée:l}; } catch (e) { console.error("Could not load programmes.", e); } }
         async function apiRequest(endpoint, method = 'GET', body = null) { try { const opts = { method, headers: { 'Content-Type': 'application/json' } }; if (body) opts.body = JSON.stringify(body); const res = await fetch(`${backendUrl}/api${endpoint}`, opts); if (!res.ok) { const err = await res.json(); throw new Error(err.error || 'Une erreur est survenue'); } return res.status === 204 ? null : res.json(); } catch (e) { console.error(`API Error:`, e); throw e; } }
@@ -133,6 +170,11 @@
         function renderModal(template) { modalContainer.innerHTML = template; modalContainer.querySelector('.close-modal')?.addEventListener('click', () => modalContainer.innerHTML = ''); }
         function getModalTemplate(id, title, html) { return `<div class="modal-overlay" id="${id}"><div class="modal-content"><button class="close-modal">&times;</button><h3>${title}</h3>${html}</div></div>`; }
         
+        function applyTheme(theme) {
+            document.body.classList.toggle('dark-mode', theme === 'dark');
+            themeToggleBtn.innerHTML = theme === 'dark' ? '<i class="fa-solid fa-sun"></i>' : '<i class="fa-solid fa-moon"></i>';
+        }
+
         function updateUI() {
             const loggedIn = !!currentUser;
             loginNavBtn.classList.toggle('hidden', loggedIn);
@@ -353,7 +395,37 @@
         function showCreateClassModal() { renderModal(getModalTemplate('create-class-modal', 'Nouvelle Classe', `<form id=create-class-form><div class=form-group><label for=class-name-input>Nom</label><input type=text id=class-name-input required></div><button type=submit class="btn btn-main">Créer</button></form>`)); document.getElementById('create-class-form').addEventListener('submit', async e => { e.preventDefault(); await apiRequest('/teacher/classes', 'POST', { className: document.getElementById('class-name-input').value, teacherEmail: currentUser.email }); modalContainer.innerHTML = ''; renderTeacherDashboard(); }); }
         
         async function renderStudentDashboard() { const p = document.getElementById('student-dashboard-page'); p.innerHTML = `<div class=spinner></div>`; changePage('student-dashboard-page'); const d = await apiRequest(`/student/dashboard?studentEmail=${currentUser.email}`); p.innerHTML = `<h2>Bonjour ${currentUser.firstName}!</h2><h3>À faire</h3><div id=todo-grid class="dashboard-grid"></div><h3 style=margin-top:2rem>Terminés</h3><div id=completed-grid class="dashboard-grid"></div>`; const todo = p.querySelector('#todo-grid'); if (d.todo.length === 0) { todo.innerHTML = "<p>Bravo, tu es à jour !</p>"; } else { d.todo.forEach(i => todo.appendChild(createContentCard(i))); } const comp = p.querySelector('#completed-grid'); if (d.completed.length === 0) { comp.innerHTML = "<p>Aucun devoir terminé.</p>"; } else { d.completed.forEach(i => comp.appendChild(createContentCard(i, true))); } }
-        function createContentCard(c, isDone) { const card = document.createElement('div'); card.className = 'dashboard-card'; const date = new Date(isDone ? c.completedAt : c.assignedAt).toLocaleDateString('fr-FR'); card.innerHTML = `<h4>${c.title}</h4><p>Classe: ${c.className}</p><p>${isDone ? 'Terminé le' : 'Assigné le'}: ${date}</p><button class="btn ${isDone ? 'btn-secondary' : 'btn-main'}" ${isDone ? 'disabled' : ''}>${isDone ? 'Terminé' : 'Commencer'}</button>`; if (!isDone) card.querySelector('button').addEventListener('click', () => renderContentViewer(c)); return card; }
+        
+        function getSubjectTag(title) {
+            if (/math|calcul|nombre|géométrie/i.test(title)) return 'tag-maths';
+            if (/fran[çc]ais|lecture|grammaire|verbe/i.test(title)) return 'tag-francais';
+            if (/histoire|antiquité|guerre/i.test(title)) return 'tag-histoire';
+            if (/science|vivant|physique/i.test(title)) return 'tag-sciences';
+            return 'tag-autre';
+        }
+
+        function createContentCard(c, isDone) { 
+            const card = document.createElement('div');
+            card.className = 'dashboard-card-student';
+            const date = new Date(isDone ? c.completedAt : c.assignedAt).toLocaleDateString('fr-FR');
+            const subjectTagClass = getSubjectTag(c.title);
+            card.innerHTML = `
+                <div class="card-header">
+                    <span class="subject-tag ${subjectTagClass}">${c.type.charAt(0).toUpperCase() + c.type.slice(1)}</span>
+                </div>
+                <div class="card-content">
+                    <h4>${c.title}</h4>
+                    <p>Classe: ${c.className}</p>
+                </div>
+                <div class="card-footer">
+                    <span class="card-date">${isDone ? 'Terminé le' : 'Assigné le'}: ${date}</span>
+                    <button class="btn ${isDone ? 'btn-termine' : 'btn-main'}" ${isDone ? 'disabled' : ''}>
+                        ${isDone ? '<i class="fa-solid fa-check"></i> Terminé' : 'Commencer'}
+                    </button>
+                </div>`;
+            if (!isDone) card.querySelector('button').addEventListener('click', () => renderContentViewer(c));
+            return card;
+        }
 
         function renderContentViewer(c) {
             const p = document.getElementById('content-viewer-page');
@@ -639,6 +711,8 @@
         
         async function init() {
             await loadProgrammes();
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            applyTheme(savedTheme);
             updateUI();
         }
         
@@ -647,6 +721,16 @@
         workspaceLink.addEventListener('click', (e) => { e.preventDefault(); renderWorkspacePage(); });
         logoutBtn.addEventListener('click', () => { currentUser = null; updateUI(); });
         userInfoClickable.addEventListener('click', () => userDropdown.classList.toggle('hidden'));
+        window.addEventListener('click', (e) => {
+            if (!userMenuContainer.contains(e.target)) {
+                userDropdown.classList.add('hidden');
+            }
+        });
+        themeToggleBtn.addEventListener('click', () => {
+            const newTheme = document.body.classList.contains('dark-mode') ? 'light' : 'dark';
+            localStorage.setItem('theme', newTheme);
+            applyTheme(newTheme);
+        });
         
         init();
     });
