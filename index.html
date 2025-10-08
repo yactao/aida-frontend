@@ -34,9 +34,13 @@
         .btn-main { background: linear-gradient(45deg, var(--primary-color), var(--secondary-color)); color: #FFF; }
         .btn-main:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.1); }
         .btn-secondary { background-color: #E5E7EB; color: var(--text-color); }
-        .btn-help { background: none; border: none; font-size: 1.2rem; color: #F5A623; cursor: pointer; padding: 0.5rem; }
+        .btn-help, .btn-voice { background: none; border: none; font-size: 1.2rem; color: #F5A623; cursor: pointer; padding: 0.5rem; }
+        .btn-voice.active { color: var(--secondary-color); }
         .form-group { margin-bottom: 1.5rem; text-align: left; }
         .form-group label { display: block; margin-bottom: 0.5rem; font-weight: 600; }
+        .textarea-container { position: relative; }
+        .textarea-container textarea { width: 100%; }
+        .textarea-container .btn-voice { position: absolute; bottom: 10px; right: 10px; }
         input, select, textarea { width: 100%; padding: 12px; border: 1px solid #D1D5DB; border-radius: 8px; font-size: 1rem; font-family: 'Poppins', sans-serif; }
         select:disabled { background-color: #F3F4F6; }
         .error-message { color: var(--incorrect-color); margin-top: 0.5rem; font-size: 0.9rem; }
@@ -67,7 +71,6 @@
         .progress-bar-fill { height: 100%; background-color: var(--primary-color); border-radius: 5px; transition: width 0.5s ease-in-out; }
         .workspace-container { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; align-items: start; }
         .workspace-input, .workspace-output { background: var(--card-bg-color); padding: 2rem; border-radius: 12px; box-shadow: var(--shadow); height: 100%; }
-        .workspace-input textarea { min-height: 150px; resize: vertical; }
         #edit-form .form-group { border-left: 3px solid #eee; padding-left: 1rem; margin-top: 1.5rem; }
         @media (max-width: 768px) { .workspace-container { grid-template-columns: 1fr; } }
     </style>
@@ -114,6 +117,7 @@
         // --- NOUVEAU : Variables pour la synthèse vocale ---
         let synth = window.speechSynthesis;
         let voices = [];
+        let recognition = null;
 
         const main = document.querySelector('main');
         const modalContainer = document.getElementById('modal-container');
@@ -373,8 +377,6 @@
         async function handleSubmitQuiz(c) { const answers = c.questions.map((q, i) => { const sel = document.querySelector(`input[name=q${i}]:checked`); return sel ? parseInt(sel.value) : -1; }); const score = answers.reduce((acc, ans, i) => acc + (ans == c.questions[i].correct_answer_index ? 1 : 0), 0); await apiRequest('/student/submit-quiz', 'POST', { studentEmail: currentUser.email, classId: c.classId, contentId: c.id, title: c.title, score, totalQuestions: c.questions.length, answers }); renderFeedbackPage(c, answers, score); }
         function renderFeedbackPage(c, answers, score) { const p = document.getElementById('feedback-page'); p.innerHTML = `<div class=card><h2>Résultats du Quiz: ${c.title}</h2><p><strong>Ton score: ${score} / ${c.questions.length}</strong></p><div id=feedback-details style=margin-top:2rem></div><button id=back-to-dash class="btn btn-main">Retour au tableau de bord</button></div>`; p.querySelector('#back-to-dash').addEventListener('click', renderStudentDashboard); const details = p.querySelector('#feedback-details'); c.questions.forEach((q, i) => { const correct = answers[i] == q.correct_answer_index; const item = document.createElement('div'); item.className = `feedback-item ${correct ? 'correct' : 'incorrect'}`; let html = `<p><strong>${q.question_text}</strong></p>`; if (correct) { html += `<p style=color:var(--correct-color)>Ta réponse: ${q.options[answers[i]]} (Correct)</p>`; } else { html += `<p style=color:var(--incorrect-color)>Ta réponse: ${answers[i] > -1 ? q.options[answers[i]] : 'Aucune'} (Incorrect)</p><p>Bonne réponse: ${q.options[q.correct_answer_index]}</p><div class=aida-explanation id=explanation-${i}><div class=spinner></div></div>`; } item.innerHTML = html; details.appendChild(item); if (!correct) { apiRequest('/ai/get-feedback-for-error', 'POST', { question: q.question_text, userAnswer: answers[i] > -1 ? q.options[answers[i]] : 'Aucune', correctAnswer: q.options[q.correct_answer_index] }).then(d => { document.getElementById(`explanation-${i}`).innerHTML = `<p><strong>L'explication d'AIDA :</strong> ${d.feedback}</p>`; }); } }); changePage('feedback-page'); }
         
-        // --- NOUVELLES FONCTIONS ---
-
         function showGenerationModal() {
             const h = `
                 <div class="tabs">
@@ -400,9 +402,10 @@
                         <div class="form-group hidden" id="exercise-count-group-text"><label for="exercise-count-text">Nombre d'exercices</label><input type="number" id="exercise-count-text" value="5" min="1" max="10"></div>
                         <div style="display: flex; gap: 1rem; align-items: center;">
                              <button type="submit" class="btn btn-main">Générer</button>
-                             <button type="button" class="btn btn-secondary" disabled title="Bientôt disponible !"><i class="fa-solid fa-upload"></i> Charger un document</button>
+                             <button type="button" class="btn btn-secondary" id="upload-doc-btn"><i class="fa-solid fa-upload"></i> Charger un .txt</button>
                         </div>
                     </form>
+                    <input type="file" id="doc-upload-input" class="hidden" accept=".txt">
                 </div>
                 <div id="generation-spinner" class="spinner hidden"></div>`;
             
@@ -434,6 +437,22 @@
                 const data = await apiRequest('/ai/generate-from-document', 'POST', { documentText, contentType, exerciseCount });
                 generatedContent = data.structured_content;
                 showEditModal();
+            });
+            
+            const uploadBtn = document.getElementById('upload-doc-btn');
+            const fileInput = document.getElementById('doc-upload-input');
+            uploadBtn.addEventListener('click', () => fileInput.click());
+            fileInput.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (file && file.type === "text/plain") {
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                        document.getElementById('course-text-modal').value = event.target.result;
+                    };
+                    reader.readAsText(file);
+                } else {
+                    alert("Veuillez sélectionner un fichier .txt pour le moment.");
+                }
             });
 
             const modal = document.getElementById('generation-modal');
@@ -505,37 +524,46 @@
             const page = document.getElementById('workspace-page');
             const backButtonAction = currentUser.role === 'teacher' ? 'renderTeacherDashboard' : 'renderStudentDashboard';
             let html = `<button id="back-to-dashboard-btn" class="btn btn-secondary" style="margin-bottom: 2rem;"><i class="fa-solid fa-arrow-left"></i> Retour au tableau de bord</button>`;
+            
             if (currentUser.role === 'teacher') {
-                // This view is now handled by the modal. This page is student-only for simplicity now.
-                html += `<h2>Espace de Travail</h2><p>Cette section est réservée aux élèves.</p>`;
-                 setTimeout(renderTeacherDashboard, 100);
+                setTimeout(renderTeacherDashboard, 100);
+                 return;
             } else {
-                html += `<h2>Espace de Travail Élève</h2><p>Bloqué sur un exercice ? Collez-le ici, écris ta réponse et demande à AIDA de te corriger.</p><div class="workspace-container" style="margin-top: 2rem;"><div class="workspace-input"><h3>Ton exercice</h3><form id="student-workspace-form"><div class="form-group"><label for="exercise-text">Colle ton exercice</label><textarea id="exercise-text" required placeholder="Ex: Calcule 5 + 3."></textarea></div><div class="form-group"><label for="student-answer">Ta réponse</label><textarea id="student-answer" required placeholder="Ex: Ma réponse est 8."></textarea></div><button type="submit" class="btn btn-main">Corrige-moi, AIDA !</button></form></div><div class="workspace-output"><h3>La correction d'AIDA</h3><div id="student-output-container"><p>La correction d'AIDA apparaîtra ici.</p></div></div></div>`;
+                html += `<h2>Espace de Travail Élève</h2><p>Bloqué sur un exercice ? Collez-le ici, écris ta réponse et demande à AIDA de te corriger.</p>
+                         <div class="workspace-container" style="margin-top: 2rem;">
+                            <div class="workspace-input">
+                                <h3>Ton exercice</h3>
+                                <form id="student-workspace-form">
+                                    <div class="form-group"><label for="exercise-text">Colle ton exercice</label><textarea id="exercise-text" required placeholder="Ex: Calcule 5 + 3."></textarea></div>
+                                    <div class="form-group">
+                                        <label for="student-answer">Ta réponse</label>
+                                        <div class="textarea-container">
+                                            <textarea id="student-answer" required placeholder="Ex: Ma réponse est 8."></textarea>
+                                            <button type="button" id="mic-btn" class="btn-voice"><i class="fa-solid fa-microphone"></i></button>
+                                        </div>
+                                    </div>
+                                    <button type="submit" class="btn btn-main">Corrige-moi, AIDA !</button>
+                                </form>
+                            </div>
+                            <div class="workspace-output">
+                                <h3>La correction d'AIDA</h3>
+                                <div id="student-output-container"><p>La correction d'AIDA apparaîtra ici.</p></div>
+                            </div>
+                        </div>`;
             }
             page.innerHTML = html;
             
             const backBtn = page.querySelector('#back-to-dashboard-btn');
-            if (currentUser.role === 'teacher') {
+             if (currentUser.role === 'teacher') {
                  if (backBtn) backBtn.addEventListener('click', renderTeacherDashboard);
             } else {
                  if (backBtn) backBtn.addEventListener('click', renderStudentDashboard);
                  const studentForm = page.querySelector('#student-workspace-form');
                  if(studentForm) studentForm.addEventListener('submit', handleStudentWorkspace);
+                 const micBtn = page.querySelector('#mic-btn');
+                 if (micBtn) micBtn.addEventListener('click', () => startRecognition(document.getElementById('student-answer'), micBtn));
             }
             changePage('workspace-page');
-        }
-
-        async function handleTeacherWorkspace(e) {
-            e.preventDefault();
-            const outputContainer = document.getElementById('teacher-output-container');
-            outputContainer.innerHTML = '<div class="spinner"></div>';
-            try {
-                const documentText = document.getElementById('course-text').value;
-                const contentType = document.getElementById('teacher-content-type').value;
-                const data = await apiRequest('/ai/generate-from-document', 'POST', { documentText, contentType });
-                generatedContent = data.structured_content;
-                showEditModal();
-            } catch (err) { outputContainer.innerHTML = `<p class="error-message">Une erreur est survenue: ${err.message}</p>`; }
         }
         
         async function handleStudentWorkspace(e) {
@@ -546,15 +574,75 @@
                 const exerciseText = document.getElementById('exercise-text').value;
                 const studentAnswer = document.getElementById('student-answer').value;
                 const data = await apiRequest('/ai/correct-exercise', 'POST', { exerciseText, studentAnswer });
-                outputContainer.innerHTML = `<p>${data.correction.replace(/\n/g, '<br>')}</p>`;
+                outputContainer.innerHTML = `<p>${data.correction.replace(/\n/g, '<br>')}</p>
+                                             <button id="listen-btn" class="btn-voice"><i class="fa-solid fa-volume-high"></i> Écouter</button>`;
+                document.getElementById('listen-btn').addEventListener('click', () => speak(data.correction));
             } catch (err) {
                 outputContainer.innerHTML = `<p class="error-message">Une erreur est survenue: ${err.message}</p>`;
             }
         }
         
+        // --- NOUVELLES FONCTIONS VOCALES ---
+        function loadVoices() {
+            voices = synth.getVoices();
+        }
+        if (synth.onvoiceschanged !== undefined) {
+            synth.onvoiceschanged = loadVoices;
+        }
+
+        function speak(text) {
+            if (synth.speaking) {
+                synth.cancel();
+            }
+            const utterance = new SpeechSynthesisUtterance(text);
+            const frenchVoice = voices.find(voice => voice.lang === 'fr-FR' && voice.name.includes('Female'));
+            utterance.voice = frenchVoice || voices.find(voice => voice.lang === 'fr-FR');
+            utterance.pitch = 1;
+            utterance.rate = 1;
+            utterance.volume = 1;
+            synth.speak(utterance);
+        }
+
+        function startRecognition(targetTextarea, micButton) {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition) {
+                alert("La reconnaissance vocale n'est pas supportée par votre navigateur.");
+                return;
+            }
+            
+            if (recognition && recognition.isListening) {
+                recognition.stop();
+                return;
+            }
+
+            recognition = new SpeechRecognition();
+            recognition.lang = 'fr-FR';
+            recognition.interimResults = false;
+
+            recognition.onstart = () => {
+                micButton.classList.add('active');
+                micButton.innerHTML = '<i class="fa-solid fa-stop"></i>';
+            };
+
+            recognition.onend = () => {
+                micButton.classList.remove('active');
+                micButton.innerHTML = '<i class="fa-solid fa-microphone"></i>';
+                recognition.isListening = false;
+            };
+
+            recognition.onresult = (event) => {
+                const transcript = event.results[0][0].transcript;
+                targetTextarea.value = transcript;
+            };
+            
+            recognition.start();
+            recognition.isListening = true;
+        }
+        
         async function init() {
             await loadProgrammes();
             updateUI();
+            loadVoices();
         }
         
         loginNavBtn.addEventListener('click', renderAuthPage);
