@@ -67,8 +67,8 @@
         .progress-bar-fill { height: 100%; background-color: var(--primary-color); border-radius: 5px; transition: width 0.5s ease-in-out; }
         .workspace-container { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; align-items: start; }
         .workspace-input, .workspace-output { background: var(--card-bg-color); padding: 2rem; border-radius: 12px; box-shadow: var(--shadow); height: 100%; }
-        .workspace-input textarea { min-height: 200px; resize: vertical; }
-        #edit-form .form-group { border-left: 3px solid #eee; padding-left: 1rem; }
+        .workspace-input textarea { min-height: 150px; resize: vertical; }
+        #edit-form .form-group { border-left: 3px solid #eee; padding-left: 1rem; margin-top: 1.5rem; }
         @media (max-width: 768px) { .workspace-container { grid-template-columns: 1fr; } }
     </style>
 </head>
@@ -110,6 +110,10 @@
         let currentClassData = null;
         let programmes = {};
         let selectedCompetenceInfo = null;
+        
+        // --- NOUVEAU : Variables pour la synthèse vocale ---
+        let synth = window.speechSynthesis;
+        let voices = [];
 
         const main = document.querySelector('main');
         const modalContainer = document.getElementById('modal-container');
@@ -452,8 +456,8 @@
                     editHtml += `<div class="form-group">
                         <label>Question ${i+1}</label>
                         <input type="text" id="edit-q-${i}" value="${q.question_text}">
-                        <label>Options</label>
-                        ${q.options.map((opt, j) => `<input type="text" id="edit-q-${i}-opt-${j}" value="${opt}">`).join('')}
+                        <label style="margin-top: 0.5rem;">Options</label>
+                        ${q.options.map((opt, j) => `<input type="text" id="edit-q-${i}-opt-${j}" value="${opt}" style="margin-bottom: 0.5rem;">`).join('')}
                     </div>`;
                 });
             } else if (generatedContent.type === 'exercices') {
@@ -479,11 +483,11 @@
                         ex.enonce = document.getElementById(`edit-ex-${i}`).value;
                     });
                 }
-                showAssignModalFromWorkspace();
+                showAssignModal();
             });
         }
-
-        function showAssignModalFromWorkspace() {
+        
+        function showAssignModal() {
             const modalHtml = `<form id="assign-form"><div class="form-group"><label for="assign-class-select">Assigner à</label><select id="assign-class-select" required></select></div><button type="submit" class="btn btn-main">Assigner</button></form>`;
             renderModal(getModalTemplate('assign-modal', 'Assigner le contenu', modalHtml));
             const select = document.getElementById('assign-class-select');
@@ -502,18 +506,21 @@
             const backButtonAction = currentUser.role === 'teacher' ? 'renderTeacherDashboard' : 'renderStudentDashboard';
             let html = `<button id="back-to-dashboard-btn" class="btn btn-secondary" style="margin-bottom: 2rem;"><i class="fa-solid fa-arrow-left"></i> Retour au tableau de bord</button>`;
             if (currentUser.role === 'teacher') {
-                html += `<h2>Espace de Travail Enseignant</h2><p>Collez le contenu de votre cours et générez des exercices personnalisés.</p><div class="workspace-container" style="margin-top: 2rem;"><div class="workspace-input"><h3>Votre cours</h3><form id="teacher-workspace-form"><div class="form-group"><label for="course-text">Collez votre texte ici</label><textarea id="course-text" required placeholder="Ex: La Révolution française a commencé en 1789..."></textarea></div><div class="form-group"><label for="teacher-content-type">Type de contenu à générer</label><select id="teacher-content-type"><option value="quiz">Quiz</option><option value="exercices">Fiche d'exercices</option></select></div><button type="submit" class="btn btn-main">Générer avec AIDA</button></form></div><div class="workspace-output"><h3>Contenu Généré</h3><div id="teacher-output-container"><p>Le contenu généré par AIDA apparaîtra ici.</p></div></div></div>`;
+                // This view is now handled by the modal. This page is student-only for simplicity now.
+                html += `<h2>Espace de Travail</h2><p>Cette section est réservée aux élèves.</p>`;
+                 setTimeout(renderTeacherDashboard, 100);
             } else {
                 html += `<h2>Espace de Travail Élève</h2><p>Bloqué sur un exercice ? Collez-le ici, écris ta réponse et demande à AIDA de te corriger.</p><div class="workspace-container" style="margin-top: 2rem;"><div class="workspace-input"><h3>Ton exercice</h3><form id="student-workspace-form"><div class="form-group"><label for="exercise-text">Colle ton exercice</label><textarea id="exercise-text" required placeholder="Ex: Calcule 5 + 3."></textarea></div><div class="form-group"><label for="student-answer">Ta réponse</label><textarea id="student-answer" required placeholder="Ex: Ma réponse est 8."></textarea></div><button type="submit" class="btn btn-main">Corrige-moi, AIDA !</button></form></div><div class="workspace-output"><h3>La correction d'AIDA</h3><div id="student-output-container"><p>La correction d'AIDA apparaîtra ici.</p></div></div></div>`;
             }
             page.innerHTML = html;
             
+            const backBtn = page.querySelector('#back-to-dashboard-btn');
             if (currentUser.role === 'teacher') {
-                page.querySelector('#teacher-workspace-form').addEventListener('submit', handleTeacherWorkspace);
-                page.querySelector('#back-to-dashboard-btn').addEventListener('click', renderTeacherDashboard);
+                 if (backBtn) backBtn.addEventListener('click', renderTeacherDashboard);
             } else {
-                page.querySelector('#student-workspace-form').addEventListener('submit', handleStudentWorkspace);
-                page.querySelector('#back-to-dashboard-btn').addEventListener('click', renderStudentDashboard);
+                 if (backBtn) backBtn.addEventListener('click', renderStudentDashboard);
+                 const studentForm = page.querySelector('#student-workspace-form');
+                 if(studentForm) studentForm.addEventListener('submit', handleStudentWorkspace);
             }
             changePage('workspace-page');
         }
