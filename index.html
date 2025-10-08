@@ -144,8 +144,6 @@
             }
         }
         
-        // ... (All other functions from previous version, until the new workspace functions)
-        // START OF COPIED FUNCTIONS
         function renderAuthPage() {
             const t = `<div class="card" style="max-width:400px;margin:2rem auto"><div id="login-form-container"><h3>Connexion</h3><form id="login-form"><div class=form-group><label for=login-email>Email</label><input type=email id=login-email required></div><div class=form-group><label for=login-password>Mot de passe</label><input type=password id=login-password required></div><button type=submit class="btn btn-main">Se connecter</button><p class=error-message id=login-error></p></form><p>Pas de compte ? <a href=# id=show-signup>Inscrivez-vous</a></p></div><div id=signup-form-container class=hidden><h3>Inscription</h3><form id=signup-form><div class=form-group><label for=signup-email>Email</label><input type=email id=signup-email required></div><div class=form-group><label for=signup-password>Mot de passe</label><input type=password id=signup-password required></div><div class=form-group><label for=signup-role>Je suis un(e)</label><select id=signup-role><option value=student>Élève</option><option value=teacher>Enseignant</option></select></div><button type=submit class="btn btn-main">S'inscrire</button><p class=error-message id=signup-error></p></form><p>Déjà un compte ? <a href=# id=show-login>Connectez-vous</a></p></div></div>`;
             document.getElementById('auth-page').innerHTML = t;
@@ -370,9 +368,49 @@
         async function handleSubmitQuiz(c) { const answers = c.questions.map((q, i) => { const sel = document.querySelector(`input[name=q${i}]:checked`); return sel ? parseInt(sel.value) : -1; }); const score = answers.reduce((acc, ans, i) => acc + (ans == c.questions[i].correct_answer_index ? 1 : 0), 0); await apiRequest('/student/submit-quiz', 'POST', { studentEmail: currentUser.email, classId: c.classId, contentId: c.id, title: c.title, score, totalQuestions: c.questions.length, answers }); renderFeedbackPage(c, answers, score); }
         function renderFeedbackPage(c, answers, score) { const p = document.getElementById('feedback-page'); p.innerHTML = `<div class=card><h2>Résultats du Quiz: ${c.title}</h2><p><strong>Ton score: ${score} / ${c.questions.length}</strong></p><div id=feedback-details style=margin-top:2rem></div><button id=back-to-dash class="btn btn-main">Retour au tableau de bord</button></div>`; p.querySelector('#back-to-dash').addEventListener('click', renderStudentDashboard); const details = p.querySelector('#feedback-details'); c.questions.forEach((q, i) => { const correct = answers[i] == q.correct_answer_index; const item = document.createElement('div'); item.className = `feedback-item ${correct ? 'correct' : 'incorrect'}`; let html = `<p><strong>${q.question_text}</strong></p>`; if (correct) { html += `<p style=color:var(--correct-color)>Ta réponse: ${q.options[answers[i]]} (Correct)</p>`; } else { html += `<p style=color:var(--incorrect-color)>Ta réponse: ${answers[i] > -1 ? q.options[answers[i]] : 'Aucune'} (Incorrect)</p><p>Bonne réponse: ${q.options[q.correct_answer_index]}</p><div class=aida-explanation id=explanation-${i}><div class=spinner></div></div>`; } item.innerHTML = html; details.appendChild(item); if (!correct) { apiRequest('/ai/get-feedback-for-error', 'POST', { question: q.question_text, userAnswer: answers[i] > -1 ? q.options[answers[i]] : 'Aucune', correctAnswer: q.options[q.correct_answer_index] }).then(d => { document.getElementById(`explanation-${i}`).innerHTML = `<p><strong>L'explication d'AIDA :</strong> ${d.feedback}</p>`; }); } }); changePage('feedback-page'); }
         
+        // --- NOUVELLES FONCTIONS ---
+
         function showGenerationModal() {
-            const h = `<form id=generation-form><div class=form-group><label for=content-type-select>1. Type</label><select id=content-type-select><option value=quiz>Quiz</option><option value=exercices>Fiche d'exercices</option><option value=plan_de_lecon>Plan de leçon</option></select></div><div class=form-group><label for=cycle-select>2. Cycle</label><select id=cycle-select><option value="">-- Choisir --</option></select></div><div class=form-group><label for=niveau-select>3. Niveau</label><select id=niveau-select disabled><option value="">-- Choisir --</option></select></div><div class=form-group><label for=matiere-select>4. Matière</label><select id=matiere-select disabled><option value="">-- Choisir --</option></select></div><div class=form-group><label for=notion-select>5. Notion</label><select id=notion-select disabled><option value="">-- Choisir --</option></select></div><div class=form-group><label for=competence-select>6. Compétence</label><select id=competence-select disabled><option value="">-- Choisir --</option></select></div><button type=submit class="btn btn-main" id=generate-btn disabled>Générer</button></form><div id=generation-spinner class="spinner hidden"></div>`;
+            const h = `
+                <div class="tabs">
+                    <button class="tab-button active" data-tab="from-program">Depuis le Programme</button>
+                    <button class="tab-button" data-tab="from-text">Depuis un Texte</button>
+                </div>
+                <div id="from-program" class="tab-panel active">
+                    <form id="generation-form">
+                        <div class=form-group><label for=content-type-select>1. Type</label><select id=content-type-select><option value=quiz>Quiz</option><option value=exercices>Fiche d'exercices</option><option value=plan_de_lecon>Plan de leçon</option></select></div>
+                        <div class=form-group><label for=cycle-select>2. Cycle</label><select id=cycle-select><option value="">-- Choisir --</option></select></div>
+                        <div class=form-group><label for=niveau-select>3. Niveau</label><select id=niveau-select disabled><option value="">-- Choisir --</option></select></div>
+                        <div class=form-group><label for=matiere-select>4. Matière</label><select id=matiere-select disabled><option value="">-- Choisir --</option></select></div>
+                        <div class=form-group><label for=notion-select>5. Notion</label><select id=notion-select disabled><option value="">-- Choisir --</option></select></div>
+                        <div class=form-group><label for=competence-select>6. Compétence</label><select id=competence-select disabled><option value="">-- Choisir --</option></select></div>
+                        <button type=submit class="btn btn-main" id=generate-btn disabled>Générer</button>
+                    </form>
+                </div>
+                <div id="from-text" class="tab-panel">
+                    <form id="generate-from-text-form">
+                        <div class="form-group">
+                            <label for="course-text-modal">Collez votre texte ici</label>
+                            <textarea id="course-text-modal" required rows="8" placeholder="Ex: La Révolution française a commencé en 1789..."></textarea>
+                        </div>
+                        <div class="form-group">
+                             <label for="teacher-content-type-modal">Type de contenu à générer</label>
+                             <select id="teacher-content-type-modal">
+                                 <option value="quiz">Quiz</option>
+                                 <option value="exercices">Fiche d'exercices</option>
+                             </select>
+                        </div>
+                        <div style="display: flex; gap: 1rem; align-items: center;">
+                             <button type="submit" class="btn btn-main">Générer</button>
+                             <button type="button" class="btn btn-secondary" disabled title="Bientôt disponible !"><i class="fa-solid fa-upload"></i> Charger un document</button>
+                        </div>
+                    </form>
+                </div>
+                <div id="generation-spinner" class="spinner hidden"></div>`;
+            
             renderModal(getModalTemplate('generation-modal', 'Générer du contenu pédagogique', h));
+            
+            // Logic for "From Program" tab
             const cy = document.getElementById('cycle-select'), n = document.getElementById('niveau-select'), m = document.getElementById('matiere-select'), no = document.getElementById('notion-select'), co = document.getElementById('competence-select'), gen = document.getElementById('generate-btn');
             Object.keys(programmes).forEach(c => cy.add(new Option(c, c)));
             cy.addEventListener('change', () => { resetSelects([n, m, no, co]); const s = cy.value; if (s) { Object.keys(programmes[s]).forEach(l => n.add(new Option(l, l))); n.disabled = false; } });
@@ -381,96 +419,51 @@
             no.addEventListener('change', () => { resetSelects([co]); const d = programmes[cy.value][n.value]?.[m.value]?.[no.value]; if (d && d.sous_notions) { Object.values(d.sous_notions).forEach(sn => { (sn.competences || []).forEach(c => co.add(new Option(c, c))); }); co.disabled = false; } });
             co.addEventListener('change', () => { gen.disabled = !co.value; });
             document.getElementById('generation-form').addEventListener('submit', async e => { e.preventDefault(); selectedCompetenceInfo = { level: n.value, competence: co.value }; const comp = `Pour un élève de ${n.value}, ${co.value}`; document.getElementById('generation-spinner').classList.remove('hidden'); const d = await apiRequest('/ai/generate-content', 'POST', { competences: comp, contentType: document.getElementById('content-type-select').value }); generatedContent = d.structured_content; showPreviewModal(); });
+            
+            // Logic for "From Text" tab
+            document.getElementById('generate-from-text-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                document.getElementById('generation-spinner').classList.remove('hidden');
+                const documentText = document.getElementById('course-text-modal').value;
+                const contentType = document.getElementById('teacher-content-type-modal').value;
+                const data = await apiRequest('/ai/generate-from-document', 'POST', { documentText, contentType });
+                generatedContent = data.structured_content;
+                showPreviewModal();
+            });
+
+            // Logic for tabs
+            const modal = document.getElementById('generation-modal');
+            modal.querySelectorAll('.tab-button').forEach(button => {
+                button.addEventListener('click', (e) => {
+                    modal.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+                    modal.querySelectorAll('.tab-panel').forEach(panel => panel.classList.remove('active'));
+                    e.target.classList.add('active');
+                    document.getElementById(e.target.dataset.tab).classList.add('active');
+                });
+            });
         }
 
         function resetSelects(selects) { selects.forEach(s => { s.innerHTML = '<option value="">-- Choisir --</option>'; s.disabled = true; }); document.getElementById('generate-btn').disabled = true; }
-
-        function showPreviewModal() {
-            let h = '';
-            switch (generatedContent.type) {
-                case 'quiz': h = generatedContent.questions.map(q => `<p><strong>Q:</strong> ${q.question_text}</p>`).join(''); break;
-                case 'exercices': h = generatedContent.content.map(e => `<p><strong>Exercice:</strong> ${e.enonce}</p>`).join(''); break;
-                case 'plan_de_lecon': h = `<h4>Objectifs</h4><ul>${generatedContent.objectifs.map(o => `<li>${o}</li>`).join('')}</ul><h4>Déroulement</h4><p>${generatedContent.deroulement}</p>`; break;
-            }
-            const modalHtml = `<h4>${generatedContent.title}</h4><div>${h}</div><form id=assign-form style=margin-top:1rem><div class=form-group><label for=assign-class-select>Assigner à</label><select id=assign-class-select required></select></div><button type=submit class="btn btn-main">Assigner</button></form>`;
-            renderModal(getModalTemplate('preview-modal', `Aperçu: ${generatedContent.title}`, modalHtml));
-            const sel = document.getElementById('assign-class-select');
-            teacherClasses.forEach(c => sel.add(new Option(c.className, c.id)));
-            document.getElementById('assign-form').addEventListener('submit', async e => {
-                e.preventDefault();
-                const id = sel.value;
-                if (!id) return;
-                await apiRequest('/teacher/assign-content', 'POST', { classId: id, contentData: { ...generatedContent, competence: selectedCompetenceInfo } });
-                modalContainer.innerHTML = '';
-            });
-        }
+        function showPreviewModal() { let h = ''; switch (generatedContent.type) { case 'quiz': h = generatedContent.questions.map(q => `<p><strong>Q:</strong> ${q.question_text}</p>`).join(''); break; case 'exercices': h = generatedContent.content.map(e => `<p><strong>Exercice:</strong> ${e.enonce}</p>`).join(''); break; case 'plan_de_lecon': h = `<h4>Objectifs</h4><ul>${generatedContent.objectifs.map(o => `<li>${o}</li>`).join('')}</ul><h4>Déroulement</h4><p>${generatedContent.deroulement}</p>`; break; } const modalHtml = `<h4>${generatedContent.title}</h4><div>${h}</div><form id=assign-form style=margin-top:1rem><div class=form-group><label for=assign-class-select>Assigner à</label><select id=assign-class-select required></select></div><button type=submit class="btn btn-main">Assigner</button></form>`; renderModal(getModalTemplate('preview-modal', `Aperçu: ${generatedContent.title}`, modalHtml)); const sel = document.getElementById('assign-class-select'); teacherClasses.forEach(c => sel.add(new Option(c.className, c.id))); document.getElementById('assign-form').addEventListener('submit', async e => { e.preventDefault(); const id = sel.value; if (!id) return; await apiRequest('/teacher/assign-content', 'POST', { classId: id, contentData: { ...generatedContent, competence: selectedCompetenceInfo } }); modalContainer.innerHTML = ''; }); }
         
-        // END OF COPIED FUNCTIONS
-        
-        // NOUVEAU : Espace de travail
         function renderWorkspacePage() {
             const page = document.getElementById('workspace-page');
-            let html = '';
+            const backButtonAction = currentUser.role === 'teacher' ? 'renderTeacherDashboard()' : 'renderStudentDashboard()';
+            let html = `<button onclick="${backButtonAction}" class="btn btn-secondary" style="margin-bottom: 2rem;"><i class="fa-solid fa-arrow-left"></i> Retour au tableau de bord</button>`;
             if (currentUser.role === 'teacher') {
-                html = `
-                    <h2>Espace de Travail Enseignant</h2>
-                    <p>Collez le contenu de votre cours et générez des exercices personnalisés.</p>
-                    <div class="workspace-container" style="margin-top: 2rem;">
-                        <div class="workspace-input">
-                            <h3>Votre cours</h3>
-                            <form id="teacher-workspace-form">
-                                <div class="form-group">
-                                    <label for="course-text">Collez votre texte ici</label>
-                                    <textarea id="course-text" required placeholder="Ex: La Révolution française a commencé en 1789..."></textarea>
-                                </div>
-                                <div class="form-group">
-                                    <label for="teacher-content-type">Type de contenu à générer</label>
-                                    <select id="teacher-content-type">
-                                        <option value="quiz">Quiz</option>
-                                        <option value="exercices">Fiche d'exercices</option>
-                                    </select>
-                                </div>
-                                <button type="submit" class="btn btn-main">Générer avec AIDA</button>
-                            </form>
-                        </div>
-                        <div class="workspace-output">
-                            <h3>Contenu Généré</h3>
-                            <div id="teacher-output-container"><p>Le contenu généré par AIDA apparaîtra ici.</p></div>
-                        </div>
-                    </div>`;
-            } else { // Student
-                html = `
-                    <h2>Espace de Travail Élève</h2>
-                    <p>Bloqué sur un exercice ? Collez-le ici et demandez un indice à AIDA.</p>
-                    <div class="workspace-container" style="margin-top: 2rem;">
-                        <div class="workspace-input">
-                            <h3>Votre exercice</h3>
-                            <form id="student-workspace-form">
-                                <div class="form-group">
-                                    <label for="exercise-text">Collez votre exercice</label>
-                                    <textarea id="exercise-text" required placeholder="Ex: Calcule l'aire d'un rectangle de 5cm de long et 3cm de large."></textarea>
-                                </div>
-                                <div class="form-group">
-                                    <label for="student-question">Votre question à AIDA</label>
-                                    <input type="text" id="student-question" required placeholder="Ex: Peux-tu me rappeler la formule ?">
-                                </div>
-                                <button type="submit" class="btn btn-main">Demander un indice</button>
-                            </form>
-                        </div>
-                        <div class="workspace-output">
-                            <h3>L'aide d'AIDA</h3>
-                            <div id="student-output-container"><p>La réponse d'AIDA apparaîtra ici.</p></div>
-                        </div>
-                    </div>`;
+                html += `<h2>Espace de Travail Enseignant</h2><p>Collez le contenu de votre cours et générez des exercices personnalisés.</p><div class="workspace-container" style="margin-top: 2rem;"><div class="workspace-input"><h3>Votre cours</h3><form id="teacher-workspace-form"><div class="form-group"><label for="course-text">Collez votre texte ici</label><textarea id="course-text" required placeholder="Ex: La Révolution française a commencé en 1789..."></textarea></div><div class="form-group"><label for="teacher-content-type">Type de contenu à générer</label><select id="teacher-content-type"><option value="quiz">Quiz</option><option value="exercices">Fiche d'exercices</option></select></div><button type="submit" class="btn btn-main">Générer avec AIDA</button></form></div><div class="workspace-output"><h3>Contenu Généré</h3><div id="teacher-output-container"><p>Le contenu généré par AIDA apparaîtra ici.</p></div></div></div>`;
+            } else {
+                html += `<h2>Espace de Travail Élève</h2><p>Bloqué sur un exercice ? Collez-le ici et demandez un indice à AIDA.</p><div class="workspace-container" style="margin-top: 2rem;"><div class="workspace-input"><h3>Votre exercice</h3><form id="student-workspace-form"><div class="form-group"><label for="exercise-text">Collez votre exercice</label><textarea id="exercise-text" required placeholder="Ex: Calcule l'aire d'un rectangle de 5cm de long et 3cm de large."></textarea></div><div class="form-group"><label for="student-question">Votre question à AIDA</label><input type="text" id="student-question" required placeholder="Ex: Peux-tu me rappeler la formule ?"></div><button type="submit" class="btn btn-main">Demander un indice</button></form></div><div class="workspace-output"><h3>L'aide d'AIDA</h3><div id="student-output-container"><p>La réponse d'AIDA apparaîtra ici.</p></div></div></div>`;
             }
             page.innerHTML = html;
             
             if (currentUser.role === 'teacher') {
-                document.getElementById('teacher-workspace-form').addEventListener('submit', handleTeacherWorkspace);
+                page.querySelector('#teacher-workspace-form').addEventListener('submit', handleTeacherWorkspace);
+                page.querySelector('button').onclick = renderTeacherDashboard;
             } else {
-                document.getElementById('student-workspace-form').addEventListener('submit', handleStudentWorkspace);
+                page.querySelector('#student-workspace-form').addEventListener('submit', handleStudentWorkspace);
+                page.querySelector('button').onclick = renderStudentDashboard;
             }
-            
             changePage('workspace-page');
         }
 
@@ -482,29 +475,19 @@
                 const documentText = document.getElementById('course-text').value;
                 const contentType = document.getElementById('teacher-content-type').value;
                 const data = await apiRequest('/ai/generate-from-document', 'POST', { documentText, contentType });
-                
                 generatedContent = data.structured_content;
                 let previewHtml = '';
                 switch(generatedContent.type) {
-                    case 'quiz':
-                        previewHtml = `<h4>${generatedContent.title}</h4>` + generatedContent.questions.map(q => `<p><strong>Q:</strong> ${q.question_text}</p><ul>${q.options.map(o => `<li>${o}</li>`).join('')}</ul>`).join('');
-                        break;
-                    case 'exercices':
-                         previewHtml = `<h4>${generatedContent.title}</h4>` + generatedContent.content.map(ex => `<p><strong>Exercice:</strong> ${ex.enonce}</p><p><strong>Correction:</strong> ${ex.correction}</p>`).join('');
-                        break;
+                    case 'quiz': previewHtml = `<h4>${generatedContent.title}</h4>` + generatedContent.questions.map(q => `<p><strong>Q:</strong> ${q.question_text}</p><ul>${q.options.map(o => `<li>${o}</li>`).join('')}</ul>`).join(''); break;
+                    case 'exercices': previewHtml = `<h4>${generatedContent.title}</h4>` + generatedContent.content.map(ex => `<p><strong>Exercice:</strong> ${ex.enonce}</p><p><strong>Correction:</strong> ${ex.correction}</p>`).join(''); break;
                 }
                 outputContainer.innerHTML = `<div class="card">${previewHtml}<br><button class="btn btn-secondary" id="assign-generated-btn">Assigner ce contenu</button></div>`;
                 document.getElementById('assign-generated-btn').addEventListener('click', showAssignModalFromWorkspace);
-            } catch (err) {
-                outputContainer.innerHTML = `<p class="error-message">Une erreur est survenue: ${err.message}</p>`;
-            }
+            } catch (err) { outputContainer.innerHTML = `<p class="error-message">Une erreur est survenue: ${err.message}</p>`; }
         }
 
         function showAssignModalFromWorkspace() {
-            const modalHtml = `<form id="assign-form">
-                <div class="form-group"><label for="assign-class-select">Assigner à</label><select id="assign-class-select" required></select></div>
-                <button type="submit" class="btn btn-main">Assigner</button>
-            </form>`;
+            const modalHtml = `<form id="assign-form"><div class="form-group"><label for="assign-class-select">Assigner à</label><select id="assign-class-select" required></select></div><button type="submit" class="btn btn-main">Assigner</button></form>`;
             renderModal(getModalTemplate('assign-modal', 'Assigner le contenu généré', modalHtml));
             const select = document.getElementById('assign-class-select');
             teacherClasses.forEach(c => select.add(new Option(c.className, c.id)));
@@ -526,12 +509,12 @@
                 const exerciseText = document.getElementById('exercise-text').value;
                 const userQuestion = document.getElementById('student-question').value;
                 const data = await apiRequest('/ai/get-hint-from-document', 'POST', { exerciseText, userQuestion });
-                outputContainer.innerHTML = `<p>${data.hint}</p>`;
+                outputContainer.innerHTML = `<p>${data.hint.replace(/\n/g, '<br>')}</p>`;
             } catch (err) {
                 outputContainer.innerHTML = `<p class="error-message">Une erreur est survenue: ${err.message}</p>`;
             }
         }
-        
+
         async function init() {
             await loadProgrammes();
             updateUI();
