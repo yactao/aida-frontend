@@ -395,5 +395,285 @@
                     <form id="generate-from-text-form">
                         <div class="form-group"><label for="course-text-modal">Collez votre texte ici</label><textarea id="course-text-modal" required rows="6"></textarea></div>
                         <div class="form-group"><label>Type de contenu</label><select id="teacher-content-type-modal"><option value="quiz">Quiz</option><option value="exercices">Fiche d'exercices</option></select></div>
-                        <div class="form-group hidden" id="exercise-count-group-text"><label for="exercise-count-
+                        <div class="form-group hidden" id="exercise-count-group-text"><label for="exercise-count-text">Nombre d'exercices</label><input type="number" id="exercise-count-text" value="5" min="1" max="10"></div>
+                        <div style="display: flex; gap: 1rem; align-items: center;">
+                             <button type="submit" class="btn btn-main">Générer</button>
+                             <button type="button" class="btn btn-secondary" id="upload-doc-btn"><i class="fa-solid fa-upload"></i> Charger un .txt</button>
+                        </div>
+                    </form>
+                    <input type="file" id="doc-upload-input" class="hidden" accept=".txt">
+                </div>
+                <div id="generation-spinner" class="spinner hidden"></div>`;
+            
+            renderModal(getModalTemplate('generation-modal', 'Générer du contenu pédagogique', h));
+            
+            const contentTypeSelect = document.getElementById('content-type-select');
+            const exerciseCountGroup = document.getElementById('exercise-count-group');
+            contentTypeSelect.addEventListener('change', () => exerciseCountGroup.classList.toggle('hidden', contentTypeSelect.value !== 'exercices'));
+
+            const contentTypeSelectText = document.getElementById('teacher-content-type-modal');
+            const exerciseCountGroupText = document.getElementById('exercise-count-group-text');
+            contentTypeSelectText.addEventListener('change', () => exerciseCountGroupText.classList.toggle('hidden', contentTypeSelectText.value !== 'exercices'));
+
+            const cy = document.getElementById('cycle-select'), n = document.getElementById('niveau-select'), m = document.getElementById('matiere-select'), no = document.getElementById('notion-select'), co = document.getElementById('competence-select'), gen = document.getElementById('generate-btn');
+            Object.keys(programmes).forEach(c => cy.add(new Option(c, c)));
+            cy.addEventListener('change', () => { resetSelects([n, m, no, co]); const s = cy.value; if (s) { Object.keys(programmes[s]).forEach(l => n.add(new Option(l, l))); n.disabled = false; } });
+            n.addEventListener('change', () => { resetSelects([m, no, co]); const d = programmes[cy.value][n.value]; if (d) { Object.keys(d).forEach(k => m.add(new Option(d[k].nom, k))); m.disabled = false; } });
+            m.addEventListener('change', () => { resetSelects([no, co]); const d = programmes[cy.value][n.value]?.[m.value]; if (d) { Object.keys(d).filter(k => k !== 'nom').forEach(nk => { no.add(new Option(d[nk].nom, nk)); }); no.disabled = false; } });
+            no.addEventListener('change', () => { resetSelects([co]); const d = programmes[cy.value][n.value]?.[m.value]?.[no.value]; if (d && d.sous_notions) { Object.values(d.sous_notions).forEach(sn => { (sn.competences || []).forEach(c => co.add(new Option(c, c))); }); co.disabled = false; } });
+            co.addEventListener('change', () => { gen.disabled = !co.value; });
+            document.getElementById('generation-form').addEventListener('submit', async e => { e.preventDefault(); selectedCompetenceInfo = { level: n.value, competence: co.value }; const comp = `Pour un élève de ${n.value}, ${co.value}`; const contentType = contentTypeSelect.value; const exerciseCount = document.getElementById('exercise-count').value; document.getElementById('generation-spinner').classList.remove('hidden'); const d = await apiRequest('/ai/generate-content', 'POST', { competences: comp, contentType, exerciseCount }); generatedContent = d.structured_content; showEditModal(); });
+            
+            document.getElementById('generate-from-text-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                document.getElementById('generation-spinner').classList.remove('hidden');
+                const documentText = document.getElementById('course-text-modal').value;
+                const contentType = contentTypeSelectText.value;
+                const exerciseCount = document.getElementById('exercise-count-text').value;
+                const data = await apiRequest('/ai/generate-from-document', 'POST', { documentText, contentType, exerciseCount });
+                generatedContent = data.structured_content;
+                showEditModal();
+            });
+            
+            const uploadBtn = document.getElementById('upload-doc-btn');
+            const fileInput = document.getElementById('doc-upload-input');
+            uploadBtn.addEventListener('click', () => fileInput.click());
+            fileInput.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (file && file.type === "text/plain") {
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                        document.getElementById('course-text-modal').value = event.target.result;
+                    };
+                    reader.readAsText(file);
+                } else {
+                    alert("Veuillez sélectionner un fichier .txt pour le moment.");
+                }
+            });
+
+            const modal = document.getElementById('generation-modal');
+            modal.querySelectorAll('.tab-button').forEach(button => {
+                button.addEventListener('click', (e) => {
+                    modal.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+                    modal.querySelectorAll('.tab-panel').forEach(panel => panel.classList.remove('active'));
+                    e.target.classList.add('active');
+                    document.getElementById(e.target.dataset.tab).classList.add('active');
+                });
+            });
+        }
+
+        function resetSelects(selects) { selects.forEach(s => { s.innerHTML = '<option value="">-- Choisir --</option>'; s.disabled = true; }); document.getElementById('generate-btn').disabled = true; }
+
+        function showEditModal() {
+            let editHtml = `<form id="edit-form"><div class="form-group"><label>Titre</label><input type="text" id="edit-title" value="${generatedContent.title}"></div>`;
+            if (generatedContent.type === 'quiz') {
+                generatedContent.questions.forEach((q, i) => {
+                    editHtml += `<div class="form-group">
+                        <label>Question ${i+1}</label>
+                        <input type="text" id="edit-q-${i}" value="${q.question_text}">
+                        <label style="margin-top: 0.5rem;">Options</label>
+                        ${q.options.map((opt, j) => `<input type="text" id="edit-q-${i}-opt-${j}" value="${opt}" style="margin-bottom: 0.5rem;">`).join('')}
+                    </div>`;
+                });
+            } else if (generatedContent.type === 'exercices') {
+                generatedContent.content.forEach((ex, i) => {
+                    editHtml += `<div class="form-group"><label>Exercice ${i+1}</label><textarea id="edit-ex-${i}" rows="3">${ex.enonce}</textarea></div>`;
+                });
+            }
+            editHtml += `<button type="submit" class="btn btn-main">Valider et Assigner</button></form>`;
+            renderModal(getModalTemplate('edit-modal', 'Modifier et Valider le Contenu', editHtml));
+
+            document.getElementById('edit-form').addEventListener('submit', (e) => {
+                e.preventDefault();
+                generatedContent.title = document.getElementById('edit-title').value;
+                if (generatedContent.type === 'quiz') {
+                    generatedContent.questions.forEach((q, i) => {
+                        q.question_text = document.getElementById(`edit-q-${i}`).value;
+                        q.options.forEach((opt, j) => {
+                            q.options[j] = document.getElementById(`edit-q-${i}-opt-${j}`).value;
+                        });
+                    });
+                } else if (generatedContent.type === 'exercices') {
+                    generatedContent.content.forEach((ex, i) => {
+                        ex.enonce = document.getElementById(`edit-ex-${i}`).value;
+                    });
+                }
+                showAssignModal();
+            });
+        }
+        
+        function showAssignModal() {
+            const modalHtml = `<form id="assign-form"><div class="form-group"><label for="assign-class-select">Assigner à</label><select id="assign-class-select" required></select></div><button type="submit" class="btn btn-main">Assigner</button></form>`;
+            renderModal(getModalTemplate('assign-modal', 'Assigner le contenu', modalHtml));
+            const select = document.getElementById('assign-class-select');
+            teacherClasses.forEach(c => select.add(new Option(c.className, c.id)));
+            document.getElementById('assign-form').addEventListener('submit', async e => {
+                e.preventDefault();
+                const classId = select.value;
+                if (!classId || !generatedContent) return;
+                await apiRequest('/teacher/assign-content', 'POST', { classId, contentData: { ...generatedContent, competence: selectedCompetenceInfo } });
+                modalContainer.innerHTML = '';
+            });
+        }
+        
+        function renderWorkspacePage() {
+            const page = document.getElementById('workspace-page');
+            let html = `<button id="back-to-dashboard-btn" class="btn btn-secondary" style="margin-bottom: 2rem;"><i class="fa-solid fa-arrow-left"></i> Retour au tableau de bord</button>`;
+            
+            html += `<h2>Espace de Travail Élève</h2><p>Bloqué sur un exercice ? Collez-le ici, écris ta réponse et demande à AIDA de te corriger.</p>
+                     <div class="workspace-container" style="margin-top: 2rem;">
+                        <div class="workspace-input">
+                            <h3>Ton exercice</h3>
+                            <form id="student-workspace-form">
+                                <div class="form-group">
+                                    <label for="exercise-text">Colle ton exercice</label>
+                                    <textarea id="exercise-text" required placeholder="Ex: Calcule 5 + 3."></textarea>
+                                </div>
+                                <div class="form-group">
+                                    <label for="student-answer">Ta réponse</label>
+                                    <div class="textarea-container">
+                                        <textarea id="student-answer" required placeholder="Ex: Ma réponse est 8."></textarea>
+                                        <button type="button" id="mic-btn" class="btn-voice"><i class="fa-solid fa-microphone"></i></button>
+                                    </div>
+                                </div>
+                                <div style="display: flex; gap: 1rem; align-items: center;">
+                                    <button type="submit" class="btn btn-main">Corrige-moi, AIDA !</button>
+                                    <button type="button" class="btn btn-secondary" id="student-upload-btn"><i class="fa-solid fa-upload"></i> Charger .txt</button>
+                                </div>
+                            </form>
+                            <input type="file" id="student-doc-upload" class="hidden" accept=".txt">
+                        </div>
+                        <div class="workspace-output">
+                            <h3>La correction d'AIDA</h3>
+                            <div id="student-output-container"><p>La correction d'AIDA apparaîtra ici.</p></div>
+                        </div>
+                    </div>`;
+            
+            page.innerHTML = html;
+            
+            page.querySelector('#back-to-dashboard-btn').addEventListener('click', renderStudentDashboard);
+            page.querySelector('#student-workspace-form').addEventListener('submit', handleStudentWorkspace);
+            page.querySelector('#mic-btn').addEventListener('click', () => startRecognition(document.getElementById('student-answer'), document.getElementById('mic-btn')));
+            
+            const studentUploadBtn = page.querySelector('#student-upload-btn');
+            const studentFileInput = page.querySelector('#student-doc-upload');
+            studentUploadBtn.addEventListener('click', () => studentFileInput.click());
+            studentFileInput.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (file && file.type === "text/plain") {
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                        document.getElementById('exercise-text').value = event.target.result;
+                    };
+                    reader.readAsText(file);
+                } else {
+                    alert("Veuillez sélectionner un fichier .txt pour le moment.");
+                }
+            });
+            
+            changePage('workspace-page');
+        }
+        
+        async function handleStudentWorkspace(e) {
+            e.preventDefault();
+            const outputContainer = document.getElementById('student-output-container');
+            outputContainer.innerHTML = '<div class="spinner"></div>';
+            try {
+                const exerciseText = document.getElementById('exercise-text').value;
+                const studentAnswer = document.getElementById('student-answer').value;
+                const data = await apiRequest('/ai/correct-exercise', 'POST', { exerciseText, studentAnswer });
+                outputContainer.innerHTML = `<p>${data.correction.replace(/\n/g, '<br>')}</p>
+                                             <button id="listen-btn" class="btn-voice"><i class="fa-solid fa-volume-high"></i> Écouter</button>`;
+                document.getElementById('listen-btn').addEventListener('click', () => speak(data.correction));
+            } catch (err) {
+                outputContainer.innerHTML = `<p class="error-message">Une erreur est survenue: ${err.message}</p>`;
+            }
+        }
+        
+        function loadVoices() {
+            voices = synth.getVoices();
+        }
+
+        function speak(text) {
+            if (synth.speaking) {
+                synth.cancel();
+            }
+            if (text !== '') {
+                const utterance = new SpeechSynthesisUtterance(text);
+                const frenchVoice = voices.find(voice => voice.lang === 'fr-FR' && /female|femme|fille/i.test(voice.name));
+                utterance.voice = frenchVoice || voices.find(voice => voice.lang === 'fr-FR');
+                utterance.pitch = 1.1;
+                utterance.rate = 1;
+                utterance.volume = 1;
+                synth.speak(utterance);
+            }
+        }
+
+        function startRecognition(targetTextarea, micButton) {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition) {
+                alert("La reconnaissance vocale n'est pas supportée par votre navigateur.");
+                return;
+            }
+            
+            if (isListening) {
+                recognition.stop();
+                return;
+            }
+
+            recognition = new SpeechRecognition();
+            recognition.lang = 'fr-FR';
+            recognition.interimResults = true;
+
+            recognition.onstart = () => {
+                micButton.classList.add('active');
+                isListening = true;
+            };
+
+            recognition.onend = () => {
+                micButton.classList.remove('active');
+                isListening = false;
+            };
+            
+            recognition.onerror = (event) => {
+                console.error("Speech recognition error", event.error);
+                micButton.classList.remove('active');
+                isListening = false;
+            };
+
+            recognition.onresult = (event) => {
+                let interimTranscript = '';
+                for (let i = event.resultIndex; i < event.results.length; ++i) {
+                    if (event.results[i].isFinal) {
+                        targetTextarea.value = event.results[i][0].transcript;
+                    } else {
+                        interimTranscript += event.results[i][0].transcript;
+                        targetTextarea.value = interimTranscript;
+                    }
+                }
+            };
+            
+            recognition.start();
+        }
+        
+        async function init() {
+            await loadProgrammes();
+            updateUI();
+            if (synth.onvoiceschanged !== undefined) {
+                synth.onvoiceschanged = loadVoices;
+            }
+            loadVoices();
+        }
+        
+        loginNavBtn.addEventListener('click', renderAuthPage);
+        homeLink.addEventListener('click', () => { if(currentUser) { currentUser.role === 'teacher' ? renderTeacherDashboard() : renderStudentDashboard() } else { changePage('home-page'); } });
+        workspaceLink.addEventListener('click', (e) => { e.preventDefault(); renderWorkspacePage(); });
+        logoutBtn.addEventListener('click', () => { currentUser = null; updateUI(); });
+        userInfoClickable.addEventListener('click', () => userDropdown.classList.toggle('hidden'));
+        
+        init();
+    });
+    </script>
+</body>
+</html>
 
