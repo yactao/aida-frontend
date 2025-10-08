@@ -356,18 +356,59 @@
         function createContentCard(c, isDone) { const card = document.createElement('div'); card.className = 'dashboard-card'; const date = new Date(isDone ? c.completedAt : c.assignedAt).toLocaleDateString('fr-FR'); card.innerHTML = `<h4>${c.title}</h4><p>Classe: ${c.className}</p><p>${isDone ? 'Terminé le' : 'Assigné le'}: ${date}</p><button class="btn ${isDone ? 'btn-secondary' : 'btn-main'}" ${isDone ? 'disabled' : ''}>${isDone ? 'Terminé' : 'Commencer'}</button>`; if (!isDone) card.querySelector('button').addEventListener('click', () => renderContentViewer(c)); return card; }
 
         function renderContentViewer(c) {
-            const p = document.getElementById('content-viewer-page'); let html = ''; let form = false;
+            const p = document.getElementById('content-viewer-page');
+            let html = '';
+            let footerHtml = '';
+
             switch (c.type) {
-                case 'quiz': form = true; c.questions.forEach((q, i) => { html += `<div class=quiz-question><div class=question-header><p><strong>${q.question_text}</strong></p><button class=btn-help data-question="${q.question_text}"><i class="fa-solid fa-lightbulb"></i> Aide</button></div><div class=quiz-options>${q.options.map((o, j) => `<label><input type=radio name=q${i} value=${j} required> ${o}</label>`).join('')}</div></div>`; }); break;
-                case 'exercices': c.content.forEach(e => { html += `<div><h4>Exercice</h4><p>${e.enonce}</p></div>`; }); break;
-                case 'plan_de_lecon': html = `<div><h4>Objectifs</h4><ul>${c.objectifs.map(o => `<li>${o}</li>`).join('')}</ul></div><div><h4>Déroulement</h4><p>${c.deroulement}</p></div>`; break;
+                case 'quiz':
+                    c.questions.forEach((q, i) => {
+                        html += `<div class="quiz-question">
+                                     <div class="question-header">
+                                         <p><strong>${q.question_text}</strong></p>
+                                         <button type="button" class="btn-help" data-question="${q.question_text}"><i class="fa-solid fa-lightbulb"></i> Aide</button>
+                                     </div>
+                                     <div class="quiz-options">${q.options.map((o, j) => `<label><input type="radio" name="q${i}" value="${j}" required> ${o}</label>`).join('')}</div>
+                                 </div>`;
+                    });
+                    footerHtml = `<button type="submit" class="btn btn-main" style="margin-top:1rem;">Valider</button>`;
+                    break;
+                case 'exercices':
+                    c.content.forEach(e => {
+                        html += `<div class="card" style="margin-bottom: 1rem;"><h4>Exercice</h4><p>${e.enonce}</p></div>`;
+                    });
+                    footerHtml = `<button type="button" id="finish-exercise-btn" class="btn btn-main" style="margin-top:1rem;"><i class="fa-solid fa-check"></i> Terminé</button>`;
+                    break;
+                 default:
+                     html = `<p>Ce type de contenu n'est pas interactif.</p>`;
+                     footerHtml = `<button type="button" id="finish-exercise-btn" class="btn btn-main" style="margin-top:1rem;"><i class="fa-solid fa-check"></i> Terminé</button>`;
+                    break;
             }
-            p.innerHTML = `<button id=back-to-student class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> Retour</button><div class=card style=margin-top:1rem><h2>${c.title}</h2><form id=content-form><div>${html}</div><button type=submit class="btn btn-main" style=margin-top:1rem>Valider</button></form></div>`;
+
+            p.innerHTML = `<button id="back-to-student" class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> Retour</button>
+                         <div class="card" style="margin-top:1rem;">
+                            <h2>${c.title}</h2>
+                            <form id="content-form">
+                                <div>${html}</div>
+                                ${footerHtml}
+                            </form>
+                         </div>`;
+
             p.querySelector('#back-to-student').addEventListener('click', renderStudentDashboard);
-            const f = p.querySelector('#content-form');
-            if (form) { f.addEventListener('submit', e => { e.preventDefault(); handleSubmitQuiz(c); }); f.querySelectorAll('.btn-help').forEach(b => b.addEventListener('click', handleHelpRequest)); } else { f.querySelector('button[type=submit]').classList.add('hidden'); }
+            const form = p.querySelector('#content-form');
+
+            if (c.type === 'quiz') {
+                form.addEventListener('submit', e => { e.preventDefault(); handleSubmitQuiz(c); });
+                form.querySelectorAll('.btn-help').forEach(b => b.addEventListener('click', handleHelpRequest));
+            } else {
+                const finishBtn = p.querySelector('#finish-exercise-btn');
+                if (finishBtn) {
+                    finishBtn.addEventListener('click', renderStudentDashboard);
+                }
+            }
             changePage('content-viewer-page');
         }
+
 
         async function handleHelpRequest(e) { e.preventDefault(); const q = e.target.closest('button').dataset.question; renderModal(getModalTemplate('help-modal', 'Indice d\'AIDA', `<p><strong>Question:</strong> ${q}</p><div id=hint-container style=margin-top:1rem><div class=spinner></div></div>`)); try { const d = await apiRequest('/ai/get-hint', 'POST', { questionText: q }); document.getElementById('hint-container').innerHTML = `<p>${d.hint}</p>`; } catch (err) { document.getElementById('hint-container').innerHTML = `<p class=error-message>Indice indisponible.</p>`; } }
         async function handleSubmitQuiz(c) { const answers = c.questions.map((q, i) => { const sel = document.querySelector(`input[name=q${i}]:checked`); return sel ? parseInt(sel.value) : -1; }); const score = answers.reduce((acc, ans, i) => acc + (ans == c.questions[i].correct_answer_index ? 1 : 0), 0); await apiRequest('/student/submit-quiz', 'POST', { studentEmail: currentUser.email, classId: c.classId, contentId: c.id, title: c.title, score, totalQuestions: c.questions.length, answers }); renderFeedbackPage(c, answers, score); }
@@ -533,7 +574,6 @@
                                     <label for="student-answer">Ta réponse</label>
                                     <div class="textarea-container">
                                         <textarea id="student-answer" required placeholder="Ex: Ma réponse est 8."></textarea>
-                                        <button type="button" id="mic-btn" class="btn-voice"><i class="fa-solid fa-microphone"></i></button>
                                     </div>
                                 </div>
                                 <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
@@ -554,7 +594,6 @@
             
             page.querySelector('#back-to-dashboard-btn').addEventListener('click', renderStudentDashboard);
             page.querySelector('#student-workspace-form').addEventListener('submit', handleStudentWorkspace);
-            page.querySelector('#mic-btn').addEventListener('click', () => startRecognition(document.getElementById('student-answer'), document.getElementById('mic-btn')));
             page.querySelector('#finish-workspace-btn').addEventListener('click', renderStudentDashboard);
             
             const studentUploadBtn = page.querySelector('#student-upload-btn');
@@ -584,87 +623,15 @@
                 const exerciseText = document.getElementById('exercise-text').value;
                 const studentAnswer = document.getElementById('student-answer').value;
                 const data = await apiRequest('/ai/correct-exercise', 'POST', { exerciseText, studentAnswer });
-                outputContainer.innerHTML = `<p>${data.correction.replace(/\n/g, '<br>')}</p>
-                                             <button id="listen-btn" class="btn-voice"><i class="fa-solid fa-volume-high"></i> Écouter</button>`;
-                document.getElementById('listen-btn').addEventListener('click', () => speak(data.correction));
+                outputContainer.innerHTML = `<p>${data.correction.replace(/\n/g, '<br>')}</p>`;
             } catch (err) {
                 outputContainer.innerHTML = `<p class="error-message">Une erreur est survenue: ${err.message}</p>`;
             }
         }
         
-        function loadVoices() {
-            voices = synth.getVoices();
-        }
-
-        function speak(text) {
-            if (synth.speaking) {
-                synth.cancel();
-            }
-            if (text !== '') {
-                const utterance = new SpeechSynthesisUtterance(text);
-                const frenchVoice = voices.find(voice => voice.lang === 'fr-FR' && /female|femme|fille/i.test(voice.name));
-                utterance.voice = frenchVoice || voices.find(voice => voice.lang === 'fr-FR');
-                utterance.pitch = 1.1;
-                utterance.rate = 1;
-                utterance.volume = 1;
-                synth.speak(utterance);
-            }
-        }
-
-        function startRecognition(targetTextarea, micButton) {
-            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-            if (!SpeechRecognition) {
-                alert("La reconnaissance vocale n'est pas supportée par votre navigateur.");
-                return;
-            }
-            
-            if (isListening) {
-                recognition.stop();
-                return;
-            }
-
-            recognition = new SpeechRecognition();
-            recognition.lang = 'fr-FR';
-            recognition.interimResults = true;
-
-            recognition.onstart = () => {
-                micButton.classList.add('active');
-                isListening = true;
-            };
-
-            recognition.onend = () => {
-                micButton.classList.remove('active');
-                isListening = false;
-            };
-            
-            recognition.onerror = (event) => {
-                console.error("Speech recognition error", event.error);
-                micButton.classList.remove('active');
-                isListening = false;
-            };
-
-            recognition.onresult = (event) => {
-                let interimTranscript = '';
-                for (let i = event.resultIndex; i < event.results.length; ++i) {
-                    if (event.results[i].isFinal) {
-                        targetTextarea.value = event.results[i][0].transcript;
-                    } else {
-                        interimTranscript += event.results[i][0].transcript;
-                        targetTextarea.value = interimTranscript;
-                    }
-                }
-            };
-            
-            recognition.start();
-        }
-        
         async function init() {
             await loadProgrammes();
             updateUI();
-            if (synth.onvoiceschanged !== undefined) {
-                synth.onvoiceschanged = loadVoices;
-            }
-            loadVoices();
         }
         
         loginNavBtn.addEventListener('click', renderAuthPage);
