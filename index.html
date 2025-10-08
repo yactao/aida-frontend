@@ -34,9 +34,14 @@
         .btn-main { background: linear-gradient(45deg, var(--primary-color), var(--secondary-color)); color: #FFF; }
         .btn-main:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.1); }
         .btn-secondary { background-color: #E5E7EB; color: var(--text-color); }
-        .btn-help { background: none; border: none; font-size: 1.2rem; color: #F5A623; cursor: pointer; padding: 0.5rem; }
+        .btn-help, .btn-voice { background: none; border: none; font-size: 1.2rem; color: var(--primary-color); cursor: pointer; padding: 0.5rem; }
+        .btn-voice.active { color: var(--secondary-color); animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.2); } 100% { transform: scale(1); } }
         .form-group { margin-bottom: 1.5rem; text-align: left; }
         .form-group label { display: block; margin-bottom: 0.5rem; font-weight: 600; }
+        .textarea-container { position: relative; }
+        .textarea-container textarea { width: 100%; padding-right: 45px; }
+        .textarea-container .btn-voice { position: absolute; bottom: 5px; right: 5px; }
         input, select, textarea { width: 100%; padding: 12px; border: 1px solid #D1D5DB; border-radius: 8px; font-size: 1rem; font-family: 'Poppins', sans-serif; }
         select:disabled { background-color: #F3F4F6; }
         .error-message { color: var(--incorrect-color); margin-top: 0.5rem; font-size: 0.9rem; }
@@ -111,6 +116,12 @@
         let programmes = {};
         let selectedCompetenceInfo = null;
         
+        // --- NOUVEAU : Variables pour la synthèse vocale ---
+        let synth = window.speechSynthesis;
+        let voices = [];
+        let recognition = null;
+        let isListening = false;
+        
         const main = document.querySelector('main');
         const modalContainer = document.getElementById('modal-container');
         const loginNavBtn = document.getElementById('login-nav-btn');
@@ -134,7 +145,6 @@
             loginNavBtn.classList.toggle('hidden', loggedIn);
             userMenuContainer.classList.toggle('hidden', !loggedIn);
             playgroundLink.classList.toggle('hidden', !loggedIn);
-            // L'espace de travail n'est visible que pour les élèves
             workspaceLink.classList.toggle('hidden', !loggedIn || currentUser.role !== 'student');
             
             if (loggedIn) {
@@ -527,15 +537,24 @@
                             <div class="workspace-input">
                                 <h3>Ton exercice</h3>
                                 <form id="student-workspace-form">
-                                    <div class="form-group"><label for="exercise-text">Colle ton exercice</label><textarea id="exercise-text" required placeholder="Ex: Calcule 5 + 3."></textarea></div>
+                                    <div class="form-group">
+                                        <label for="exercise-text">Colle ton exercice</label>
+                                        <div class="textarea-container">
+                                            <textarea id="exercise-text" required placeholder="Ex: Calcule 5 + 3."></textarea>
+                                        </div>
+                                    </div>
                                     <div class="form-group">
                                         <label for="student-answer">Ta réponse</label>
                                         <div class="textarea-container">
                                             <textarea id="student-answer" required placeholder="Ex: Ma réponse est 8."></textarea>
                                         </div>
                                     </div>
-                                    <button type="submit" class="btn btn-main">Corrige-moi, AIDA !</button>
+                                    <div style="display: flex; gap: 1rem; align-items: center;">
+                                        <button type="submit" class="btn btn-main">Corrige-moi, AIDA !</button>
+                                        <button type="button" class="btn btn-secondary" id="student-upload-btn"><i class="fa-solid fa-upload"></i> Charger .txt</button>
+                                    </div>
                                 </form>
+                                <input type="file" id="student-doc-upload" class="hidden" accept=".txt">
                             </div>
                             <div class="workspace-output">
                                 <h3>La correction d'AIDA</h3>
@@ -552,6 +571,21 @@
                  if (backBtn) backBtn.addEventListener('click', renderStudentDashboard);
                  const studentForm = page.querySelector('#student-workspace-form');
                  if(studentForm) studentForm.addEventListener('submit', handleStudentWorkspace);
+                 const studentUploadBtn = page.querySelector('#student-upload-btn');
+                 const studentFileInput = page.querySelector('#student-doc-upload');
+                 studentUploadBtn.addEventListener('click', () => studentFileInput.click());
+                 studentFileInput.addEventListener('change', (e) => {
+                    const file = e.target.files[0];
+                    if (file && file.type === "text/plain") {
+                        const reader = new FileReader();
+                        reader.onload = (event) => {
+                            document.getElementById('exercise-text').value = event.target.result;
+                        };
+                        reader.readAsText(file);
+                    } else {
+                        alert("Veuillez sélectionner un fichier .txt pour le moment.");
+                    }
+                });
             }
             changePage('workspace-page');
         }
