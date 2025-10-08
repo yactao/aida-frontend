@@ -359,30 +359,28 @@
             const p = document.getElementById('content-viewer-page');
             let html = '';
             let footerHtml = '';
+            const isQuiz = c.type === 'quiz';
 
-            switch (c.type) {
-                case 'quiz':
-                    c.questions.forEach((q, i) => {
-                        html += `<div class="quiz-question">
-                                     <div class="question-header">
-                                         <p><strong>${q.question_text}</strong></p>
-                                         <button type="button" class="btn-help" data-question="${q.question_text}"><i class="fa-solid fa-lightbulb"></i> Aide</button>
-                                     </div>
-                                     <div class="quiz-options">${q.options.map((o, j) => `<label><input type="radio" name="q${i}" value="${j}" required> ${o}</label>`).join('')}</div>
-                                 </div>`;
+            if (isQuiz) {
+                c.questions.forEach((q, i) => {
+                    html += `<div class="quiz-question">
+                                <div class="question-header">
+                                    <p><strong>${q.question_text}</strong></p>
+                                    <button type="button" class="btn-help" data-question="${q.question_text}"><i class="fa-solid fa-lightbulb"></i> Aide</button>
+                                </div>
+                                <div class="quiz-options">${q.options.map((o, j) => `<label><input type="radio" name="q${i}" value="${j}" required> ${o}</label>`).join('')}</div>
+                            </div>`;
+                });
+                footerHtml = `<button type="submit" class="btn btn-main" style="margin-top:1rem;">Valider</button>`;
+            } else { // For 'exercices' and other types
+                if (c.content && c.content.length > 0) {
+                     c.content.forEach(e => {
+                        html += `<div style="margin-bottom: 1.5rem;"><h4>Exercice</h4><p>${e.enonce}</p></div>`;
                     });
-                    footerHtml = `<button type="submit" class="btn btn-main" style="margin-top:1rem;">Valider</button>`;
-                    break;
-                case 'exercices':
-                    c.content.forEach(e => {
-                        html += `<div class="card" style="margin-bottom: 1rem;"><h4>Exercice</h4><p>${e.enonce}</p></div>`;
-                    });
-                    footerHtml = `<button type="button" id="finish-exercise-btn" class="btn btn-main" style="margin-top:1rem;"><i class="fa-solid fa-check"></i> Terminé</button>`;
-                    break;
-                 default:
-                     html = `<p>Ce type de contenu n'est pas interactif.</p>`;
-                     footerHtml = `<button type="button" id="finish-exercise-btn" class="btn btn-main" style="margin-top:1rem;"><i class="fa-solid fa-check"></i> Terminé</button>`;
-                    break;
+                } else {
+                    html = `<p>Ce contenu n'est pas interactif. Cliquez sur 'Terminé' lorsque vous avez fini de le consulter.</p>`;
+                }
+                footerHtml = `<button type="button" id="finish-exercise-btn" class="btn btn-main" style="margin-top:1rem;"><i class="fa-solid fa-check"></i> Terminé</button>`;
             }
 
             p.innerHTML = `<button id="back-to-student" class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> Retour</button>
@@ -397,21 +395,20 @@
             p.querySelector('#back-to-student').addEventListener('click', renderStudentDashboard);
             const form = p.querySelector('#content-form');
 
-            if (c.type === 'quiz') {
+            if (isQuiz) {
                 form.addEventListener('submit', e => { e.preventDefault(); handleSubmitQuiz(c); });
                 form.querySelectorAll('.btn-help').forEach(b => b.addEventListener('click', handleHelpRequest));
             } else {
                 const finishBtn = p.querySelector('#finish-exercise-btn');
                 if (finishBtn) {
                     finishBtn.addEventListener('click', async () => {
-                        // Marquer comme complété avant de retourner au tableau de bord
                         await apiRequest('/student/submit-quiz', 'POST', { 
                             studentEmail: currentUser.email, 
                             classId: c.classId, 
                             contentId: c.id, 
                             title: c.title, 
                             score: 0, 
-                            totalQuestions: 0, 
+                            totalQuestions: (c.content || []).length, 
                             answers: [] 
                         });
                         renderStudentDashboard();
@@ -420,7 +417,6 @@
             }
             changePage('content-viewer-page');
         }
-
 
         async function handleHelpRequest(e) { e.preventDefault(); const q = e.target.closest('button').dataset.question; renderModal(getModalTemplate('help-modal', 'Indice d\'AIDA', `<p><strong>Question:</strong> ${q}</p><div id=hint-container style=margin-top:1rem><div class=spinner></div></div>`)); try { const d = await apiRequest('/ai/get-hint', 'POST', { questionText: q }); document.getElementById('hint-container').innerHTML = `<p>${d.hint}</p>`; } catch (err) { document.getElementById('hint-container').innerHTML = `<p class=error-message>Indice indisponible.</p>`; } }
         async function handleSubmitQuiz(c) { const answers = c.questions.map((q, i) => { const sel = document.querySelector(`input[name=q${i}]:checked`); return sel ? parseInt(sel.value) : -1; }); const score = answers.reduce((acc, ans, i) => acc + (ans == c.questions[i].correct_answer_index ? 1 : 0), 0); await apiRequest('/student/submit-quiz', 'POST', { studentEmail: currentUser.email, classId: c.classId, contentId: c.id, title: c.title, score, totalQuestions: c.questions.length, answers }); renderFeedbackPage(c, answers, score); }
