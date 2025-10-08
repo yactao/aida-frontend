@@ -403,7 +403,19 @@
             } else {
                 const finishBtn = p.querySelector('#finish-exercise-btn');
                 if (finishBtn) {
-                    finishBtn.addEventListener('click', renderStudentDashboard);
+                    finishBtn.addEventListener('click', async () => {
+                        // Marquer comme complété avant de retourner au tableau de bord
+                        await apiRequest('/student/submit-quiz', 'POST', { 
+                            studentEmail: currentUser.email, 
+                            classId: c.classId, 
+                            contentId: c.id, 
+                            title: c.title, 
+                            score: 0, 
+                            totalQuestions: 0, 
+                            answers: [] 
+                        });
+                        renderStudentDashboard();
+                    });
                 }
             }
             changePage('content-viewer-page');
