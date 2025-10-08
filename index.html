@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
@@ -45,7 +44,7 @@
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         .card { background-color: var(--card-bg-color); padding: 2rem; border-radius: 12px; box-shadow: var(--shadow); }
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.6); display: flex; justify-content: center; align-items: center; z-index: 2000; animation: fadeIn 0.3s; }
-        .modal-content { background: var(--card-bg-color); padding: 2rem; border-radius: 12px; width: 90%; max-width: 600px; position: relative; }
+        .modal-content { background: var(--card-bg-color); padding: 2rem; border-radius: 12px; width: 90%; max-width: 600px; position: relative; max-height: 90vh; overflow-y: auto; }
         .close-modal { position: absolute; top: 1rem; right: 1rem; background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #9CA3AF; }
         .quiz-question { margin-bottom: 1.5rem; }
         .question-header { display: flex; justify-content: space-between; align-items: center; }
@@ -69,6 +68,7 @@
         .workspace-container { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; align-items: start; }
         .workspace-input, .workspace-output { background: var(--card-bg-color); padding: 2rem; border-radius: 12px; box-shadow: var(--shadow); height: 100%; }
         .workspace-input textarea { min-height: 200px; resize: vertical; }
+        #edit-form .form-group { border-left: 3px solid #eee; padding-left: 1rem; }
         @media (max-width: 768px) { .workspace-container { grid-template-columns: 1fr; } }
     </style>
 </head>
@@ -355,7 +355,7 @@
             const p = document.getElementById('content-viewer-page'); let html = ''; let form = false;
             switch (c.type) {
                 case 'quiz': form = true; c.questions.forEach((q, i) => { html += `<div class=quiz-question><div class=question-header><p><strong>${q.question_text}</strong></p><button class=btn-help data-question="${q.question_text}"><i class="fa-solid fa-lightbulb"></i> Aide</button></div><div class=quiz-options>${q.options.map((o, j) => `<label><input type=radio name=q${i} value=${j} required> ${o}</label>`).join('')}</div></div>`; }); break;
-                case 'exercices': c.content.forEach(e => { html += `<div><h4>Exercice</h4><p>${e.enonce}</p><br><h4>Correction</h4><p>${e.correction}</p></div>`; }); break;
+                case 'exercices': c.content.forEach(e => { html += `<div><h4>Exercice</h4><p>${e.enonce}</p></div>`; }); break;
                 case 'plan_de_lecon': html = `<div><h4>Objectifs</h4><ul>${c.objectifs.map(o => `<li>${o}</li>`).join('')}</ul></div><div><h4>Déroulement</h4><p>${c.deroulement}</p></div>`; break;
             }
             p.innerHTML = `<button id=back-to-student class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> Retour</button><div class=card style=margin-top:1rem><h2>${c.title}</h2><form id=content-form><div>${html}</div><button type=submit class="btn btn-main" style=margin-top:1rem>Valider</button></form></div>`;
@@ -379,28 +379,21 @@
                 </div>
                 <div id="from-program" class="tab-panel active">
                     <form id="generation-form">
-                        <div class=form-group><label for=content-type-select>1. Type</label><select id=content-type-select><option value=quiz>Quiz</option><option value=exercices>Fiche d'exercices</option><option value=plan_de_lecon>Plan de leçon</option></select></div>
-                        <div class=form-group><label for=cycle-select>2. Cycle</label><select id=cycle-select><option value="">-- Choisir --</option></select></div>
-                        <div class=form-group><label for=niveau-select>3. Niveau</label><select id=niveau-select disabled><option value="">-- Choisir --</option></select></div>
-                        <div class=form-group><label for=matiere-select>4. Matière</label><select id=matiere-select disabled><option value="">-- Choisir --</option></select></div>
-                        <div class=form-group><label for=notion-select>5. Notion</label><select id=notion-select disabled><option value="">-- Choisir --</option></select></div>
-                        <div class=form-group><label for=competence-select>6. Compétence</label><select id=competence-select disabled><option value="">-- Choisir --</option></select></div>
-                        <button type=submit class="btn btn-main" id=generate-btn disabled>Générer</button>
+                        <div class="form-group"><label>Type</label><select id="content-type-select"><option value="quiz">Quiz</option><option value="exercices">Fiche d'exercices</option></select></div>
+                        <div class="form-group hidden" id="exercise-count-group"><label for="exercise-count">Nombre d'exercices</label><input type="number" id="exercise-count" value="5" min="1" max="10"></div>
+                        <div class="form-group"><label>Cycle</label><select id="cycle-select"><option value="">-- Choisir --</option></select></div>
+                        <div class="form-group"><label>Niveau</label><select id="niveau-select" disabled><option value="">-- Choisir --</option></select></div>
+                        <div class="form-group"><label>Matière</label><select id="matiere-select" disabled><option value="">-- Choisir --</option></select></div>
+                        <div class="form-group"><label>Notion</label><select id="notion-select" disabled><option value="">-- Choisir --</option></select></div>
+                        <div class="form-group"><label>Compétence</label><select id="competence-select" disabled><option value="">-- Choisir --</option></select></div>
+                        <button type="submit" class="btn btn-main" id="generate-btn" disabled>Générer</button>
                     </form>
                 </div>
                 <div id="from-text" class="tab-panel">
                     <form id="generate-from-text-form">
-                        <div class="form-group">
-                            <label for="course-text-modal">Collez votre texte ici</label>
-                            <textarea id="course-text-modal" required rows="8" placeholder="Ex: La Révolution française a commencé en 1789..."></textarea>
-                        </div>
-                        <div class="form-group">
-                             <label for="teacher-content-type-modal">Type de contenu à générer</label>
-                             <select id="teacher-content-type-modal">
-                                 <option value="quiz">Quiz</option>
-                                 <option value="exercices">Fiche d'exercices</option>
-                             </select>
-                        </div>
+                        <div class="form-group"><label for="course-text-modal">Collez votre texte ici</label><textarea id="course-text-modal" required rows="6"></textarea></div>
+                        <div class="form-group"><label>Type de contenu</label><select id="teacher-content-type-modal"><option value="quiz">Quiz</option><option value="exercices">Fiche d'exercices</option></select></div>
+                        <div class="form-group hidden" id="exercise-count-group-text"><label for="exercise-count-text">Nombre d'exercices</label><input type="number" id="exercise-count-text" value="5" min="1" max="10"></div>
                         <div style="display: flex; gap: 1rem; align-items: center;">
                              <button type="submit" class="btn btn-main">Générer</button>
                              <button type="button" class="btn btn-secondary" disabled title="Bientôt disponible !"><i class="fa-solid fa-upload"></i> Charger un document</button>
@@ -411,7 +404,14 @@
             
             renderModal(getModalTemplate('generation-modal', 'Générer du contenu pédagogique', h));
             
-            // Logic for "From Program" tab
+            const contentTypeSelect = document.getElementById('content-type-select');
+            const exerciseCountGroup = document.getElementById('exercise-count-group');
+            contentTypeSelect.addEventListener('change', () => exerciseCountGroup.classList.toggle('hidden', contentTypeSelect.value !== 'exercices'));
+
+            const contentTypeSelectText = document.getElementById('teacher-content-type-modal');
+            const exerciseCountGroupText = document.getElementById('exercise-count-group-text');
+            contentTypeSelectText.addEventListener('change', () => exerciseCountGroupText.classList.toggle('hidden', contentTypeSelectText.value !== 'exercices'));
+
             const cy = document.getElementById('cycle-select'), n = document.getElementById('niveau-select'), m = document.getElementById('matiere-select'), no = document.getElementById('notion-select'), co = document.getElementById('competence-select'), gen = document.getElementById('generate-btn');
             Object.keys(programmes).forEach(c => cy.add(new Option(c, c)));
             cy.addEventListener('change', () => { resetSelects([n, m, no, co]); const s = cy.value; if (s) { Object.keys(programmes[s]).forEach(l => n.add(new Option(l, l))); n.disabled = false; } });
@@ -419,20 +419,19 @@
             m.addEventListener('change', () => { resetSelects([no, co]); const d = programmes[cy.value][n.value]?.[m.value]; if (d) { Object.keys(d).filter(k => k !== 'nom').forEach(nk => { no.add(new Option(d[nk].nom, nk)); }); no.disabled = false; } });
             no.addEventListener('change', () => { resetSelects([co]); const d = programmes[cy.value][n.value]?.[m.value]?.[no.value]; if (d && d.sous_notions) { Object.values(d.sous_notions).forEach(sn => { (sn.competences || []).forEach(c => co.add(new Option(c, c))); }); co.disabled = false; } });
             co.addEventListener('change', () => { gen.disabled = !co.value; });
-            document.getElementById('generation-form').addEventListener('submit', async e => { e.preventDefault(); selectedCompetenceInfo = { level: n.value, competence: co.value }; const comp = `Pour un élève de ${n.value}, ${co.value}`; document.getElementById('generation-spinner').classList.remove('hidden'); const d = await apiRequest('/ai/generate-content', 'POST', { competences: comp, contentType: document.getElementById('content-type-select').value }); generatedContent = d.structured_content; showPreviewModal(); });
+            document.getElementById('generation-form').addEventListener('submit', async e => { e.preventDefault(); selectedCompetenceInfo = { level: n.value, competence: co.value }; const comp = `Pour un élève de ${n.value}, ${co.value}`; const contentType = contentTypeSelect.value; const exerciseCount = document.getElementById('exercise-count').value; document.getElementById('generation-spinner').classList.remove('hidden'); const d = await apiRequest('/ai/generate-content', 'POST', { competences: comp, contentType, exerciseCount }); generatedContent = d.structured_content; showEditModal(); });
             
-            // Logic for "From Text" tab
             document.getElementById('generate-from-text-form').addEventListener('submit', async (e) => {
                 e.preventDefault();
                 document.getElementById('generation-spinner').classList.remove('hidden');
                 const documentText = document.getElementById('course-text-modal').value;
-                const contentType = document.getElementById('teacher-content-type-modal').value;
-                const data = await apiRequest('/ai/generate-from-document', 'POST', { documentText, contentType });
+                const contentType = contentTypeSelectText.value;
+                const exerciseCount = document.getElementById('exercise-count-text').value;
+                const data = await apiRequest('/ai/generate-from-document', 'POST', { documentText, contentType, exerciseCount });
                 generatedContent = data.structured_content;
-                showPreviewModal();
+                showEditModal();
             });
 
-            // Logic for tabs
             const modal = document.getElementById('generation-modal');
             modal.querySelectorAll('.tab-button').forEach(button => {
                 button.addEventListener('click', (e) => {
@@ -445,25 +444,76 @@
         }
 
         function resetSelects(selects) { selects.forEach(s => { s.innerHTML = '<option value="">-- Choisir --</option>'; s.disabled = true; }); document.getElementById('generate-btn').disabled = true; }
-        function showPreviewModal() { let h = ''; switch (generatedContent.type) { case 'quiz': h = generatedContent.questions.map(q => `<p><strong>Q:</strong> ${q.question_text}</p>`).join(''); break; case 'exercices': h = generatedContent.content.map(e => `<p><strong>Exercice:</strong> ${e.enonce}</p>`).join(''); break; case 'plan_de_lecon': h = `<h4>Objectifs</h4><ul>${generatedContent.objectifs.map(o => `<li>${o}</li>`).join('')}</ul><h4>Déroulement</h4><p>${generatedContent.deroulement}</p>`; break; } const modalHtml = `<h4>${generatedContent.title}</h4><div>${h}</div><form id=assign-form style=margin-top:1rem><div class=form-group><label for=assign-class-select>Assigner à</label><select id=assign-class-select required></select></div><button type=submit class="btn btn-main">Assigner</button></form>`; renderModal(getModalTemplate('preview-modal', `Aperçu: ${generatedContent.title}`, modalHtml)); const sel = document.getElementById('assign-class-select'); teacherClasses.forEach(c => sel.add(new Option(c.className, c.id))); document.getElementById('assign-form').addEventListener('submit', async e => { e.preventDefault(); const id = sel.value; if (!id) return; await apiRequest('/teacher/assign-content', 'POST', { classId: id, contentData: { ...generatedContent, competence: selectedCompetenceInfo } }); modalContainer.innerHTML = ''; }); }
+
+        function showEditModal() {
+            let editHtml = `<form id="edit-form"><div class="form-group"><label>Titre</label><input type="text" id="edit-title" value="${generatedContent.title}"></div>`;
+            if (generatedContent.type === 'quiz') {
+                generatedContent.questions.forEach((q, i) => {
+                    editHtml += `<div class="form-group">
+                        <label>Question ${i+1}</label>
+                        <input type="text" id="edit-q-${i}" value="${q.question_text}">
+                        <label>Options</label>
+                        ${q.options.map((opt, j) => `<input type="text" id="edit-q-${i}-opt-${j}" value="${opt}">`).join('')}
+                    </div>`;
+                });
+            } else if (generatedContent.type === 'exercices') {
+                generatedContent.content.forEach((ex, i) => {
+                    editHtml += `<div class="form-group"><label>Exercice ${i+1}</label><textarea id="edit-ex-${i}" rows="3">${ex.enonce}</textarea></div>`;
+                });
+            }
+            editHtml += `<button type="submit" class="btn btn-main">Valider et Assigner</button></form>`;
+            renderModal(getModalTemplate('edit-modal', 'Modifier et Valider le Contenu', editHtml));
+
+            document.getElementById('edit-form').addEventListener('submit', (e) => {
+                e.preventDefault();
+                generatedContent.title = document.getElementById('edit-title').value;
+                if (generatedContent.type === 'quiz') {
+                    generatedContent.questions.forEach((q, i) => {
+                        q.question_text = document.getElementById(`edit-q-${i}`).value;
+                        q.options.forEach((opt, j) => {
+                            q.options[j] = document.getElementById(`edit-q-${i}-opt-${j}`).value;
+                        });
+                    });
+                } else if (generatedContent.type === 'exercices') {
+                    generatedContent.content.forEach((ex, i) => {
+                        ex.enonce = document.getElementById(`edit-ex-${i}`).value;
+                    });
+                }
+                showAssignModalFromWorkspace();
+            });
+        }
+
+        function showAssignModalFromWorkspace() {
+            const modalHtml = `<form id="assign-form"><div class="form-group"><label for="assign-class-select">Assigner à</label><select id="assign-class-select" required></select></div><button type="submit" class="btn btn-main">Assigner</button></form>`;
+            renderModal(getModalTemplate('assign-modal', 'Assigner le contenu', modalHtml));
+            const select = document.getElementById('assign-class-select');
+            teacherClasses.forEach(c => select.add(new Option(c.className, c.id)));
+            document.getElementById('assign-form').addEventListener('submit', async e => {
+                e.preventDefault();
+                const classId = select.value;
+                if (!classId || !generatedContent) return;
+                await apiRequest('/teacher/assign-content', 'POST', { classId, contentData: { ...generatedContent, competence: selectedCompetenceInfo } });
+                modalContainer.innerHTML = '';
+            });
+        }
         
         function renderWorkspacePage() {
             const page = document.getElementById('workspace-page');
-            const backButtonAction = currentUser.role === 'teacher' ? 'renderTeacherDashboard()' : 'renderStudentDashboard()';
-            let html = `<button onclick="${backButtonAction}" class="btn btn-secondary" style="margin-bottom: 2rem;"><i class="fa-solid fa-arrow-left"></i> Retour au tableau de bord</button>`;
+            const backButtonAction = currentUser.role === 'teacher' ? 'renderTeacherDashboard' : 'renderStudentDashboard';
+            let html = `<button id="back-to-dashboard-btn" class="btn btn-secondary" style="margin-bottom: 2rem;"><i class="fa-solid fa-arrow-left"></i> Retour au tableau de bord</button>`;
             if (currentUser.role === 'teacher') {
                 html += `<h2>Espace de Travail Enseignant</h2><p>Collez le contenu de votre cours et générez des exercices personnalisés.</p><div class="workspace-container" style="margin-top: 2rem;"><div class="workspace-input"><h3>Votre cours</h3><form id="teacher-workspace-form"><div class="form-group"><label for="course-text">Collez votre texte ici</label><textarea id="course-text" required placeholder="Ex: La Révolution française a commencé en 1789..."></textarea></div><div class="form-group"><label for="teacher-content-type">Type de contenu à générer</label><select id="teacher-content-type"><option value="quiz">Quiz</option><option value="exercices">Fiche d'exercices</option></select></div><button type="submit" class="btn btn-main">Générer avec AIDA</button></form></div><div class="workspace-output"><h3>Contenu Généré</h3><div id="teacher-output-container"><p>Le contenu généré par AIDA apparaîtra ici.</p></div></div></div>`;
             } else {
-                html += `<h2>Espace de Travail Élève</h2><p>Bloqué sur un exercice ? Collez-le ici et demandez un indice à AIDA.</p><div class="workspace-container" style="margin-top: 2rem;"><div class="workspace-input"><h3>Votre exercice</h3><form id="student-workspace-form"><div class="form-group"><label for="exercise-text">Collez votre exercice</label><textarea id="exercise-text" required placeholder="Ex: Calcule l'aire d'un rectangle de 5cm de long et 3cm de large."></textarea></div><div class="form-group"><label for="student-question">Votre question à AIDA</label><input type="text" id="student-question" required placeholder="Ex: Peux-tu me rappeler la formule ?"></div><button type="submit" class="btn btn-main">Demander un indice</button></form></div><div class="workspace-output"><h3>L'aide d'AIDA</h3><div id="student-output-container"><p>La réponse d'AIDA apparaîtra ici.</p></div></div></div>`;
+                html += `<h2>Espace de Travail Élève</h2><p>Bloqué sur un exercice ? Collez-le ici, écris ta réponse et demande à AIDA de te corriger.</p><div class="workspace-container" style="margin-top: 2rem;"><div class="workspace-input"><h3>Ton exercice</h3><form id="student-workspace-form"><div class="form-group"><label for="exercise-text">Colle ton exercice</label><textarea id="exercise-text" required placeholder="Ex: Calcule 5 + 3."></textarea></div><div class="form-group"><label for="student-answer">Ta réponse</label><textarea id="student-answer" required placeholder="Ex: Ma réponse est 8."></textarea></div><button type="submit" class="btn btn-main">Corrige-moi, AIDA !</button></form></div><div class="workspace-output"><h3>La correction d'AIDA</h3><div id="student-output-container"><p>La correction d'AIDA apparaîtra ici.</p></div></div></div>`;
             }
             page.innerHTML = html;
             
             if (currentUser.role === 'teacher') {
                 page.querySelector('#teacher-workspace-form').addEventListener('submit', handleTeacherWorkspace);
-                page.querySelector('button').onclick = renderTeacherDashboard;
+                page.querySelector('#back-to-dashboard-btn').addEventListener('click', renderTeacherDashboard);
             } else {
                 page.querySelector('#student-workspace-form').addEventListener('submit', handleStudentWorkspace);
-                page.querySelector('button').onclick = renderStudentDashboard;
+                page.querySelector('#back-to-dashboard-btn').addEventListener('click', renderStudentDashboard);
             }
             changePage('workspace-page');
         }
@@ -477,92 +527,24 @@
                 const contentType = document.getElementById('teacher-content-type').value;
                 const data = await apiRequest('/ai/generate-from-document', 'POST', { documentText, contentType });
                 generatedContent = data.structured_content;
-                let previewHtml = '';
-                switch(generatedContent.type) {
-                    case 'quiz': previewHtml = `<h4>${generatedContent.title}</h4>` + generatedContent.questions.map(q => `<p><strong>Q:</strong> ${q.question_text}</p><ul>${q.options.map(o => `<li>${o}</li>`).join('')}</ul>`).join(''); break;
-                    case 'exercices': previewHtml = `<h4>${generatedContent.title}</h4>` + generatedContent.content.map(ex => `<p><strong>Exercice:</strong> ${ex.enonce}</p><p><strong>Correction:</strong> ${ex.correction}</p>`).join(''); break;
-                }
-                outputContainer.innerHTML = `<div class="card">${previewHtml}<br><button class="btn btn-secondary" id="assign-generated-btn">Assigner ce contenu</button></div>`;
-                document.getElementById('assign-generated-btn').addEventListener('click', showAssignModalFromWorkspace);
+                showEditModal();
             } catch (err) { outputContainer.innerHTML = `<p class="error-message">Une erreur est survenue: ${err.message}</p>`; }
         }
-
-        function showAssignModalFromWorkspace() {
-            const modalHtml = `<form id="assign-form"><div class="form-group"><label for="assign-class-select">Assigner à</label><select id="assign-class-select" required></select></div><button type="submit" class="btn btn-main">Assigner</button></form>`;
-            renderModal(getModalTemplate('assign-modal', 'Assigner le contenu généré', modalHtml));
-            const select = document.getElementById('assign-class-select');
-            teacherClasses.forEach(c => select.add(new Option(c.className, c.id)));
-            document.getElementById('assign-form').addEventListener('submit', async e => {
-                e.preventDefault();
-                const classId = select.value;
-                if (!classId || !generatedContent) return;
-                await apiRequest('/teacher/assign-content', 'POST', { classId, contentData: generatedContent });
-                modalContainer.innerHTML = '';
-                document.getElementById('teacher-output-container').innerHTML = '<p>Contenu assigné avec succès !</p>';
-            });
-        }
-
+        
         async function handleStudentWorkspace(e) {
             e.preventDefault();
             const outputContainer = document.getElementById('student-output-container');
             outputContainer.innerHTML = '<div class="spinner"></div>';
             try {
                 const exerciseText = document.getElementById('exercise-text').value;
-                const userQuestion = document.getElementById('student-question').value;
-                const data = await apiRequest('/ai/interactive-lesson', 'POST', { exerciseText, userQuestion });
-                displayInteractiveLesson(data);
+                const studentAnswer = document.getElementById('student-answer').value;
+                const data = await apiRequest('/ai/correct-exercise', 'POST', { exerciseText, studentAnswer });
+                outputContainer.innerHTML = `<p>${data.correction.replace(/\n/g, '<br>')}</p>`;
             } catch (err) {
                 outputContainer.innerHTML = `<p class="error-message">Une erreur est survenue: ${err.message}</p>`;
             }
         }
         
-        function displayInteractiveLesson(lessonData) {
-            const outputContainer = document.getElementById('student-output-container');
-            
-            const explanationHtml = `<p>${lessonData.explanation.replace(/\n/g, '<br>')}</p>`;
-            
-            const quiz = lessonData.quiz;
-            const optionsHtml = quiz.options.map((opt, i) => 
-                `<label><input type="radio" name="interactive-quiz" value="${i}" required> ${opt}</label>`
-            ).join('');
-
-            const quizHtml = `
-                <div class="card" style="margin-top: 1.5rem; background-color: #EBF5FB;">
-                    <h4>Petite question pour voir si tu as compris ! 👇</h4>
-                    <form id="interactive-quiz-form">
-                        <p><strong>${quiz.question_text}</strong></p>
-                        <div class="quiz-options">${optionsHtml}</div>
-                        <button type="submit" class="btn btn-main" style="margin-top: 1rem;">Vérifier ma réponse</button>
-                    </form>
-                    <div id="interactive-feedback"></div>
-                </div>
-            `;
-
-            outputContainer.innerHTML = explanationHtml + quizHtml;
-
-            document.getElementById('interactive-quiz-form').addEventListener('submit', (e) => {
-                e.preventDefault();
-                const selectedAnswer = document.querySelector('input[name="interactive-quiz"]:checked');
-                if (selectedAnswer) {
-                    handleInteractiveQuizSubmit(quiz, parseInt(selectedAnswer.value));
-                }
-            });
-        }
-
-        function handleInteractiveQuizSubmit(quiz, selectedAnswerIndex) {
-            const feedbackContainer = document.getElementById('interactive-feedback');
-            const isCorrect = selectedAnswerIndex === quiz.correct_answer_index;
-
-            if (isCorrect) {
-                feedbackContainer.innerHTML = `<p style="color: var(--correct-color); font-weight: bold; margin-top: 1rem;">Bravo, c'est la bonne réponse ! 🎉 Tu as tout compris !</p>`;
-            } else {
-                feedbackContainer.innerHTML = `<p style="color: var(--incorrect-color); font-weight: bold; margin-top: 1rem;">Ce n'est pas tout à fait ça. La bonne réponse était "${quiz.options[quiz.correct_answer_index]}". Continue tes efforts, tu vas y arriver ! 💪</p>`;
-            }
-            
-            const form = document.getElementById('interactive-quiz-form');
-            form.querySelectorAll('input, button').forEach(el => el.disabled = true);
-        }
-
         async function init() {
             await loadProgrammes();
             updateUI();
