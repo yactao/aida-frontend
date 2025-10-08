@@ -508,11 +508,58 @@
             try {
                 const exerciseText = document.getElementById('exercise-text').value;
                 const userQuestion = document.getElementById('student-question').value;
-                const data = await apiRequest('/ai/get-hint-from-document', 'POST', { exerciseText, userQuestion });
-                outputContainer.innerHTML = `<p>${data.hint.replace(/\n/g, '<br>')}</p>`;
+                const data = await apiRequest('/ai/interactive-lesson', 'POST', { exerciseText, userQuestion });
+                displayInteractiveLesson(data);
             } catch (err) {
                 outputContainer.innerHTML = `<p class="error-message">Une erreur est survenue: ${err.message}</p>`;
             }
+        }
+        
+        function displayInteractiveLesson(lessonData) {
+            const outputContainer = document.getElementById('student-output-container');
+            
+            const explanationHtml = `<p>${lessonData.explanation.replace(/\n/g, '<br>')}</p>`;
+            
+            const quiz = lessonData.quiz;
+            const optionsHtml = quiz.options.map((opt, i) => 
+                `<label><input type="radio" name="interactive-quiz" value="${i}" required> ${opt}</label>`
+            ).join('');
+
+            const quizHtml = `
+                <div class="card" style="margin-top: 1.5rem; background-color: #EBF5FB;">
+                    <h4>Petite question pour voir si tu as compris ! 👇</h4>
+                    <form id="interactive-quiz-form">
+                        <p><strong>${quiz.question_text}</strong></p>
+                        <div class="quiz-options">${optionsHtml}</div>
+                        <button type="submit" class="btn btn-main" style="margin-top: 1rem;">Vérifier ma réponse</button>
+                    </form>
+                    <div id="interactive-feedback"></div>
+                </div>
+            `;
+
+            outputContainer.innerHTML = explanationHtml + quizHtml;
+
+            document.getElementById('interactive-quiz-form').addEventListener('submit', (e) => {
+                e.preventDefault();
+                const selectedAnswer = document.querySelector('input[name="interactive-quiz"]:checked');
+                if (selectedAnswer) {
+                    handleInteractiveQuizSubmit(quiz, parseInt(selectedAnswer.value));
+                }
+            });
+        }
+
+        function handleInteractiveQuizSubmit(quiz, selectedAnswerIndex) {
+            const feedbackContainer = document.getElementById('interactive-feedback');
+            const isCorrect = selectedAnswerIndex === quiz.correct_answer_index;
+
+            if (isCorrect) {
+                feedbackContainer.innerHTML = `<p style="color: var(--correct-color); font-weight: bold; margin-top: 1rem;">Bravo, c'est la bonne réponse ! 🎉 Tu as tout compris !</p>`;
+            } else {
+                feedbackContainer.innerHTML = `<p style="color: var(--incorrect-color); font-weight: bold; margin-top: 1rem;">Ce n'est pas tout à fait ça. La bonne réponse était "${quiz.options[quiz.correct_answer_index]}". Continue tes efforts, tu vas y arriver ! 💪</p>`;
+            }
+            
+            const form = document.getElementById('interactive-quiz-form');
+            form.querySelectorAll('input, button').forEach(el => el.disabled = true);
         }
 
         async function init() {
