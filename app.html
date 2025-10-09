@@ -64,7 +64,6 @@
         .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.5rem; }
         .dashboard-card { background: var(--card-bg-color); padding: 1.5rem; border-radius: 12px; box-shadow: var(--shadow); transition: transform 0.3s, box-shadow 0.3s; cursor: pointer; }
         .dashboard-card:hover { transform: translateY(-5px); box-shadow: 0 8px 25px rgba(0,0,0,0.1); }
-        .dashboard-card h4 { margin-bottom: 0.5rem; }
         
         .dashboard-card-student { padding: 0; cursor: default; background: var(--card-bg-color); border-radius: 12px; box-shadow: var(--shadow); }
         .dashboard-card-student .card-header { padding: 1rem 1.5rem; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; }
@@ -396,37 +395,6 @@
         
         async function renderStudentDashboard() { const p = document.getElementById('student-dashboard-page'); p.innerHTML = `<div class=spinner></div>`; changePage('student-dashboard-page'); const d = await apiRequest(`/student/dashboard?studentEmail=${currentUser.email}`); p.innerHTML = `<h2>Bonjour ${currentUser.firstName}!</h2><h3>À faire</h3><div id=todo-grid class="dashboard-grid"></div><h3 style=margin-top:2rem>Terminés</h3><div id=completed-grid class="dashboard-grid"></div>`; const todo = p.querySelector('#todo-grid'); if (d.todo.length === 0) { todo.innerHTML = "<p>Bravo, tu es à jour !</p>"; } else { d.todo.forEach(i => todo.appendChild(createContentCard(i))); } const comp = p.querySelector('#completed-grid'); if (d.completed.length === 0) { comp.innerHTML = "<p>Aucun devoir terminé.</p>"; } else { d.completed.forEach(i => comp.appendChild(createContentCard(i, true))); } }
         
-        function getSubjectTag(title) {
-            if (/math|calcul|nombre|géométrie/i.test(title)) return 'tag-maths';
-            if (/fran[çc]ais|lecture|grammaire|verbe/i.test(title)) return 'tag-francais';
-            if (/histoire|antiquité|guerre/i.test(title)) return 'tag-histoire';
-            if (/science|vivant|physique/i.test(title)) return 'tag-sciences';
-            return 'tag-autre';
-        }
-
-        function createContentCard(c, isDone) { 
-            const card = document.createElement('div');
-            card.className = 'dashboard-card-student';
-            const date = new Date(isDone ? c.completedAt : c.assignedAt).toLocaleDateString('fr-FR');
-            const subjectTagClass = getSubjectTag(c.title);
-            card.innerHTML = `
-                <div class="card-header">
-                    <span class="subject-tag ${subjectTagClass}">${c.type.charAt(0).toUpperCase() + c.type.slice(1)}</span>
-                </div>
-                <div class="card-content">
-                    <h4>${c.title}</h4>
-                    <p>Classe: ${c.className}</p>
-                </div>
-                <div class="card-footer">
-                    <span class="card-date">${isDone ? 'Terminé le' : 'Assigné le'}: ${date}</span>
-                    <button class="btn ${isDone ? 'btn-termine' : 'btn-main'}" ${isDone ? 'disabled' : ''}>
-                        ${isDone ? '<i class="fa-solid fa-check"></i> Terminé' : 'Commencer'}
-                    </button>
-                </div>`;
-            if (!isDone) card.querySelector('button').addEventListener('click', () => renderContentViewer(c));
-            return card;
-        }
-
         function renderContentViewer(c) {
             const p = document.getElementById('content-viewer-page');
             let html = '';
@@ -710,6 +678,13 @@
         }
         
         async function init() {
+            // AJOUTEZ CE BLOC DE CODE
+            if (window.location.hash === '#login' && !currentUser) {
+                renderAuthPage();
+                return; // Arrête l'exécution pour afficher uniquement la page de connexion
+            }
+            // FIN DU BLOC À AJOUTER
+    
             await loadProgrammes();
             const savedTheme = localStorage.getItem('theme') || 'light';
             applyTheme(savedTheme);
@@ -737,4 +712,3 @@
     </script>
 </body>
 </html>
-
