@@ -35,8 +35,9 @@
         
         header { padding: 1rem 5%; background-color: var(--card-bg-color); box-shadow: var(--shadow); display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 1000; }
         .logo { display: flex; align-items: center; text-decoration: none; cursor: pointer; }
-        .logo-icon { width: 40px; height: 40px; background: linear-gradient(45deg, var(--primary-color), var(--secondary-color)); color: white; display: grid; place-items: center; border-radius: 10px; font-weight: 700; font-size: 1.5rem; margin-right: 10px; }
-        .logo span { font-size: 1.5rem; font-weight: 700; color: var(--text-color); }
+        .logo-icon { width: 35px; height: 35px; margin-right: 10px; }
+        .logo-icon path { fill: var(--primary-color); }
+        .logo span { font-size: 1.8rem; font-weight: 700; color: var(--text-color); }
         .main-nav { display: flex; align-items: center; gap: 1rem; }
         .hidden { display: none !important; }
 
@@ -82,7 +83,6 @@
         .modal-content { background: var(--card-bg-color); padding: 2rem; border-radius: 12px; width: 90%; max-width: 600px; position: relative; max-height: 90vh; overflow-y: auto; }
         .close-modal { position: absolute; top: 1rem; right: 1rem; background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text-color); }
         
-        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.2); } 100% { transform: scale(1); } }
         .textarea-container { position: relative; }
         .textarea-container textarea { width: 100%; padding-right: 45px; }
         .textarea-container .btn-voice { position: absolute; bottom: 5px; right: 5px; }
@@ -106,12 +106,92 @@
         .workspace-input, .workspace-output { background: var(--card-bg-color); padding: 2rem; border-radius: 12px; box-shadow: var(--shadow); height: 100%; }
         #edit-form .form-group { border-left: 3px solid #eee; padding-left: 1rem; margin-top: 1.5rem; }
         body.dark-mode #edit-form .form-group { border-left-color: #333; }
-        @media (max-width: 768px) { .workspace-container { grid-template-columns: 1fr; } }
+
+        /* NOUVEAU VISUEL PAGE D'ACCUEIL */
+        #home-page {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 80vh;
+            text-align: center;
+        }
+        .wave-container {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            margin: 2rem 0;
+            height: 120px;
+        }
+        .wave-svg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+        .wave-svg path {
+            stroke: url(#wave-gradient);
+            stroke-width: 3;
+            stroke-dasharray: 1000;
+            stroke-dashoffset: 1000;
+            animation: draw-wave 3s ease-out forwards;
+        }
+        @keyframes draw-wave {
+            to { stroke-dashoffset: 0; }
+        }
+        .wave-point {
+            position: absolute;
+            transform: translate(-50%, -50%);
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            color: var(--text-color);
+            font-weight: 600;
+            opacity: 0;
+            animation: fade-in-point 0.5s ease-out forwards;
+            background: var(--card-bg-color);
+            box-shadow: var(--shadow);
+            z-index: 2;
+        }
+        #point-1 { top: 75%; left: 5%; animation-delay: 0.5s; }
+        #point-2 { top: 25%; left: 25%; animation-delay: 1s; }
+        #point-3 { top: 60%; left: 45%; animation-delay: 1.5s; }
+        #point-4 { top: 35%; left: 65%; animation-delay: 2s; }
+        #point-5 { top: 75%; left: 85%; animation-delay: 2.5s; }
+
+        @keyframes fade-in-point {
+            from { opacity: 0; transform: translate(-50%, -30%); }
+            to { opacity: 1; transform: translate(-50%, -50%); }
+        }
+
+        #home-page h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+        }
+        #home-page .subtitle {
+             font-size: 1.2rem;
+             color: #666;
+             margin-bottom: 2rem;
+        }
+        body.dark-mode #home-page .subtitle { color: #aaa; }
+
+
+        @media (max-width: 768px) { 
+            .workspace-container { grid-template-columns: 1fr; } 
+            #home-page h1 { font-size: 2rem; }
+            .wave-point { font-size: 0.9rem; padding: 0.4rem 0.8rem; }
+        }
     </style>
 </head>
 <body>
     <header>
-        <div class="logo" id="home-link"><div class="logo-icon">A</div><span>AIDA</span></div>
+        <div class="logo" id="home-link">
+             <svg class="logo-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M4 19V6.2C4 5.0799 4 4.51984 4.21799 4.09202C4.40973 3.71569 4.71569 3.40973 5.09202 3.21799C5.51984 3 6.0799 3 7.2 3H12M12 3H16.8C17.9201 3 18.4802 3 18.908 3.21799C19.2843 3.40973 19.5903 3.71569 19.782 4.09202C20 4.51984 20 5.0799 20 6.2V19M12 3V14.2C12 15.3201 12 15.8802 11.782 16.308C11.5903 16.6843 11.2843 16.9903 10.908 17.182C10.4802 17.4 9.9201 17.4 8.8 17.4H4M4 19H12M4 19C4 20.1046 4.89543 21 6 21H18C19.1046 21 20 20.1046 20 19M20 19H12M12 19V17.4" stroke="var(--primary-color)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <span>AIDA</span>
+        </div>
         <nav class="main-nav">
             <a href="#" class="btn btn-secondary hidden" id="workspace-link"><i class="fa-solid fa-pen-ruler"></i> Espace de Travail</a>
             <a href="playground.html" class="btn btn-secondary hidden" id="playground-link"><i class="fa-solid fa-flask"></i> Terrain de Jeux</a>
@@ -133,11 +213,25 @@
 
     <main>
         <div class="page active" id="home-page">
-            <section class="hero" style="padding: 6rem 2rem; text-align: center;">
-                <h1 style="font-size: 3.5rem; line-height: 1.2; margin-bottom: 1.5rem; background: linear-gradient(45deg, var(--primary-color), #333); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">L'intelligence artificielle au service de l'éducation.</h1>
-                <p style="font-size: 1.2rem; max-width: 600px; margin: 0 auto 2.5rem; color: #555;">AIDA est une plateforme conçue pour alléger le quotidien des enseignants, stimuler la curiosité des élèves et rassurer les parents.</p>
-                <button class="btn btn-main" id="start-app-btn">Commencer l'aventure</button>
-            </section>
+            <h1>AIDA vous aide à...</h1>
+            <div class="wave-container">
+                <svg class="wave-svg" viewBox="0 0 800 120" preserveAspectRatio="none">
+                    <defs>
+                        <linearGradient id="wave-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                            <stop offset="0%" style="stop-color:var(--primary-color)" />
+                            <stop offset="100%" style="stop-color:var(--secondary-color)" />
+                        </linearGradient>
+                    </defs>
+                    <path d="M 0 90 Q 200 10, 400 90 T 800 90" fill="none"/>
+                </svg>
+                <div id="point-1" class="wave-point">Comprendre</div>
+                <div id="point-2" class="wave-point">Apprendre</div>
+                <div id="point-3" class="wave-point">Créer</div>
+                <div id="point-4" class="wave-point">Découvrir</div>
+                <div id="point-5" class="wave-point">Progresser</div>
+            </div>
+            <p class="subtitle">La plateforme intelligente pour enseignants, élèves et parents.</p>
+            <button class="btn btn-main" id="start-app-btn">Commencer l'aventure</button>
         </div>
         <div class="page" id="auth-page"></div>
         <div class="page" id="teacher-dashboard-page"></div>
@@ -400,14 +494,6 @@
         
         async function renderStudentDashboard() { const p = document.getElementById('student-dashboard-page'); p.innerHTML = `<div class=spinner></div>`; changePage('student-dashboard-page'); const d = await apiRequest(`/student/dashboard?studentEmail=${currentUser.email}`); p.innerHTML = `<h2>Bonjour ${currentUser.firstName}!</h2><h3>À faire</h3><div id="student-todo-list" class="dashboard-grid"></div><h3 style=margin-top:2rem>Terminés</h3><div id="student-completed-list" class="dashboard-grid"></div>`; const todo = p.querySelector('#student-todo-list'); if (d.todo.length === 0) { todo.innerHTML = "<p>Bravo, tu es à jour !</p>"; } else { d.todo.forEach(i => createStudentCard(i)); } const comp = p.querySelector('#student-completed-list'); if (d.completed.length === 0) { comp.innerHTML = "<p>Aucun devoir terminé.</p>"; } else { d.completed.forEach(i => createStudentCard(i, true)); } }
         
-        function getSubjectTag(title) {
-            if (/math|calcul|nombre|géométrie/i.test(title)) return 'tag-maths';
-            if (/fran[çc]ais|lecture|grammaire|verbe/i.test(title)) return 'tag-francais';
-            if (/histoire|antiquité|guerre/i.test(title)) return 'tag-histoire';
-            if (/science|vivant|physique/i.test(title)) return 'tag-sciences';
-            return 'tag-autre';
-        }
-
         function createStudentCard(c, isDone) { 
             const container = isDone ? document.getElementById('student-completed-list') : document.getElementById('student-todo-list');
             const card = document.createElement('div');
@@ -449,7 +535,7 @@
                             </div>`;
                 });
                 footerHtml = `<button type="submit" class="btn btn-main" style="margin-top:1rem;">Valider</button>`;
-            } else { // For 'exercices' and other types
+            } else { 
                 if (c.content && c.content.length > 0) {
                      c.content.forEach(e => {
                         html += `<div style="margin-bottom: 1.5rem;"><h4>Exercice</h4><p>${e.enonce}</p></div>`;
@@ -728,7 +814,7 @@
         logoutBtn.addEventListener('click', () => { currentUser = null; updateUI(); });
         userInfoClickable.addEventListener('click', () => userDropdown.classList.toggle('hidden'));
         window.addEventListener('click', (e) => {
-            if (!userMenuContainer.contains(e.target)) {
+            if (userMenuContainer && !userMenuContainer.contains(e.target)) {
                 userDropdown.classList.add('hidden');
             }
         });
