@@ -332,6 +332,21 @@
         function renderModal(template) { modalContainer.innerHTML = template; modalContainer.querySelector('.close-modal')?.addEventListener('click', () => modalContainer.innerHTML = ''); }
         function getModalTemplate(id, title, html) { return `<div class="modal-overlay" id="${id}"><div class="modal-content"><button class="close-modal">&times;</button><h3>${title}</h3>${html}</div></div>`; }
         
+        function getSubjectTag(title) {
+            const lowerTitle = title.toLowerCase();
+            if (lowerTitle.includes('math') || lowerTitle.includes('addition') || lowerTitle.includes('calcul')) {
+                return 'tag-maths';
+            } else if (lowerTitle.includes('français') || lowerTitle.includes('lecture') || lowerTitle.includes('grammaire')) {
+                return 'tag-francais';
+            } else if (lowerTitle.includes('science')) {
+                return 'tag-sciences';
+            } else if (lowerTitle.includes('histoire')) {
+                return 'tag-histoire';
+            } else {
+                return 'tag-autre';
+            }
+        }
+
         function applyTheme(theme) {
             document.body.classList.toggle('dark-mode', theme === 'dark');
             const icon = theme === 'dark' ? '<i class="fa-solid fa-sun"></i>' : '<i class="fa-solid fa-moon"></i>';
