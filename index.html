@@ -35,8 +35,9 @@
         
         header { padding: 1rem 5%; background-color: var(--card-bg-color); box-shadow: var(--shadow); display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 1000; }
         .logo { display: flex; align-items: center; text-decoration: none; cursor: pointer; }
-        .logo-icon { width: 40px; height: 40px; background: linear-gradient(45deg, var(--primary-color), var(--secondary-color)); color: white; display: grid; place-items: center; border-radius: 10px; font-weight: 700; font-size: 1.5rem; margin-right: 10px; }
-        .logo span { font-size: 1.5rem; font-weight: 700; color: var(--text-color); }
+        .logo-icon { width: 35px; height: 35px; margin-right: 10px; }
+        .logo-icon path { fill: var(--primary-color); }
+        .logo span { font-size: 1.8rem; font-weight: 700; color: var(--text-color); }
         .main-nav { display: flex; align-items: center; gap: 1rem; }
         .hidden { display: none !important; }
 
@@ -48,8 +49,6 @@
         body.dark-mode .btn-secondary { background-color: #333; color: var(--primary-color); }
         .btn-termine { background-color: #e9f7eb !important; color: #155724 !important; cursor: not-allowed; }
         body.dark-mode .btn-termine { background-color: #2a3a2e !important; color: #28a745 !important; }
-        .btn-voice { background: none; border: none; font-size: 1.2rem; color: var(--primary-color); cursor: pointer; padding: 0.5rem; }
-        .btn-voice.active { color: var(--secondary-color); animation: pulse 1.5s infinite; }
         
         .user-menu-container { position: relative; }
         #user-info-clickable { background: none; border: none; display: flex; align-items: center; gap: 0.5rem; cursor: pointer; }
@@ -82,13 +81,9 @@
         .modal-content { background: var(--card-bg-color); padding: 2rem; border-radius: 12px; width: 90%; max-width: 600px; position: relative; max-height: 90vh; overflow-y: auto; }
         .close-modal { position: absolute; top: 1rem; right: 1rem; background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text-color); }
         
-        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.2); } 100% { transform: scale(1); } }
-        .textarea-container { position: relative; }
-        .textarea-container textarea { width: 100%; padding-right: 45px; }
-        .textarea-container .btn-voice { position: absolute; bottom: 5px; right: 5px; }
         input, select, textarea { width: 100%; padding: 12px; border: 1px solid #D1D5DB; border-radius: 8px; font-size: 1rem; font-family: 'Poppins', sans-serif; background-color: var(--background-color); color: var(--text-color); }
         body.dark-mode input, body.dark-mode select, body.dark-mode textarea { border-color: #444; }
-        .error-message { color: var(--incorrect-color); margin-top: 0.5rem; font-size: 0.9rem; }
+        .error-message { color: var(--incorrect-color); font-size: 0.9rem; }
         .spinner { border: 4px solid #f3f3f3; border-top: 4px solid var(--primary-color); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 2rem auto; }
         body.dark-mode .spinner { border-color: #333; border-top-color: var(--primary-color); }
         
@@ -106,12 +101,103 @@
         .workspace-input, .workspace-output { background: var(--card-bg-color); padding: 2rem; border-radius: 12px; box-shadow: var(--shadow); height: 100%; }
         #edit-form .form-group { border-left: 3px solid #eee; padding-left: 1rem; margin-top: 1.5rem; }
         body.dark-mode #edit-form .form-group { border-left-color: #333; }
-        @media (max-width: 768px) { .workspace-container { grid-template-columns: 1fr; } }
+
+        /* NOUVEAU VISUEL PAGE D'ACCUEIL */
+        #home-page.active {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 80vh;
+            text-align: center;
+            overflow: hidden;
+        }
+        .intro-text-wrapper {
+            display: flex;
+            flex-wrap: nowrap;
+            justify-content: center;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 2rem;
+            width: auto;
+        }
+        
+        .rotating-text-container {
+            height: 60px;
+            overflow: hidden;
+        }
+        .rotating-text-inner {
+            animation: slide-up 10s forwards ease-in-out;
+        }
+        .rotating-text-inner span {
+            display: block;
+            height: 60px;
+            line-height: 60px;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        @keyframes slide-up {
+            0%, 19%   { transform: translateY(0); }
+            20%, 39%  { transform: translateY(-60px); }
+            40%, 59%  { transform: translateY(-120px); }
+            60%, 79%  { transform: translateY(-180px); }
+            80%, 100% { transform: translateY(-240px); }
+        }
+
+        .word-1 { background-image: linear-gradient(45deg, #4A90E2, #50E3C2); }
+        .word-2 { background-image: linear-gradient(45deg, #50E3C2, #B8E986); }
+        .word-3 { background-image: linear-gradient(45deg, #B8E986, #F8E71C); }
+        .word-4 { background-image: linear-gradient(45deg, #F8E71C, #F5A623); }
+        .word-5 { background-image: linear-gradient(45deg, #F5A623, #D0021B); }
+        
+        #aida-final-text {
+            display: none;
+            opacity: 0;
+            animation: fade-in-final 1s forwards;
+            animation-delay: 10s;
+        }
+        @keyframes fade-in-final {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        #home-page .subtitle, #start-app-btn {
+             opacity: 0;
+             animation: fade-in-subtitle 1s ease-out forwards;
+             animation-delay: 10.5s;
+        }
+        @keyframes fade-in-subtitle {
+             from { opacity: 0; transform: translateY(10px); }
+             to { opacity: 1; transform: translateY(0); }
+        }
+        #home-page .subtitle { font-size: 1.2rem; color: #666; margin-bottom: 2rem; }
+        body.dark-mode #home-page .subtitle { color: #aaa; }
+
+        @media (max-width: 768px) { 
+            .workspace-container { grid-template-columns: 1fr; } 
+            .intro-text-wrapper, .rotating-text-container { font-size: 1.5rem; }
+            .rotating-text-wrapper, .rotating-text-inner span { height: 40px; line-height: 40px; }
+            @keyframes slide-up {
+                0%, 19%  { transform: translateY(0); }
+                20%, 39%  { transform: translateY(-40px); }
+                40%, 59%  { transform: translateY(-80px); }
+                60%, 79%  { transform: translateY(-120px); }
+                80%, 100% { transform: translateY(-160px); }
+            }
+        }
     </style>
 </head>
 <body>
     <header>
-        <div class="logo" id="home-link"><div class="logo-icon">A</div><span>AIDA</span></div>
+        <div class="logo" id="home-link">
+             <svg class="logo-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M4 19V6.2C4 5.0799 4 4.51984 4.21799 4.09202C4.40973 3.71569 4.71569 3.40973 5.09202 3.21799C5.51984 3 6.0799 3 7.2 3H12M12 3H16.8C17.9201 3 18.4802 3 18.908 3.21799C19.2843 3.40973 19.5903 3.71569 19.782 4.09202C20 4.51984 20 5.0799 20 6.2V19M12 3V14.2C12 15.3201 12 15.8802 11.782 16.308C11.5903 16.6843 11.2843 16.9903 10.908 17.182C10.4802 17.4 9.9201 17.4 8.8 17.4H4M4 19H12M4 19C4 20.1046 4.89543 21 6 21H18C19.1046 21 20 20.1046 20 19M20 19H12M12 19V17.4" stroke="var(--primary-color)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <span>AIDA</span>
+        </div>
         <nav class="main-nav">
             <a href="#" class="btn btn-secondary hidden" id="workspace-link"><i class="fa-solid fa-pen-ruler"></i> Espace de Travail</a>
             <a href="playground.html" class="btn btn-secondary hidden" id="playground-link"><i class="fa-solid fa-flask"></i> Terrain de Jeux</a>
@@ -133,11 +219,25 @@
 
     <main>
         <div class="page active" id="home-page">
-            <section class="hero" style="padding: 6rem 2rem; text-align: center;">
-                <h1 style="font-size: 3.5rem; line-height: 1.2; margin-bottom: 1.5rem; background: linear-gradient(45deg, var(--primary-color), #333); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">L'intelligence artificielle au service de l'éducation.</h1>
-                <p style="font-size: 1.2rem; max-width: 600px; margin: 0 auto 2.5rem; color: #555;">AIDA est une plateforme conçue pour alléger le quotidien des enseignants, stimuler la curiosité des élèves et rassurer les parents.</p>
+            <div id="home-content-wrapper">
+                 <div class="intro-text-wrapper" id="intro-animation-wrapper">
+                    AIDA c'est...
+                    <div class="rotating-text-container">
+                        <div class="rotating-text-inner">
+                            <span class="word-1">Comprendre</span>
+                            <span class="word-2">Apprendre</span>
+                            <span class="word-3">Créer</span>
+                            <span class="word-4">Découvrir</span>
+                            <span class="word-5">Progresser</span>
+                        </div>
+                    </div>
+                </div>
+                <h1 class="intro-text-wrapper" id="aida-final-text">
+                    AIDA, votre nouvelle expérience
+                </h1>
+                <p class="subtitle">La plateforme intelligente pour enseignants, élèves et parents.</p>
                 <button class="btn btn-main" id="start-app-btn">Commencer l'aventure</button>
-            </section>
+            </div>
         </div>
         <div class="page" id="auth-page"></div>
         <div class="page" id="teacher-dashboard-page"></div>
@@ -175,7 +275,7 @@
         const startAppBtn = document.getElementById('start-app-btn');
 
         async function loadProgrammes() { try { const [p, c, l] = await Promise.all([fetch(`${backendUrl}/programmes-primaire.json`).then(r=>r.json()), fetch(`${backendUrl}/programmes-college.json`).then(r=>r.json()), fetch(`${backendUrl}/programmes-lycee.json`).then(r=>r.json())]); programmes = {Primaire:p, Collège:c, Lycée:l}; } catch (e) { console.error("Could not load programmes.", e); } }
-        async function apiRequest(endpoint, method = 'GET', body = null) { try { const opts = { method, headers: { 'Content-Type': 'application/json' } }; if (body) opts.body = JSON.stringify(body); const res = await fetch(`${backendUrl}/api${endpoint}`, opts); if (!res.ok) { const err = await res.json(); throw new Error(err.error || 'Une erreur est survenue'); } return res.status === 204 ? null : res.json(); } catch (e) { console.error(`API Error:`, e); throw e; } }
+        async function apiRequest(endpoint, method = 'GET', body = null) { try { const opts = { method, headers: { 'Content-Type': 'application/json' } }; if (body) opts.body = JSON.stringify(body); const res = await fetch(`${backendUrl}${endpoint}`, opts); if (!res.ok) { const errText = await res.text(); try { const err = JSON.parse(errText); throw new Error(err.error || 'Une erreur est survenue'); } catch (e) { throw new Error(errText); } } return res.status === 204 ? null : res.json(); } catch (e) { console.error(`API Error:`, e); throw e; } }
         function changePage(id) { main.querySelectorAll('.page').forEach(p=>p.classList.remove('active')); document.getElementById(id).classList.add('active'); }
         function renderModal(template) { modalContainer.innerHTML = template; modalContainer.querySelector('.close-modal')?.addEventListener('click', () => modalContainer.innerHTML = ''); }
         function getModalTemplate(id, title, html) { return `<div class="modal-overlay" id="${id}"><div class="modal-content"><button class="close-modal">&times;</button><h3>${title}</h3>${html}</div></div>`; }
@@ -211,8 +311,8 @@
             changePage('auth-page');
         }
 
-        async function handleLogin(e) { e.preventDefault(); try { const data = await apiRequest('/auth/login', 'POST', { email: document.getElementById('login-email').value, password: document.getElementById('login-password').value }); currentUser = data.user; updateUI(); } catch (err) { document.getElementById('login-error').textContent = err.message; } }
-        async function handleSignup(e) { e.preventDefault(); try { const data = await apiRequest('/auth/signup', 'POST', { email: document.getElementById('signup-email').value, password: document.getElementById('signup-password').value, role: document.getElementById('signup-role').value }); currentUser = data.user; updateUI(); } catch (err) { document.getElementById('signup-error').textContent = err.message; } }
+        async function handleLogin(e) { e.preventDefault(); try { const data = await apiRequest('/api/auth/login', 'POST', { email: document.getElementById('login-email').value, password: document.getElementById('login-password').value }); currentUser = data.user; updateUI(); } catch (err) { document.getElementById('login-error').textContent = err.message; } }
+        async function handleSignup(e) { e.preventDefault(); try { const data = await apiRequest('/api/auth/signup', 'POST', { email: document.getElementById('signup-email').value, password: document.getElementById('signup-password').value, role: document.getElementById('signup-role').value }); currentUser = data.user; updateUI(); } catch (err) { document.getElementById('signup-error').textContent = err.message; } }
         function toggleAuthForms(e) { e.preventDefault(); document.getElementById('login-form-container').classList.toggle('hidden'); document.getElementById('signup-form-container').classList.toggle('hidden'); }
         
         async function renderTeacherDashboard() {
@@ -221,7 +321,7 @@
             changePage('teacher-dashboard-page');
             p.querySelector('#open-class-modal').addEventListener('click', showCreateClassModal);
             p.querySelector('#open-gen-modal').addEventListener('click', showGenerationModal);
-            teacherClasses = await apiRequest(`/teacher/classes?teacherEmail=${currentUser.email}`);
+            teacherClasses = await apiRequest(`/api/teacher/classes?teacherEmail=${currentUser.email}`);
             const grid = p.querySelector('#class-grid');
             grid.innerHTML = teacherClasses.length === 0 ? "<p>Aucune classe.</p>" : "";
             teacherClasses.forEach(c => {
@@ -238,7 +338,7 @@
             page.innerHTML = `<button id=back-to-teacher class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> Retour</button><div class=spinner></div>`;
             page.querySelector('#back-to-teacher').addEventListener('click', renderTeacherDashboard);
             changePage('class-details-page');
-            currentClassData = await apiRequest(`/teacher/classes/${id}`);
+            currentClassData = await apiRequest(`/api/teacher/classes/${id}`);
             
             page.innerHTML = `
                 <button id="back-to-teacher" class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> Retour</button>
@@ -298,7 +398,7 @@
             const panel = document.getElementById('competencies-panel');
             panel.innerHTML = '<div class="spinner"></div>';
             try {
-                const report = await apiRequest(`/teacher/classes/${classId}/competency-report`);
+                const report = await apiRequest(`/api/teacher/classes/${classId}/competency-report`);
                 if (report.length === 0) {
                     panel.innerHTML = '<p>Aucun résultat pour analyser les compétences. Les élèves doivent d\'abord compléter des exercices.</p>';
                     return;
@@ -394,19 +494,11 @@
             renderModal(getModalTemplate('result-details-modal', `Détail pour : ${result.title}`, detailsHtml));
         }
         
-        async function handleAddStudent(e) { e.preventDefault(); const email = document.getElementById('student-email-input').value; const errP = document.getElementById('add-student-error'); try { errP.textContent = ''; await apiRequest(`/teacher/classes/${currentClassData.id}/add-student`, 'POST', { studentEmail: email }); renderClassDetailsPage(currentClassData.id); } catch (err) { errP.textContent = err.message; } }
-        function showCreateClassModal() { renderModal(getModalTemplate('create-class-modal', 'Nouvelle Classe', `<form id=create-class-form><div class=form-group><label for=class-name-input>Nom</label><input type=text id=class-name-input required></div><button type=submit class="btn btn-main">Créer</button></form>`)); document.getElementById('create-class-form').addEventListener('submit', async e => { e.preventDefault(); await apiRequest('/teacher/classes', 'POST', { className: document.getElementById('class-name-input').value, teacherEmail: currentUser.email }); modalContainer.innerHTML = ''; renderTeacherDashboard(); }); }
+        async function handleAddStudent(e) { e.preventDefault(); const email = document.getElementById('student-email-input').value; const errP = document.getElementById('add-student-error'); try { errP.textContent = ''; await apiRequest(`/api/teacher/classes/${currentClassData.id}/add-student`, 'POST', { studentEmail: email }); renderClassDetailsPage(currentClassData.id); } catch (err) { errP.textContent = err.message; } }
+        function showCreateClassModal() { renderModal(getModalTemplate('create-class-modal', 'Nouvelle Classe', `<form id=create-class-form><div class=form-group><label for=class-name-input>Nom</label><input type=text id=class-name-input required></div><button type=submit class="btn btn-main">Créer</button></form>`)); document.getElementById('create-class-form').addEventListener('submit', async e => { e.preventDefault(); await apiRequest('/api/teacher/classes', 'POST', { className: document.getElementById('class-name-input').value, teacherEmail: currentUser.email }); modalContainer.innerHTML = ''; renderTeacherDashboard(); }); }
         
-        async function renderStudentDashboard() { const p = document.getElementById('student-dashboard-page'); p.innerHTML = `<div class=spinner></div>`; changePage('student-dashboard-page'); const d = await apiRequest(`/student/dashboard?studentEmail=${currentUser.email}`); p.innerHTML = `<h2>Bonjour ${currentUser.firstName}!</h2><h3>À faire</h3><div id=todo-grid class="dashboard-grid"></div><h3 style=margin-top:2rem>Terminés</h3><div id=completed-grid class="dashboard-grid"></div>`; const todo = p.querySelector('#todo-grid'); if (d.todo.length === 0) { todo.innerHTML = "<p>Bravo, tu es à jour !</p>"; } else { d.todo.forEach(i => createStudentCard(i)); } const comp = p.querySelector('#completed-grid'); if (d.completed.length === 0) { comp.innerHTML = "<p>Aucun devoir terminé.</p>"; } else { d.completed.forEach(i => createStudentCard(i, true)); } }
+        async function renderStudentDashboard() { const p = document.getElementById('student-dashboard-page'); p.innerHTML = `<div class=spinner></div>`; changePage('student-dashboard-page'); const d = await apiRequest(`/api/student/dashboard?studentEmail=${currentUser.email}`); p.innerHTML = `<h2>Bonjour ${currentUser.firstName}!</h2><h3>À faire</h3><div id="student-todo-list" class="dashboard-grid"></div><h3 style=margin-top:2rem>Terminés</h3><div id="student-completed-list" class="dashboard-grid"></div>`; const todo = p.querySelector('#student-todo-list'); if (d.todo.length === 0) { todo.innerHTML = "<p>Bravo, tu es à jour !</p>"; } else { d.todo.forEach(i => createStudentCard(i)); } const comp = p.querySelector('#student-completed-list'); if (d.completed.length === 0) { comp.innerHTML = "<p>Aucun devoir terminé.</p>"; } else { d.completed.forEach(i => createStudentCard(i, true)); } }
         
-        function getSubjectTag(title) {
-            if (/math|calcul|nombre|géométrie/i.test(title)) return 'tag-maths';
-            if (/fran[çc]ais|lecture|grammaire|verbe/i.test(title)) return 'tag-francais';
-            if (/histoire|antiquité|guerre/i.test(title)) return 'tag-histoire';
-            if (/science|vivant|physique/i.test(title)) return 'tag-sciences';
-            return 'tag-autre';
-        }
-
         function createStudentCard(c, isDone) { 
             const container = isDone ? document.getElementById('student-completed-list') : document.getElementById('student-todo-list');
             const card = document.createElement('div');
@@ -448,7 +540,7 @@
                             </div>`;
                 });
                 footerHtml = `<button type="submit" class="btn btn-main" style="margin-top:1rem;">Valider</button>`;
-            } else { // For 'exercices' and other types
+            } else { 
                 if (c.content && c.content.length > 0) {
                      c.content.forEach(e => {
                         html += `<div style="margin-bottom: 1.5rem;"><h4>Exercice</h4><p>${e.enonce}</p></div>`;
@@ -478,7 +570,7 @@
                 const finishBtn = p.querySelector('#finish-exercise-btn');
                 if (finishBtn) {
                     finishBtn.addEventListener('click', async () => {
-                        await apiRequest('/student/submit-quiz', 'POST', { 
+                        await apiRequest('/api/student/submit-quiz', 'POST', { 
                             studentEmail: currentUser.email, 
                             classId: c.classId, 
                             contentId: c.id, 
@@ -494,9 +586,9 @@
             changePage('content-viewer-page');
         }
 
-        async function handleHelpRequest(e) { e.preventDefault(); const q = e.target.closest('button').dataset.question; renderModal(getModalTemplate('help-modal', 'Indice d\'AIDA', `<p><strong>Question:</strong> ${q}</p><div id=hint-container style=margin-top:1rem><div class=spinner></div></div>`)); try { const d = await apiRequest('/ai/get-hint', 'POST', { questionText: q }); document.getElementById('hint-container').innerHTML = `<p>${d.hint}</p>`; } catch (err) { document.getElementById('hint-container').innerHTML = `<p class=error-message>Indice indisponible.</p>`; } }
-        async function handleSubmitQuiz(c) { const answers = c.questions.map((q, i) => { const sel = document.querySelector(`input[name=q${i}]:checked`); return sel ? parseInt(sel.value) : -1; }); const score = answers.reduce((acc, ans, i) => acc + (ans == c.questions[i].correct_answer_index ? 1 : 0), 0); await apiRequest('/student/submit-quiz', 'POST', { studentEmail: currentUser.email, classId: c.classId, contentId: c.id, title: c.title, score, totalQuestions: c.questions.length, answers }); renderFeedbackPage(c, answers, score); }
-        function renderFeedbackPage(c, answers, score) { const p = document.getElementById('feedback-page'); p.innerHTML = `<div class=card><h2>Résultats du Quiz: ${c.title}</h2><p><strong>Ton score: ${score} / ${c.questions.length}</strong></p><div id=feedback-details style=margin-top:2rem></div><button id=back-to-dash class="btn btn-main">Retour au tableau de bord</button></div>`; p.querySelector('#back-to-dash').addEventListener('click', renderStudentDashboard); const details = p.querySelector('#feedback-details'); c.questions.forEach((q, i) => { const correct = answers[i] == q.correct_answer_index; const item = document.createElement('div'); item.className = `feedback-item ${correct ? 'correct' : 'incorrect'}`; let html = `<p><strong>${q.question_text}</strong></p>`; if (correct) { html += `<p style=color:var(--correct-color)>Ta réponse: ${q.options[answers[i]]} (Correct)</p>`; } else { html += `<p style=color:var(--incorrect-color)>Ta réponse: ${answers[i] > -1 ? q.options[answers[i]] : 'Aucune'} (Incorrect)</p><p>Bonne réponse: ${q.options[q.correct_answer_index]}</p><div class=aida-explanation id=explanation-${i}><div class=spinner></div></div>`; } item.innerHTML = html; details.appendChild(item); if (!correct) { apiRequest('/ai/get-feedback-for-error', 'POST', { question: q.question_text, userAnswer: answers[i] > -1 ? q.options[answers[i]] : 'Aucune', correctAnswer: q.options[q.correct_answer_index] }).then(d => { document.getElementById(`explanation-${i}`).innerHTML = `<p><strong>L'explication d'AIDA :</strong> ${d.feedback}</p>`; }); } }); changePage('feedback-page'); }
+        async function handleHelpRequest(e) { e.preventDefault(); const q = e.target.closest('button').dataset.question; renderModal(getModalTemplate('help-modal', 'Indice d\'AIDA', `<p><strong>Question:</strong> ${q}</p><div id=hint-container style=margin-top:1rem><div class=spinner></div></div>`)); try { const d = await apiRequest('/api/ai/get-hint', 'POST', { questionText: q }); document.getElementById('hint-container').innerHTML = `<p>${d.hint}</p>`; } catch (err) { document.getElementById('hint-container').innerHTML = `<p class=error-message>Indice indisponible.</p>`; } }
+        async function handleSubmitQuiz(c) { const answers = c.questions.map((q, i) => { const sel = document.querySelector(`input[name=q${i}]:checked`); return sel ? parseInt(sel.value) : -1; }); const score = answers.reduce((acc, ans, i) => acc + (ans == c.questions[i].correct_answer_index ? 1 : 0), 0); await apiRequest('/api/student/submit-quiz', 'POST', { studentEmail: currentUser.email, classId: c.classId, contentId: c.id, title: c.title, score, totalQuestions: c.questions.length, answers }); renderFeedbackPage(c, answers, score); }
+        function renderFeedbackPage(c, answers, score) { const p = document.getElementById('feedback-page'); p.innerHTML = `<div class=card><h2>Résultats du Quiz: ${c.title}</h2><p><strong>Ton score: ${score} / ${c.questions.length}</strong></p><div id=feedback-details style=margin-top:2rem></div><button id=back-to-dash class="btn btn-main">Retour au tableau de bord</button></div>`; p.querySelector('#back-to-dash').addEventListener('click', renderStudentDashboard); const details = p.querySelector('#feedback-details'); c.questions.forEach((q, i) => { const correct = answers[i] == c.questions[i].correct_answer_index; const item = document.createElement('div'); item.className = `feedback-item ${correct ? 'correct' : 'incorrect'}`; let html = `<p><strong>${q.question_text}</strong></p>`; if (correct) { html += `<p style=color:var(--correct-color)>Ta réponse: ${q.options[answers[i]]} (Correct)</p>`; } else { html += `<p style=color:var(--incorrect-color)>Ta réponse: ${answers[i] > -1 ? q.options[answers[i]] : 'Aucune'} (Incorrect)</p><p>Bonne réponse: ${q.options[q.correct_answer_index]}</p><div class=aida-explanation id=explanation-${i}><div class=spinner></div></div>`; } item.innerHTML = html; details.appendChild(item); if (!correct) { apiRequest('/api/ai/get-feedback-for-error', 'POST', { question: q.question_text, userAnswer: answers[i] > -1 ? q.options[answers[i]] : 'Aucune', correctAnswer: q.options[q.correct_answer_index] }).then(d => { document.getElementById(`explanation-${i}`).innerHTML = `<p><strong>L'explication d'AIDA :</strong> ${d.feedback}</p>`; }); } }); changePage('feedback-page'); }
         
         function showGenerationModal() {
             const h = `
@@ -547,7 +639,7 @@
             m.addEventListener('change', () => { resetSelects([no, co]); const d = programmes[cy.value][n.value]?.[m.value]; if (d) { Object.keys(d).filter(k => k !== 'nom').forEach(nk => { no.add(new Option(d[nk].nom, nk)); }); no.disabled = false; } });
             no.addEventListener('change', () => { resetSelects([co]); const d = programmes[cy.value][n.value]?.[m.value]?.[no.value]; if (d && d.sous_notions) { Object.values(d.sous_notions).forEach(sn => { (sn.competences || []).forEach(c => co.add(new Option(c, c))); }); co.disabled = false; } });
             co.addEventListener('change', () => { gen.disabled = !co.value; });
-            document.getElementById('generation-form').addEventListener('submit', async e => { e.preventDefault(); selectedCompetenceInfo = { level: n.value, competence: co.value }; const comp = `Pour un élève de ${n.value}, ${co.value}`; const contentType = contentTypeSelect.value; const exerciseCount = document.getElementById('exercise-count').value; document.getElementById('generation-spinner').classList.remove('hidden'); const d = await apiRequest('/ai/generate-content', 'POST', { competences: comp, contentType, exerciseCount }); generatedContent = d.structured_content; showEditModal(); });
+            document.getElementById('generation-form').addEventListener('submit', async e => { e.preventDefault(); selectedCompetenceInfo = { level: n.value, competence: co.value }; const comp = `Pour un élève de ${n.value}, ${co.value}`; const contentType = contentTypeSelect.value; const exerciseCount = document.getElementById('exercise-count').value; document.getElementById('generation-spinner').classList.remove('hidden'); const d = await apiRequest('/api/ai/generate-content', 'POST', { competences: comp, contentType, exerciseCount }); generatedContent = d.structured_content; showEditModal(); });
             
             document.getElementById('generate-from-text-form').addEventListener('submit', async (e) => {
                 e.preventDefault();
@@ -555,7 +647,7 @@
                 const documentText = document.getElementById('course-text-modal').value;
                 const contentType = contentTypeSelectText.value;
                 const exerciseCount = document.getElementById('exercise-count-text').value;
-                const data = await apiRequest('/ai/generate-from-document', 'POST', { documentText, contentType, exerciseCount });
+                const data = await apiRequest('/api/ai/generate-from-document', 'POST', { documentText, contentType, exerciseCount });
                 generatedContent = data.structured_content;
                 showEditModal();
             });
@@ -636,7 +728,7 @@
                 e.preventDefault();
                 const classId = select.value;
                 if (!classId || !generatedContent) return;
-                await apiRequest('/teacher/assign-content', 'POST', { classId, contentData: { ...generatedContent, competence: selectedCompetenceInfo } });
+                await apiRequest('/api/teacher/assign-content', 'POST', { classId, contentData: { ...generatedContent, competence: selectedCompetenceInfo } });
                 modalContainer.innerHTML = '';
             });
         }
@@ -662,7 +754,7 @@
                                 </div>
                                 <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
                                     <button type="submit" class="btn btn-main">Corrige-moi, AIDA !</button>
-                                    <button type="button" class="btn btn-secondary" id="student-upload-btn"><i class="fa-solid fa-upload"></i> Charger .txt</button>
+                                    <button type="button" class="btn btn-secondary" id="student-upload-btn"><i class="fa-solid fa-upload"></i> Charger un .txt</button>
                                     <button type="button" id="finish-workspace-btn" class="btn btn-secondary"><i class="fa-solid fa-check"></i> Terminé</button>
                                 </div>
                             </form>
@@ -706,7 +798,7 @@
             try {
                 const exerciseText = document.getElementById('exercise-text').value;
                 const studentAnswer = document.getElementById('student-answer').value;
-                const data = await apiRequest('/ai/correct-exercise', 'POST', { exerciseText, studentAnswer });
+                const data = await apiRequest('/api/ai/correct-exercise', 'POST', { exerciseText, studentAnswer });
                 outputContainer.innerHTML = `<p>${data.correction.replace(/\n/g, '<br>')}</p>`;
             } catch (err) {
                 outputContainer.innerHTML = `<p class="error-message">Une erreur est survenue: ${err.message}</p>`;
@@ -727,7 +819,7 @@
         logoutBtn.addEventListener('click', () => { currentUser = null; updateUI(); });
         userInfoClickable.addEventListener('click', () => userDropdown.classList.toggle('hidden'));
         window.addEventListener('click', (e) => {
-            if (!userMenuContainer.contains(e.target)) {
+            if (userMenuContainer && !userMenuContainer.contains(e.target)) {
                 userDropdown.classList.add('hidden');
             }
         });
@@ -736,6 +828,15 @@
             localStorage.setItem('theme', newTheme);
             applyTheme(newTheme);
         });
+
+        const wrapper = document.querySelector('#intro-animation-wrapper');
+        const finalWrapper = document.querySelector('#aida-final-text');
+        if (wrapper && finalWrapper) {
+            setTimeout(() => {
+                wrapper.style.display = 'none';
+                finalWrapper.style.display = 'flex';
+            }, 10000); 
+        }
         
         init();
     });
