@@ -50,6 +50,7 @@
         
         .user-menu-container { position: relative; }
         #user-info-clickable { background: none; border: none; display: flex; align-items: center; gap: 0.5rem; cursor: pointer; }
+        body.dark-mode #user-info-clickable { color: var(--text-color); }
         .user-dropdown { position: absolute; top: 120%; right: 0; background-color: var(--card-bg-color); border-radius: 8px; box-shadow: var(--shadow); width: 250px; z-index: 101; padding: 0.5rem; }
         .dropdown-section { display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0.75rem; }
         .dropdown-section a { text-decoration: none; color: var(--text-color); font-weight: 600; display: flex; align-items: center; gap: 0.75rem; width: 100%; padding: 0.5rem 0; }
@@ -110,6 +111,8 @@
         #edit-form .form-group { border-left: 3px solid #eee; padding-left: 1rem; margin-top: 1.5rem; }
         body.dark-mode #edit-form .form-group { border-left-color: #333; }
         body.dark-mode #student-details-page h2 { color: var(--primary-color); }
+
+        .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem; }
 
         /* NOUVEAU VISUEL PAGE D'ACCUEIL */
         #home-page.active {
@@ -333,18 +336,13 @@
         function getModalTemplate(id, title, html) { return `<div class="modal-overlay" id="${id}"><div class="modal-content"><button class="close-modal">&times;</button><h3>${title}</h3>${html}</div></div>`; }
         
         function getSubjectTag(title) {
+            if (!title) return 'tag-autre';
             const lowerTitle = title.toLowerCase();
-            if (lowerTitle.includes('math') || lowerTitle.includes('addition') || lowerTitle.includes('calcul')) {
-                return 'tag-maths';
-            } else if (lowerTitle.includes('français') || lowerTitle.includes('lecture') || lowerTitle.includes('grammaire')) {
-                return 'tag-francais';
-            } else if (lowerTitle.includes('science')) {
-                return 'tag-sciences';
-            } else if (lowerTitle.includes('histoire')) {
-                return 'tag-histoire';
-            } else {
-                return 'tag-autre';
-            }
+            if (lowerTitle.includes('math') || lowerTitle.includes('addition') || lowerTitle.includes('calcul')) return 'tag-maths';
+            if (lowerTitle.includes('français') || lowerTitle.includes('lecture') || lowerTitle.includes('grammaire')) return 'tag-francais';
+            if (lowerTitle.includes('science')) return 'tag-sciences';
+            if (lowerTitle.includes('histoire')) return 'tag-histoire';
+            return 'tag-autre';
         }
 
         function applyTheme(theme) {
@@ -392,19 +390,53 @@
         async function handleSignup(e) { e.preventDefault(); try { const data = await apiRequest('/auth/signup', 'POST', { email: document.getElementById('signup-email').value, password: document.getElementById('signup-password').value, role: document.getElementById('signup-role').value }); currentUser = data.user; updateUI(); } catch (err) { document.getElementById('signup-error').textContent = err.message; } }
         function toggleAuthForms(e) { e.preventDefault(); document.getElementById('login-form-container').classList.toggle('hidden'); document.getElementById('signup-form-container').classList.toggle('hidden'); }
         
+        function calculateCompletionRate(cls) {
+            const studentCount = (cls.students || []).length;
+            const contentCount = (cls.content || []).length;
+            if (studentCount === 0 || contentCount === 0) return 0;
+            const totalPossibleSubmissions = studentCount * contentCount;
+            const submissionMap = new Map();
+            (cls.results || []).forEach(result => {
+                const key = `${result.studentEmail}-${result.contentId}`;
+                submissionMap.set(key, true);
+            });
+            const actualSubmissions = submissionMap.size;
+            return Math.round((actualSubmissions / totalPossibleSubmissions) * 100);
+        }
+
         async function renderTeacherDashboard() {
             const p = document.getElementById('teacher-dashboard-page');
-            p.innerHTML = `<h2>Bonjour ${currentUser.firstName}!</h2><button class="btn btn-main" id=open-gen-modal><i class="fa-solid fa-plus"></i> Nouveau Contenu</button> <button class="btn btn-secondary" id=open-class-modal><i class="fa-solid fa-users"></i> Nouvelle Classe</button><div id=class-grid class="dashboard-grid" style=margin-top:2rem><div class=spinner></div></div>`;
+            p.innerHTML = `
+                <div class="page-header">
+                    <h2>Bonjour ${currentUser.firstName}!</h2>
+                    <div>
+                        <button class="btn btn-main" id="open-gen-modal"><i class="fa-solid fa-plus"></i> Nouveau Contenu</button> 
+                        <button class="btn btn-secondary" id="open-class-modal"><i class="fa-solid fa-users"></i> Nouvelle Classe</button>
+                    </div>
+                </div>
+                <div id="class-grid" class="dashboard-grid"><div class="spinner"></div></div>`;
             changePage('teacher-dashboard-page');
             p.querySelector('#open-class-modal').addEventListener('click', showCreateClassModal);
             p.querySelector('#open-gen-modal').addEventListener('click', showGenerationModal);
             teacherClasses = await apiRequest(`/teacher/classes?teacherEmail=${currentUser.email}`);
             const grid = p.querySelector('#class-grid');
-            grid.innerHTML = teacherClasses.length === 0 ? "<p>Aucune classe.</p>" : "";
+            grid.innerHTML = teacherClasses.length === 0 ? "<p>Aucune classe pour le moment. Créez-en une pour commencer !</p>" : "";
             teacherClasses.forEach(c => {
                 const card = document.createElement('div');
                 card.className = 'dashboard-card';
-                card.innerHTML = `<h4>${c.className}</h4><p>${(c.students || []).length} élève(s)</p>`;
+                const completionRate = calculateCompletionRate(c);
+                card.innerHTML = `
+                    <h4>${c.className}</h4>
+                    <p style="margin-top: 1rem;"><i class="fa-solid fa-users" style="margin-right: 8px; width: 20px;"></i> ${c.students.length} élève(s)</p>
+                    <p><i class="fa-solid fa-book-open" style="margin-right: 8px; width: 20px;"></i> ${(c.content || []).length} contenu(s) assigné(s)</p>
+                    <div style="margin-top: 1rem;">
+                        <p style="font-size: 0.9rem; margin-bottom: 0.25rem;"><i class="fa-solid fa-check-double" style="margin-right: 8px; width: 20px;"></i> Taux de complétion</p>
+                        <div class="progress-bar">
+                            <div class="progress-bar-fill" style="width: ${completionRate}%;"></div>
+                        </div>
+                        <span style="font-weight: 600; font-size: 0.9rem;">${completionRate}%</span>
+                    </div>
+                `;
                 card.addEventListener('click', () => renderClassDetailsPage(c.id));
                 grid.appendChild(card);
             });
@@ -412,7 +444,7 @@
         
         async function renderClassDetailsPage(id) {
             const page = document.getElementById('class-details-page');
-            page.innerHTML = `<button id=back-to-teacher class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> Retour</button><div class=spinner></div>`;
+            page.innerHTML = `<button id="back-to-teacher" class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> Retour</button><div class="spinner"></div>`;
             page.querySelector('#back-to-teacher').addEventListener('click', renderTeacherDashboard);
             changePage('class-details-page');
             currentClassData = await apiRequest(`/teacher/classes/${id}`);
@@ -425,8 +457,10 @@
                     <button class="tab-button" data-tab="competencies-panel">Analyse par Compétence</button>
                 </div>
                 <div id="students-panel" class="tab-panel active">
-                    <div class=card><h4>Ajouter un élève</h4><form id=add-student-form><div class=form-group><label for=student-email>Email</label><input type=email id=student-email-input required></div><button type=submit class="btn btn-main">Ajouter</button><p class=error-message id=add-student-error></p></form></div>
-                    <h3 style=margin-top:2rem>Élèves inscrits</h3>
+                    <div class="page-header" style="margin-bottom: 1.5rem;">
+                        <h3>Élèves inscrits</h3>
+                        <button id="open-add-student-modal-btn" class="btn btn-secondary"><i class="fa-solid fa-user-plus"></i> Ajouter un élève</button>
+                    </div>
                     <div id="student-list" class="dashboard-grid"></div>
                 </div>
                 <div id="competencies-panel" class="tab-panel">
@@ -436,7 +470,20 @@
             renderStudentListPanel();
             
             page.querySelector('#back-to-teacher').addEventListener('click', renderTeacherDashboard);
-            page.querySelector('#add-student-form').addEventListener('submit', handleAddStudent);
+            page.querySelector('#open-add-student-modal-btn').addEventListener('click', () => {
+                renderModal(getModalTemplate('add-student-modal', 'Ajouter un élève', `
+                    <form id="add-student-form">
+                        <div class="form-group">
+                            <label for="student-email-input">Email de l'élève</label>
+                            <input type="email" id="student-email-input" required>
+                        </div>
+                        <button type="submit" class="btn btn-main">Ajouter</button>
+                        <p class="error-message" id="add-student-error"></p>
+                    </form>
+                `));
+                document.getElementById('add-student-form').addEventListener('submit', handleAddStudent);
+            });
+
             page.querySelectorAll('.tab-button').forEach(button => {
                 button.addEventListener('click', (e) => {
                     page.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
@@ -465,7 +512,7 @@
             }).join('');
             
             const studentListContainer = document.getElementById('student-list');
-            studentListContainer.innerHTML = studentCardsHtml;
+            studentListContainer.innerHTML = (currentClassData.students || []).length > 0 ? studentCardsHtml : "<p>Aucun élève dans cette classe pour le moment.</p>";
             studentListContainer.querySelectorAll('.dashboard-card').forEach(card => {
                 card.addEventListener('click', () => renderStudentDetailsPage(card.dataset.studentEmail));
             });
@@ -571,7 +618,19 @@
             renderModal(getModalTemplate('result-details-modal', `Détail pour : ${result.title}`, detailsHtml));
         }
         
-        async function handleAddStudent(e) { e.preventDefault(); const email = document.getElementById('student-email-input').value; const errP = document.getElementById('add-student-error'); try { errP.textContent = ''; await apiRequest(`/teacher/classes/${currentClassData.id}/add-student`, 'POST', { studentEmail: email }); renderClassDetailsPage(currentClassData.id); } catch (err) { errP.textContent = err.message; } }
+        async function handleAddStudent(e) { 
+            e.preventDefault(); 
+            const email = document.getElementById('student-email-input').value; 
+            const errP = document.getElementById('add-student-error'); 
+            try { 
+                if(errP) errP.textContent = ''; 
+                await apiRequest(`/teacher/classes/${currentClassData.id}/add-student`, 'POST', { studentEmail: email });
+                modalContainer.innerHTML = ''; 
+                renderClassDetailsPage(currentClassData.id); 
+            } catch (err) { 
+                if(errP) errP.textContent = err.message; 
+            } 
+        }
         function showCreateClassModal() { renderModal(getModalTemplate('create-class-modal', 'Nouvelle Classe', `<form id=create-class-form><div class=form-group><label for=class-name-input>Nom</label><input type=text id=class-name-input required></div><button type=submit class="btn btn-main">Créer</button></form>`)); document.getElementById('create-class-form').addEventListener('submit', async e => { e.preventDefault(); await apiRequest('/teacher/classes', 'POST', { className: document.getElementById('class-name-input').value, teacherEmail: currentUser.email }); modalContainer.innerHTML = ''; renderTeacherDashboard(); }); }
         
         async function renderStudentDashboard() { const p = document.getElementById('student-dashboard-page'); p.innerHTML = `<div class=spinner></div>`; changePage('student-dashboard-page'); const d = await apiRequest(`/student/dashboard?studentEmail=${currentUser.email}`); console.log("Données reçues pour le dashboard élève:", d); p.innerHTML = `<h2>Bonjour ${currentUser.firstName}!</h2><h3>À faire</h3><div id="student-todo-list" class="dashboard-grid"></div><h3 style=margin-top:2rem>Terminés</h3><div id="student-completed-list" class="dashboard-grid"></div>`; const todo = p.querySelector('#student-todo-list'); if (d.todo.length === 0) { todo.innerHTML = "<p>Bravo, tu es à jour !</p>"; } else { d.todo.forEach(i => createStudentCard(i)); } const comp = p.querySelector('#student-completed-list'); if (d.completed.length === 0) { comp.innerHTML = "<p>Aucun devoir terminé.</p>"; } else { d.completed.forEach(i => createStudentCard(i, true)); } }
