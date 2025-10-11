@@ -33,10 +33,9 @@
         .page.active { display: block; animation: fadeIn 0.5s; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         
-        header { padding: 1rem 5%; background-color: var(--card-bg-color); box-shadow: var(--shadow); display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 1000; }
+        header { padding: 1rem 5%; background-color: var(--background-color); display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 1000; transition: background-color 0.3s ease; }
         .logo { display: flex; align-items: center; text-decoration: none; cursor: pointer; }
-        .logo-icon { width: 150px; height: 150px; margin-right: 10px; object-fit: contain; }
-        .logo span { font-size: 1.8rem; font-weight: 700; color: var(--text-color); }
+        .logo-icon { width: 45px; height: 45px; object-fit: contain; }
         .main-nav { display: flex; align-items: center; gap: 1rem; }
         .hidden { display: none !important; }
 
@@ -61,8 +60,17 @@
         .card { background-color: var(--card-bg-color); padding: 2rem; border-radius: 12px; box-shadow: var(--shadow); }
         
         .dashboard-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.5rem; }
-        .dashboard-card { background: var(--card-bg-color); padding: 1.5rem; border-radius: 12px; box-shadow: var(--shadow); transition: transform 0.3s, box-shadow 0.3s; cursor: pointer; }
+        .dashboard-card { 
+            background: var(--card-bg-color); 
+            padding: 1.5rem; 
+            border-radius: 12px; 
+            box-shadow: var(--shadow); 
+            transition: transform 0.3s, box-shadow 0.3s; 
+            cursor: pointer; 
+            border-top: 4px solid var(--primary-color);
+        }
         .dashboard-card:hover { transform: translateY(-5px); box-shadow: 0 8px 25px rgba(0,0,0,0.1); }
+        body.dark-mode .dashboard-card:hover { box-shadow: 0 8px 25px rgba(0,0,0,0.3); }
         
         .dashboard-card-student { padding: 0; cursor: default; background: var(--card-bg-color); border-radius: 12px; box-shadow: var(--shadow); }
         .dashboard-card-student .card-header { padding: 1rem 1.5rem; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; }
@@ -101,6 +109,7 @@
         .workspace-input, .workspace-output { background: var(--card-bg-color); padding: 2rem; border-radius: 12px; box-shadow: var(--shadow); height: 100%; }
         #edit-form .form-group { border-left: 3px solid #eee; padding-left: 1rem; margin-top: 1.5rem; }
         body.dark-mode #edit-form .form-group { border-left-color: #333; }
+        body.dark-mode #student-details-page h2 { color: var(--primary-color); }
 
         /* NOUVEAU VISUEL PAGE D'ACCUEIL */
         #home-page.active {
@@ -227,9 +236,7 @@
 <body>
     <header>
         <div class="logo" id="home-link">
-             <!-- IMPORTANT: Remplacez le "src" ci-dessous par le lien vers votre image logo hébergée -->
-             <img src="https://aida-backend-bqd0fnd2a3c7dadf.francecentral-01.azurewebsites.net/logo%20aida.png" alt="Logo AÏDA" class="logo-icon">
-        
+             <img src="https://aida-backend-bqd0fnd2a3c7dadf.francecentral-01.azurewebsites.net/logo%20aida.jpg" alt="Logo AÏDA" class="logo-icon">
         </div>
         <nav class="main-nav">
             <a href="#" class="btn btn-secondary hidden" id="workspace-link"><i class="fa-solid fa-pen-ruler"></i> Espace de Travail</a>
@@ -847,7 +854,6 @@
         }
         
         async function handleStudentWorkspace(e) {
-            e.preventDefault();
             const outputContainer = document.getElementById('student-output-container');
             outputContainer.innerHTML = '<div class="spinner"></div>';
             try {
@@ -866,12 +872,12 @@
             if (!savedTheme && !sessionStorage.getItem('introPlayed')) {
                 document.body.classList.add('dark-mode');
                 setTimeout(() => {
-                    document.body.classList.remove('dark-mode');
-                    if (localStorage.getItem('theme') !== 'dark') { // Ne change que si l'utilisateur n'a pas cliqué
-                         localStorage.setItem('theme', 'light');
+                    if (localStorage.getItem('theme') !== 'dark') {
+                        document.body.classList.remove('dark-mode');
+                        localStorage.setItem('theme', 'light');
+                         applyTheme('light');
                     }
-                    applyTheme(localStorage.getItem('theme') || 'light');
-                }, 10100); 
+                }, 10000); 
                  sessionStorage.setItem('introPlayed', 'true');
             } else {
                  applyTheme(savedTheme || 'light');
