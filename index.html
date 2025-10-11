@@ -28,15 +28,14 @@
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
         html { scroll-behavior: smooth; }
-        body { font-family: 'Inter', sans-serif; background-color: var(--background-color); color: var(--text-color); line-height: 1.6; transition: background-color 0.8s ease, color 0.8s ease; }
+        body { font-family: 'Inter', sans-serif; background-color: var(--background-color); color: var(--text-color); line-height: 1.6; transition: background-color 0.3s ease, color 0.3s ease; }
         .page { display: none; padding: 2rem 5%; }
         .page.active { display: block; animation: fadeIn 0.5s; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         
         header { padding: 1rem 5%; background-color: var(--card-bg-color); box-shadow: var(--shadow); display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 1000; }
         .logo { display: flex; align-items: center; text-decoration: none; cursor: pointer; }
-        .logo-icon { width: 35px; height: 35px; margin-right: 10px; }
-        .logo-icon path { fill: var(--primary-color); }
+        .logo-icon { width: 35px; height: 35px; margin-right: 10px; object-fit: contain; }
         .logo span { font-size: 1.8rem; font-weight: 700; color: var(--text-color); }
         .main-nav { display: flex; align-items: center; gap: 1rem; }
         .hidden { display: none !important; }
@@ -57,7 +56,7 @@
         .dropdown-section a { text-decoration: none; color: var(--text-color); font-weight: 600; display: flex; align-items: center; gap: 0.75rem; width: 100%; padding: 0.5rem 0; }
         .dropdown-section:not(:last-child) { border-bottom: 1px solid #eee; }
         body.dark-mode .dropdown-section:not(:last-child) { border-color: #333; }
-        #theme-toggle-btn { background: none; border: none; font-size: 1.2rem; cursor: pointer; color: var(--text-color); }
+        .theme-toggle { background: none; border: none; font-size: 1.2rem; cursor: pointer; color: var(--text-color); }
 
         .card { background-color: var(--card-bg-color); padding: 2rem; border-radius: 12px; box-shadow: var(--shadow); }
         
@@ -159,7 +158,7 @@
             display: none;
             opacity: 0;
             animation: fade-in-final 1s forwards;
-            animation-delay: 1.1s;
+            animation-delay: 1s;
         }
 
         @keyframes fade-in-final {
@@ -196,11 +195,25 @@
             50% { color: var(--secondary-color); }
         }
 
-        @media (max-width: 768px) { 
-            .workspace-container { grid-template-columns: 1fr; } 
-            .intro-text-wrapper, .rotating-text-container { font-size: 1.8rem; }
-            .rotating-text-inner span, .rotating-text-container { height: 50px; line-height: 50px;}
+        @media (max-width: 900px) { 
+            .intro-text-wrapper { font-size: 2.5rem; }
+            .rotating-text-inner span, .rotating-text-container { height: 60px; line-height: 60px;}
+            .rotating-text-container { width: 280px; }
             @keyframes slide-up {
+                0%, 19%   { transform: translateY(0); }
+                20%, 39%  { transform: translateY(-60px); }
+                40%, 59%  { transform: translateY(-120px); }
+                60%, 79%  { transform: translateY(-180px); }
+                80%, 100% { transform: translateY(-240px); }
+            }
+        }
+
+        @media (max-width: 600px) { 
+            .workspace-container { grid-template-columns: 1fr; } 
+            .intro-text-wrapper { font-size: 1.8rem; flex-direction: column; gap: 0.2rem; }
+            .rotating-text-inner span, .rotating-text-container { height: 50px; line-height: 50px;}
+            .rotating-text-container { width: 220px; }
+             @keyframes slide-up {
                 0%, 19%   { transform: translateY(0); }
                 20%, 39%  { transform: translateY(-50px); }
                 40%, 59%  { transform: translateY(-100px); }
@@ -214,14 +227,14 @@
 <body>
     <header>
         <div class="logo" id="home-link">
-             <svg class="logo-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M4 19V6.2C4 5.0799 4 4.51984 4.21799 4.09202C4.40973 3.71569 4.71569 3.40973 5.09202 3.21799C5.51984 3 6.0799 3 7.2 3H12M12 3H16.8C17.9201 3 18.4802 3 18.908 3.21799C19.2843 3.40973 19.5903 3.71569 19.782 4.09202C20 4.51984 20 5.0799 20 6.2V19M12 3V14.2C12 15.3201 12 15.8802 11.782 16.308C11.5903 16.6843 11.2843 16.9903 10.908 17.182C10.4802 17.4 9.9201 17.4 8.8 17.4H4M4 19H12M4 19C4 20.1046 4.89543 21 6 21H18C19.1046 21 20 20.1046 20 19M20 19H12M12 19V17.4" stroke="var(--primary-color)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
+             <!-- IMPORTANT: Remplacez le "src" ci-dessous par le lien vers votre image logo hébergée -->
+             <img src="https://placehold.co/100x100/f4f7fc/4A90E2?text=A%C3%8FDA" alt="Logo AÏDA" class="logo-icon">
             <span>AÏDA</span>
         </div>
         <nav class="main-nav">
             <a href="#" class="btn btn-secondary hidden" id="workspace-link"><i class="fa-solid fa-pen-ruler"></i> Espace de Travail</a>
             <a href="playground.html" class="btn btn-secondary hidden" id="playground-link"><i class="fa-solid fa-flask"></i> Terrain de Jeux</a>
+             <button class="btn theme-toggle" id="theme-toggle-header-btn"><i class="fa-solid fa-moon"></i></button>
             <div class="user-menu-container hidden">
                  <button class="btn" id="user-info-clickable"><span id="user-name-display"></span> <i class="fa-solid fa-chevron-down"></i></button>
                 <div class="card user-dropdown hidden" id="user-dropdown">
@@ -235,8 +248,8 @@
                         <a href="#"><i class="fa-solid fa-user-shield"></i> Module Admin</a>
                     </div>
                     <div class="dropdown-section">
-                        <span>Thème sombre</span>
-                        <button id="theme-toggle-btn"><i class="fa-solid fa-moon"></i></button>
+                        <span>Thème</span>
+                        <button class="theme-toggle" id="theme-toggle-dropdown-btn"><i class="fa-solid fa-moon"></i></button>
                     </div>
                     <div class="dropdown-section">
                          <button class="btn" id="logout-btn" style="width: 100%; justify-content: center; background-color: var(--incorrect-color); color: white;"><i class="fa-solid fa-right-from-bracket"></i> Déconnexion</button>
@@ -301,7 +314,8 @@
         const userInfoClickable = document.getElementById('user-info-clickable');
         const userDropdown = document.getElementById('user-dropdown');
         const logoutBtn = document.getElementById('logout-btn');
-        const themeToggleBtn = document.getElementById('theme-toggle-btn');
+        const themeToggleHeaderBtn = document.getElementById('theme-toggle-header-btn');
+        const themeToggleDropdownBtn = document.getElementById('theme-toggle-dropdown-btn');
         const startAppBtn = document.getElementById('start-app-btn');
         const adminModuleLink = document.getElementById('admin-module-link');
 
@@ -313,12 +327,21 @@
         
         function applyTheme(theme) {
             document.body.classList.toggle('dark-mode', theme === 'dark');
-            themeToggleBtn.innerHTML = theme === 'dark' ? '<i class="fa-solid fa-sun"></i>' : '<i class="fa-solid fa-moon"></i>';
+            const icon = theme === 'dark' ? '<i class="fa-solid fa-sun"></i>' : '<i class="fa-solid fa-moon"></i>';
+            themeToggleHeaderBtn.innerHTML = icon;
+            themeToggleDropdownBtn.innerHTML = icon;
+        }
+
+        function toggleTheme() {
+            const newTheme = document.body.classList.contains('dark-mode') ? 'light' : 'dark';
+            localStorage.setItem('theme', newTheme);
+            applyTheme(newTheme);
         }
 
         function updateUI() {
             const loggedIn = !!currentUser;
             loginNavBtn.classList.toggle('hidden', loggedIn);
+            themeToggleHeaderBtn.classList.toggle('hidden', loggedIn);
             userMenuContainer.classList.toggle('hidden', !loggedIn);
             playgroundLink.classList.toggle('hidden', !loggedIn);
             workspaceLink.classList.toggle('hidden', !loggedIn || currentUser.role !== 'student');
@@ -844,7 +867,11 @@
                 document.body.classList.add('dark-mode');
                 setTimeout(() => {
                     document.body.classList.remove('dark-mode');
-                }, 10000); 
+                    if (localStorage.getItem('theme') !== 'dark') { // Ne change que si l'utilisateur n'a pas cliqué
+                         localStorage.setItem('theme', 'light');
+                    }
+                    applyTheme(localStorage.getItem('theme') || 'light');
+                }, 10100); 
                  sessionStorage.setItem('introPlayed', 'true');
             } else {
                  applyTheme(savedTheme || 'light');
@@ -865,11 +892,10 @@
                 userDropdown.classList.add('hidden');
             }
         });
-        themeToggleBtn.addEventListener('click', () => {
-            const newTheme = document.body.classList.contains('dark-mode') ? 'light' : 'dark';
-            localStorage.setItem('theme', newTheme);
-            applyTheme(newTheme);
-        });
+        
+        themeToggleHeaderBtn.addEventListener('click', toggleTheme);
+        themeToggleDropdownBtn.addEventListener('click', toggleTheme);
+
 
         const wrapper = document.querySelector('#intro-animation-wrapper');
         const finalWrapper = document.querySelector('#aida-final-text');
