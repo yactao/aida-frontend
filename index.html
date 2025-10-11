@@ -6,7 +6,7 @@
     <title>AIDA - Assistant Intelligent</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
         :root {
             --primary-color: #4A90E2;
             --secondary-color: #50E3C2;
@@ -28,7 +28,7 @@
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
         html { scroll-behavior: smooth; }
-        body { font-family: 'Poppins', sans-serif; background-color: var(--background-color); color: var(--text-color); line-height: 1.6; transition: background-color 0.3s, color 0.3s; }
+        body { font-family: 'Inter', sans-serif; background-color: var(--background-color); color: var(--text-color); line-height: 1.6; transition: background-color 0.8s ease, color 0.8s ease; }
         .page { display: none; padding: 2rem 5%; }
         .page.active { display: block; animation: fadeIn 0.5s; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
@@ -41,7 +41,7 @@
         .main-nav { display: flex; align-items: center; gap: 1rem; }
         .hidden { display: none !important; }
 
-        .btn { padding: 10px 20px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.3s ease; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; }
+        .btn { padding: 10px 20px; border: none; border-radius: 8px; font-weight: 700; cursor: pointer; transition: all 0.3s ease; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; }
         .btn:disabled { background: #D1D5DB !important; color: #666 !important; cursor: not-allowed; }
         .btn-main { background: linear-gradient(45deg, var(--primary-color), var(--secondary-color)); color: #FFF; }
         .btn-main:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.1); }
@@ -52,8 +52,9 @@
         
         .user-menu-container { position: relative; }
         #user-info-clickable { background: none; border: none; display: flex; align-items: center; gap: 0.5rem; cursor: pointer; }
-        .user-dropdown { position: absolute; top: 120%; right: 0; background-color: var(--card-bg-color); border-radius: 8px; box-shadow: var(--shadow); width: 220px; z-index: 101; padding: 0.5rem; }
-        .dropdown-section { display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; }
+        .user-dropdown { position: absolute; top: 120%; right: 0; background-color: var(--card-bg-color); border-radius: 8px; box-shadow: var(--shadow); width: 250px; z-index: 101; padding: 0.5rem; }
+        .dropdown-section { display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0.75rem; }
+        .dropdown-section a { text-decoration: none; color: var(--text-color); font-weight: 600; display: flex; align-items: center; gap: 0.75rem; width: 100%; padding: 0.5rem 0; }
         .dropdown-section:not(:last-child) { border-bottom: 1px solid #eee; }
         body.dark-mode .dropdown-section:not(:last-child) { border-color: #333; }
         #theme-toggle-btn { background: none; border: none; font-size: 1.2rem; cursor: pointer; color: var(--text-color); }
@@ -81,7 +82,7 @@
         .modal-content { background: var(--card-bg-color); padding: 2rem; border-radius: 12px; width: 90%; max-width: 600px; position: relative; max-height: 90vh; overflow-y: auto; }
         .close-modal { position: absolute; top: 1rem; right: 1rem; background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--text-color); }
         
-        input, select, textarea { width: 100%; padding: 12px; border: 1px solid #D1D5DB; border-radius: 8px; font-size: 1rem; font-family: 'Poppins', sans-serif; background-color: var(--background-color); color: var(--text-color); }
+        input, select, textarea { width: 100%; padding: 12px; border: 1px solid #D1D5DB; border-radius: 8px; font-size: 1rem; font-family: 'Inter', sans-serif; background-color: var(--background-color); color: var(--text-color); }
         body.dark-mode input, body.dark-mode select, body.dark-mode textarea { border-color: #444; }
         .error-message { color: var(--incorrect-color); font-size: 0.9rem; }
         .spinner { border: 4px solid #f3f3f3; border-top: 4px solid var(--primary-color); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 2rem auto; }
@@ -117,34 +118,35 @@
             flex-wrap: nowrap;
             justify-content: center;
             align-items: center;
-            gap: 0.5rem;
-            font-size: 2.5rem;
-            font-weight: 700;
+            gap: 0.8rem;
+            font-size: 3.5rem;
+            font-weight: 900;
             margin-bottom: 2rem;
-            width: auto;
+            position: relative;
         }
         
         .rotating-text-container {
-            height: 60px;
+            height: 80px;
             overflow: hidden;
+            width: 350px;
         }
         .rotating-text-inner {
             animation: slide-up 10s forwards ease-in-out;
         }
         .rotating-text-inner span {
             display: block;
-            height: 60px;
-            line-height: 60px;
+            height: 80px;
+            line-height: 80px;
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
 
         @keyframes slide-up {
             0%, 19%   { transform: translateY(0); }
-            20%, 39%  { transform: translateY(-60px); }
-            40%, 59%  { transform: translateY(-120px); }
-            60%, 79%  { transform: translateY(-180px); }
-            80%, 100% { transform: translateY(-240px); }
+            20%, 39%  { transform: translateY(-80px); }
+            40%, 59%  { transform: translateY(-160px); }
+            60%, 79%  { transform: translateY(-240px); }
+            80%, 100% { transform: translateY(-320px); }
         }
 
         .word-1 { background-image: linear-gradient(45deg, #4A90E2, #50E3C2); }
@@ -159,6 +161,7 @@
             animation: fade-in-final 1s forwards;
             animation-delay: 1s;
         }
+
         @keyframes fade-in-final {
             from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
@@ -173,20 +176,27 @@
              from { opacity: 0; transform: translateY(10px); }
              to { opacity: 1; transform: translateY(0); }
         }
-        #home-page .subtitle { font-size: 1.2rem; color: #666; margin-bottom: 2rem; }
+        #home-page .subtitle { font-size: 1.5rem; color: #666; margin-bottom: 2.5rem; }
         body.dark-mode #home-page .subtitle { color: #aaa; }
+        .highlight-word {
+            background: linear-gradient(45deg, var(--primary-color), var(--secondary-color));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 700;
+        }
 
         @media (max-width: 768px) { 
             .workspace-container { grid-template-columns: 1fr; } 
-            .intro-text-wrapper, .rotating-text-container { font-size: 1.5rem; }
-            .rotating-text-wrapper, .rotating-text-inner span { height: 40px; line-height: 40px; }
+            .intro-text-wrapper, .rotating-text-container { font-size: 1.8rem; }
+            .rotating-text-inner span, .rotating-text-container { height: 50px; line-height: 50px;}
             @keyframes slide-up {
-                0%, 19%  { transform: translateY(0); }
-                20%, 39%  { transform: translateY(-40px); }
-                40%, 59%  { transform: translateY(-80px); }
-                60%, 79%  { transform: translateY(-120px); }
-                80%, 100% { transform: translateY(-160px); }
+                0%, 19%   { transform: translateY(0); }
+                20%, 39%  { transform: translateY(-50px); }
+                40%, 59%  { transform: translateY(-100px); }
+                60%, 79%  { transform: translateY(-150px); }
+                80%, 100% { transform: translateY(-200px); }
             }
+            #home-page .subtitle { font-size: 1.2rem; }
         }
     </style>
 </head>
@@ -204,6 +214,15 @@
             <div class="user-menu-container hidden">
                  <button class="btn" id="user-info-clickable"><span id="user-name-display"></span> <i class="fa-solid fa-chevron-down"></i></button>
                 <div class="card user-dropdown hidden" id="user-dropdown">
+                    <div class="dropdown-section">
+                        <a href="#"><i class="fa-solid fa-user-circle"></i> Mes infos perso</a>
+                    </div>
+                     <div class="dropdown-section">
+                        <a href="#"><i class="fa-solid fa-key"></i> Changer de mot de passe</a>
+                    </div>
+                     <div class="dropdown-section hidden" id="admin-module-link">
+                        <a href="#"><i class="fa-solid fa-user-shield"></i> Module Admin</a>
+                    </div>
                     <div class="dropdown-section">
                         <span>Thème sombre</span>
                         <button id="theme-toggle-btn"><i class="fa-solid fa-moon"></i></button>
@@ -235,7 +254,7 @@
                 <h1 class="intro-text-wrapper" id="aida-final-text">
                     AIDA, votre nouvelle expérience
                 </h1>
-                <p class="subtitle">La plateforme intelligente pour enseignants, élèves et parents.</p>
+                <p class="subtitle">La <span class="highlight-word">plateforme</span> intelligente pour enseignants, élèves et parents.</p>
                 <button class="btn btn-main" id="start-app-btn">Commencer l'aventure</button>
             </div>
         </div>
@@ -273,6 +292,7 @@
         const logoutBtn = document.getElementById('logout-btn');
         const themeToggleBtn = document.getElementById('theme-toggle-btn');
         const startAppBtn = document.getElementById('start-app-btn');
+        const adminModuleLink = document.getElementById('admin-module-link');
 
         async function loadProgrammes() { try { const [p, c, l] = await Promise.all([fetch(`${backendUrl}/programmes-primaire.json`).then(r=>r.json()), fetch(`${backendUrl}/programmes-college.json`).then(r=>r.json()), fetch(`${backendUrl}/programmes-lycee.json`).then(r=>r.json())]); programmes = {Primaire:p, Collège:c, Lycée:l}; } catch (e) { console.error("Could not load programmes.", e); } }
         async function apiRequest(endpoint, method = 'GET', body = null) { try { const opts = { method, headers: { 'Content-Type': 'application/json' } }; if (body) opts.body = JSON.stringify(body); const res = await fetch(`${backendUrl}${endpoint}`, opts); if (!res.ok) { const errText = await res.text(); try { const err = JSON.parse(errText); throw new Error(err.error || 'Une erreur est survenue'); } catch (e) { throw new Error(errText); } } return res.status === 204 ? null : res.json(); } catch (e) { console.error(`API Error:`, e); throw e; } }
@@ -294,6 +314,7 @@
             
             if (loggedIn) {
                 userNameDisplay.textContent = currentUser.firstName;
+                adminModuleLink.classList.toggle('hidden', currentUser.role !== 'teacher');
                 if (currentUser.role === 'teacher') renderTeacherDashboard();
                 else renderStudentDashboard();
             } else {
@@ -806,9 +827,19 @@
         }
         
         async function init() {
+            if (!localStorage.getItem('theme')) {
+                document.body.classList.add('dark-mode');
+                setTimeout(() => {
+                    document.body.classList.remove('dark-mode');
+                    localStorage.setItem('theme', 'light');
+                    applyTheme('light');
+                }, 10000); 
+            } else {
+                const savedTheme = localStorage.getItem('theme') || 'light';
+                applyTheme(savedTheme);
+            }
+
             await loadProgrammes();
-            const savedTheme = localStorage.getItem('theme') || 'light';
-            applyTheme(savedTheme);
             updateUI();
         }
         
