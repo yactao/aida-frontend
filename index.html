@@ -71,7 +71,7 @@
         .dashboard-card:hover { transform: translateY(-5px); box-shadow: 0 8px 25px rgba(0,0,0,0.1); }
         body.dark-mode .dashboard-card:hover { box-shadow: 0 8px 25px rgba(0,0,0,0.3); }
         
-        .dashboard-card-student { padding: 0; cursor: default; background: var(--card-bg-color); border-radius: 12px; box-shadow: var(--shadow); }
+        .dashboard-card-student { padding: 0; cursor: default; background: var(--card-bg-color); border-radius: 12px; box-shadow: var(--shadow); border-top: 4px solid var(--secondary-color); }
         .dashboard-card-student .card-header { padding: 1rem 1.5rem; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; }
         body.dark-mode .dashboard-card-student .card-header { border-color: #333; }
         .dashboard-card-student .card-content { padding: 1.5rem; }
@@ -132,7 +132,7 @@
         .word-5 { background-image: linear-gradient(45deg, #F5A623, #D0021B); }
         #aida-final-text { display: none; opacity: 0; animation: fade-in-final 1s forwards; animation-delay: 1s; }
         @keyframes fade-in-final { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        #home-page .subtitle, #start-app-btn { opacity: 0; animation: fade-in-subtitle 1s ease-out forwards; animation-delay: 10.5s; }
+        #home-page .subtitle, #start-app-btn { opacity: 0; animation: fade-in-subtitle 1s ease-out forwards; animation-delay: 10.1s; }
         @keyframes fade-in-subtitle { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         #home-page .subtitle { font-size: 1.5rem; color: #666; margin-bottom: 2.5rem; }
         body.dark-mode #home-page .subtitle { color: #aaa; }
@@ -148,7 +148,7 @@
 <body>
     <header>
         <div class="logo" id="home-link">
-             <img src="https://aida-backend-bqd0fnd2a3c7dadf.francecentral-01.azurewebsites.net/logo%20aida.png" alt="Logo AÏDA" class="logo-icon">
+             <img src="https://aida-backend-bqd0fnd2a3c7dadf.francecentral-01.azurewebsites.net/logo%20Aida.png" alt="Logo AÏDA" class="logo-icon">
         </div>
         <nav class="main-nav">
             <a href="#" class="btn btn-secondary hidden" id="workspace-link"><i class="fa-solid fa-pen-ruler"></i> Espace de Travail</a>
@@ -295,8 +295,8 @@
             changePage('auth-page');
         }
 
-        async function handleLogin(e) { e.preventDefault(); try { const data = await apiRequest('/auth/login', 'POST', { email: document.getElementById('login-email').value, password: document.getElementById('login-password').value }); currentUser = data.user; updateUI(); } catch (err) { document.getElementById('login-error').textContent = err.message; } }
-        async function handleSignup(e) { e.preventDefault(); try { const data = await apiRequest('/auth/signup', 'POST', { email: document.getElementById('signup-email').value, password: document.getElementById('signup-password').value, role: document.getElementById('signup-role').value }); currentUser = data.user; updateUI(); } catch (err) { document.getElementById('signup-error').textContent = err.message; } }
+        async function handleLogin(e) { e.preventDefault(); try { const data = await apiRequest('/auth/login', 'POST', { email: document.getElementById('login-email').value, password: document.getElementById('login-password').value }); currentUser = data.user; localStorage.setItem('currentUser', JSON.stringify(currentUser)); updateUI(); } catch (err) { document.getElementById('login-error').textContent = err.message; } }
+        async function handleSignup(e) { e.preventDefault(); try { const data = await apiRequest('/auth/signup', 'POST', { email: document.getElementById('signup-email').value, password: document.getElementById('signup-password').value, role: document.getElementById('signup-role').value }); currentUser = data.user; localStorage.setItem('currentUser', JSON.stringify(currentUser)); updateUI(); } catch (err) { document.getElementById('signup-error').textContent = err.message; } }
         function toggleAuthForms(e) { e.preventDefault(); document.getElementById('login-form-container').classList.toggle('hidden'); document.getElementById('signup-form-container').classList.toggle('hidden'); }
         
         function calculateCompletionRate(cls) {
@@ -353,7 +353,7 @@
         
         async function renderClassDetailsPage(id) {
             const page = document.getElementById('class-details-page');
-            page.innerHTML = `<button id="back-to-teacher" class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> Retour</button><div class="spinner"></div>`;
+            page.innerHTML = `<button id="back-to-teacher" class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> Retour</button><div class=spinner></div>`;
             page.querySelector('#back-to-teacher').addEventListener('click', renderTeacherDashboard);
             changePage('class-details-page');
             currentClassData = await apiRequest(`/teacher/classes/${id}`);
@@ -708,7 +708,7 @@
             m.addEventListener('change', () => { resetSelects([no, co]); const d = programmes[cy.value][n.value]?.[m.value]; if (d) { Object.keys(d).filter(k => k !== 'nom').forEach(nk => { no.add(new Option(d[nk].nom, nk)); }); no.disabled = false; } });
             no.addEventListener('change', () => { resetSelects([co]); const d = programmes[cy.value][n.value]?.[m.value]?.[no.value]; if (d && d.sous_notions) { Object.values(d.sous_notions).forEach(sn => { (sn.competences || []).forEach(c => co.add(new Option(c, c))); }); co.disabled = false; } });
             co.addEventListener('change', () => { gen.disabled = !co.value; });
-            document.getElementById('generation-form').addEventListener('submit', async e => { e.preventDefault(); selectedCompetenceInfo = { level: n.value, competence: co.value }; const comp = `Pour un élève de ${n.value}, ${co.value}`; const contentType = contentTypeSelect.value; const exerciseCount = document.getElementById('exercise-count').value; document.getElementById('generation-spinner').classList.remove('hidden'); const d = await apiRequest('/ai/generate-content', 'POST', { competences: comp, contentType, exerciseCount }); generatedContent = d.structured_content; showEditModal(); });
+            document.getElementById('generation-form').addEventListener('submit', async e => { e.preventDefault(); selectedCompetenceInfo = { level: n.value, competence: co.value }; const comp = co.value; const contentType = contentTypeSelect.value; const exerciseCount = document.getElementById('exercise-count').value; document.getElementById('generation-spinner').classList.remove('hidden'); const d = await apiRequest('/ai/generate-content', 'POST', { competences: comp, contentType, exerciseCount }); generatedContent = d.structured_content; showEditModal(); });
             
             document.getElementById('generate-from-text-form').addEventListener('submit', async (e) => {
                 e.preventDefault();
@@ -910,6 +910,12 @@
             } else {
                  applyTheme(savedTheme || 'light');
             }
+
+            const savedUser = localStorage.getItem('currentUser');
+            if (savedUser) {
+                currentUser = JSON.parse(savedUser);
+            }
+
             await loadProgrammes();
             updateUI();
         }
@@ -918,7 +924,7 @@
         startAppBtn.addEventListener('click', renderAuthPage);
         homeLink.addEventListener('click', () => { if(currentUser) { currentUser.role === 'teacher' ? renderTeacherDashboard() : renderStudentDashboard() } else { changePage('home-page'); } });
         workspaceLink.addEventListener('click', (e) => { e.preventDefault(); renderWorkspacePage(); });
-        logoutBtn.addEventListener('click', () => { currentUser = null; updateUI(); });
+        logoutBtn.addEventListener('click', () => { currentUser = null; localStorage.removeItem('currentUser'); updateUI(); });
         userInfoClickable.addEventListener('click', () => userDropdown.classList.toggle('hidden'));
         window.addEventListener('click', (e) => {
             if (userMenuContainer && !userMenuContainer.contains(e.target)) {
