@@ -70,9 +70,6 @@
             padding: 0.75rem 1rem;
             border-radius: 12px;
             line-height: 1.5;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
         }
         .message.user {
             background-color: var(--primary-color);
@@ -88,12 +85,6 @@
         }
         body.dark-mode .message.assistant { background-color: #2c2c2c; }
         
-        .message .btn-speak { background: none; border: none; font-size: 1rem; color: var(--text-color); opacity: 0.6; cursor: pointer; }
-        .message .btn-speak:hover { opacity: 1; }
-        .message .btn-speak.speaking { color: var(--secondary-color); animation: pulse 1.5s infinite; }
-
-        @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.2); } }
-
         .message.typing { font-style: italic; color: #888; }
         .message.typing span { animation: blink 1.4s infinite both; }
         .message.typing span:nth-child(2) { animation-delay: 0.2s; }
@@ -132,13 +123,16 @@
         }
         .chat-input #voice-input-btn { background-color: transparent; color: var(--primary-color); }
         .chat-input #voice-input-btn.active { color: var(--incorrect-color); animation: pulse 1.5s infinite; }
+        
+        @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.2); } }
+
     </style>
 </head>
 <body>
     <header>
         <div class="logo">
              <a href="index.html">
-                <img src="https://aida-backend-bqd0fnd2a3c7dadf.francecentral-01.azurewebsites.net/logo%20Aida.png" alt="Logo AÏDA" class="logo-icon">
+                <img src="https://aida-backend-bqd0fnd2a3c7dadf.francecentral-01.azurewebsites.net/logo%20aida.png" alt="Logo AÏDA" class="logo-icon">
              </a>
         </div>
     </header>
@@ -147,12 +141,11 @@
         <div class="chat-container">
             <div class="chat-header">
                 <h2>Terrain de Jeux AÏDA</h2>
-                <a href="index.html" id="back-to-dashboard-btn" class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> Retour</a>
+                <a href="#" id="back-to-dashboard-btn" class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> Retour</a>
             </div>
             <div class="chat-messages" id="chat-messages">
                 <div class="message assistant">
                     <span>Bonjour ! Je suis AÏDA. Posez-moi une question ou cliquez sur le micro pour me parler.</span>
-                    <button class="btn-speak"><i class="fa-solid fa-volume-high"></i></button>
                 </div>
             </div>
             <div class="chat-input">
@@ -201,43 +194,17 @@
         const savedTheme = localStorage.getItem('theme') || 'light';
         applyTheme(savedTheme);
         
-        const savedUser = localStorage.getItem('currentUser');
-        if (!savedUser) { backToDashboardBtn.href = 'index.html#login'; }
-
+        backToDashboardBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            window.history.back();
+        });
 
         function addMessage(role, content) {
             const messageDiv = document.createElement('div');
             messageDiv.className = `message ${role}`;
-
-            const textSpan = document.createElement('span');
-            textSpan.innerHTML = content;
-            messageDiv.appendChild(textSpan);
-
-            if (role === 'assistant') {
-                const speakBtn = document.createElement('button');
-                speakBtn.className = 'btn-speak';
-                speakBtn.innerHTML = '<i class="fa-solid fa-volume-high"></i>';
-                speakBtn.onclick = () => {
-                    speakText(content, speakBtn);
-                };
-                messageDiv.appendChild(speakBtn);
-            }
-
+            messageDiv.innerHTML = `<span>${content}</span>`;
             chatMessages.appendChild(messageDiv);
             chatMessages.scrollTop = chatMessages.scrollHeight;
-        }
-
-        function speakText(text, button) {
-            if (speechSynthesis.speaking) {
-                speechSynthesis.cancel();
-            }
-            document.querySelectorAll('.btn-speak.speaking').forEach(btn => btn.classList.remove('speaking'));
-            
-            const utterance = new SpeechSynthesisUtterance(text);
-            utterance.lang = 'fr-FR';
-            utterance.onstart = () => button.classList.add('speaking');
-            utterance.onend = () => button.classList.remove('speaking');
-            speechSynthesis.speak(utterance);
         }
 
         function showTypingIndicator() {
