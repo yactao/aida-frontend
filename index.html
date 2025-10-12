@@ -16,6 +16,7 @@
             --shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
             --correct-color: #28a745;
             --incorrect-color: #dc3545;
+            --warning-color: #F5A623;
         }
         body.dark-mode {
             --primary-color: #58a6ff;
@@ -45,12 +46,9 @@
         .btn-main:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.1); }
         .btn-secondary { background-color: #E9F2FF; color: var(--primary-color); }
         body.dark-mode .btn-secondary { background-color: #333; color: var(--primary-color); }
-        .btn-termine { background-color: #e9f7eb !important; color: #155724 !important; cursor: not-allowed; }
-        body.dark-mode .btn-termine { background-color: #2a3a2e !important; color: #28a745 !important; }
         
         .user-menu-container { position: relative; }
-        #user-info-clickable { background: none; border: none; display: flex; align-items: center; gap: 0.5rem; cursor: pointer; }
-        body.dark-mode #user-info-clickable { color: var(--text-color); }
+        #user-info-clickable { background: none; border: none; display: flex; align-items: center; gap: 0.5rem; cursor: pointer; color: var(--text-color); }
         .user-dropdown { position: absolute; top: 120%; right: 0; background-color: var(--card-bg-color); border-radius: 8px; box-shadow: var(--shadow); width: 250px; z-index: 101; padding: 0.5rem; }
         .dropdown-section { display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0.75rem; }
         .dropdown-section a { text-decoration: none; color: var(--text-color); font-weight: 600; display: flex; align-items: center; gap: 0.75rem; width: 100%; padding: 0.5rem 0; }
@@ -73,7 +71,7 @@
         .dashboard-card:hover { transform: translateY(-5px); box-shadow: 0 8px 25px rgba(0,0,0,0.1); }
         body.dark-mode .dashboard-card:hover { box-shadow: 0 8px 25px rgba(0,0,0,0.3); }
         
-        .dashboard-card-student { padding: 0; cursor: default; background: var(--card-bg-color); border-radius: 12px; box-shadow: var(--shadow); border-top: 4px solid var(--secondary-color); }
+        .dashboard-card-student { padding: 0; cursor: default; background: var(--card-bg-color); border-radius: 12px; box-shadow: var(--shadow); }
         .dashboard-card-student .card-header { padding: 1rem 1.5rem; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; }
         body.dark-mode .dashboard-card-student .card-header { border-color: #333; }
         .dashboard-card-student .card-content { padding: 1.5rem; }
@@ -114,126 +112,37 @@
 
         .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem; }
 
-        /* NOUVEAU VISUEL PAGE D'ACCUEIL */
-        #home-page.active {
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            min-height: 80vh;
-            text-align: center;
-            overflow: hidden;
-        }
-        .intro-text-wrapper {
-            display: flex;
-            flex-wrap: nowrap;
-            justify-content: center;
-            align-items: center;
-            gap: 0.8rem;
-            font-size: 3.5rem;
-            font-weight: 900;
-            margin-bottom: 2rem;
-            position: relative;
-        }
+        .deadline-status { padding: 3px 10px; border-radius: 12px; font-size: 0.8rem; font-weight: 600; color: white; }
+        .status-ontime { background-color: var(--correct-color); }
+        .status-due-soon { background-color: var(--warning-color); }
+        .status-overdue { background-color: var(--incorrect-color); }
+        .status-completed { background-color: var(--primary-color); }
         
-        .rotating-text-container {
-            height: 80px;
-            overflow: hidden;
-            width: 350px;
-        }
-        .rotating-text-inner {
-            animation: slide-up 10s forwards ease-in-out;
-        }
-        .rotating-text-inner span {
-            display: block;
-            height: 80px;
-            line-height: 80px;
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        @keyframes slide-up {
-            0%, 19%   { transform: translateY(0); }
-            20%, 39%  { transform: translateY(-80px); }
-            40%, 59%  { transform: translateY(-160px); }
-            60%, 79%  { transform: translateY(-240px); }
-            80%, 100% { transform: translateY(-320px); }
-        }
-
+        /* NOUVEAU VISUEL PAGE D'ACCUEIL */
+        #home-page.active { display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 80vh; text-align: center; overflow: hidden; }
+        .intro-text-wrapper { display: flex; flex-wrap: nowrap; justify-content: center; align-items: center; gap: 0.8rem; font-size: 3.5rem; font-weight: 900; margin-bottom: 2rem; position: relative; }
+        .rotating-text-container { height: 80px; overflow: hidden; width: 350px; }
+        .rotating-text-inner { animation: slide-up 10s forwards ease-in-out; }
+        .rotating-text-inner span { display: block; height: 80px; line-height: 80px; -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        @keyframes slide-up { 0%, 19% { transform: translateY(0); } 20%, 39% { transform: translateY(-80px); } 40%, 59% { transform: translateY(-160px); } 60%, 79% { transform: translateY(-240px); } 80%, 100% { transform: translateY(-320px); } }
         .word-1 { background-image: linear-gradient(45deg, #4A90E2, #50E3C2); }
         .word-2 { background-image: linear-gradient(45deg, #50E3C2, #B8E986); }
         .word-3 { background-image: linear-gradient(45deg, #B8E986, #F8E71C); }
         .word-4 { background-image: linear-gradient(45deg, #F8E71C, #F5A623); }
         .word-5 { background-image: linear-gradient(45deg, #F5A623, #D0021B); }
-        
-        #aida-final-text {
-            display: none;
-            opacity: 0;
-            animation: fade-in-final 1s forwards;
-            animation-delay: 1s;
-        }
-
-        @keyframes fade-in-final {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        #home-page .subtitle, #start-app-btn {
-             opacity: 0;
-             animation: fade-in-subtitle 1s ease-out forwards;
-             animation-delay: 10.5s;
-        }
-        @keyframes fade-in-subtitle {
-             from { opacity: 0; transform: translateY(10px); }
-             to { opacity: 1; transform: translateY(0); }
-        }
+        #aida-final-text { display: none; opacity: 0; animation: fade-in-final 1s forwards; animation-delay: 1s; }
+        @keyframes fade-in-final { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        #home-page .subtitle, #start-app-btn { opacity: 0; animation: fade-in-subtitle 1s ease-out forwards; animation-delay: 10.5s; }
+        @keyframes fade-in-subtitle { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         #home-page .subtitle { font-size: 1.5rem; color: #666; margin-bottom: 2.5rem; }
         body.dark-mode #home-page .subtitle { color: #aaa; }
-        .highlight-word {
-            background: linear-gradient(45deg, var(--primary-color), var(--secondary-color));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            font-weight: 700;
-        }
-
-        .dots span {
-            animation: color-pulse 1.5s infinite;
-        }
+        .highlight-word { background: linear-gradient(45deg, var(--primary-color), var(--secondary-color)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 700; }
+        .dots span { animation: color-pulse 1.5s infinite; }
         .dots span:nth-child(2) { animation-delay: 0.2s; }
         .dots span:nth-child(3) { animation-delay: 0.4s; }
-
-        @keyframes color-pulse {
-            0%, 100% { color: var(--text-color); }
-            50% { color: var(--secondary-color); }
-        }
-
-        @media (max-width: 900px) { 
-            .intro-text-wrapper { font-size: 2.5rem; }
-            .rotating-text-inner span, .rotating-text-container { height: 60px; line-height: 60px;}
-            .rotating-text-container { width: 280px; }
-            @keyframes slide-up {
-                0%, 19%   { transform: translateY(0); }
-                20%, 39%  { transform: translateY(-60px); }
-                40%, 59%  { transform: translateY(-120px); }
-                60%, 79%  { transform: translateY(-180px); }
-                80%, 100% { transform: translateY(-240px); }
-            }
-        }
-
-        @media (max-width: 600px) { 
-            .workspace-container { grid-template-columns: 1fr; } 
-            .intro-text-wrapper { font-size: 1.8rem; flex-direction: column; gap: 0.2rem; }
-            .rotating-text-inner span, .rotating-text-container { height: 50px; line-height: 50px;}
-            .rotating-text-container { width: 220px; }
-             @keyframes slide-up {
-                0%, 19%   { transform: translateY(0); }
-                20%, 39%  { transform: translateY(-50px); }
-                40%, 59%  { transform: translateY(-100px); }
-                60%, 79%  { transform: translateY(-150px); }
-                80%, 100% { transform: translateY(-200px); }
-            }
-            #home-page .subtitle { font-size: 1.2rem; }
-        }
+        @keyframes color-pulse { 0%, 100% { color: var(--text-color); } 50% { color: var(--secondary-color); } }
+        @media (max-width: 900px) { .intro-text-wrapper { font-size: 2.5rem; } .rotating-text-inner span, .rotating-text-container { height: 60px; line-height: 60px;} .rotating-text-container { width: 280px; } @keyframes slide-up { 0%, 19% { transform: translateY(0); } 20%, 39% { transform: translateY(-60px); } 40%, 59% { transform: translateY(-120px); } 60%, 79% { transform: translateY(-180px); } 80%, 100% { transform: translateY(-240px); } } }
+        @media (max-width: 600px) { .workspace-container { grid-template-columns: 1fr; } .intro-text-wrapper { font-size: 1.8rem; flex-direction: column; gap: 0.2rem; } .rotating-text-inner span, .rotating-text-container { height: 50px; line-height: 50px;} .rotating-text-container { width: 220px; } @keyframes slide-up { 0%, 19% { transform: translateY(0); } 20%, 39% { transform: translateY(-50px); } 40%, 59% { transform: translateY(-100px); } 60%, 79% { transform: translateY(-150px); } 80%, 100% { transform: translateY(-200px); } } #home-page .subtitle { font-size: 1.2rem; } }
     </style>
 </head>
 <body>
@@ -633,25 +542,49 @@
         }
         function showCreateClassModal() { renderModal(getModalTemplate('create-class-modal', 'Nouvelle Classe', `<form id=create-class-form><div class=form-group><label for=class-name-input>Nom</label><input type=text id=class-name-input required></div><button type=submit class="btn btn-main">Créer</button></form>`)); document.getElementById('create-class-form').addEventListener('submit', async e => { e.preventDefault(); await apiRequest('/teacher/classes', 'POST', { className: document.getElementById('class-name-input').value, teacherEmail: currentUser.email }); modalContainer.innerHTML = ''; renderTeacherDashboard(); }); }
         
-        async function renderStudentDashboard() { const p = document.getElementById('student-dashboard-page'); p.innerHTML = `<div class=spinner></div>`; changePage('student-dashboard-page'); const d = await apiRequest(`/student/dashboard?studentEmail=${currentUser.email}`); console.log("Données reçues pour le dashboard élève:", d); p.innerHTML = `<h2>Bonjour ${currentUser.firstName}!</h2><h3>À faire</h3><div id="student-todo-list" class="dashboard-grid"></div><h3 style=margin-top:2rem>Terminés</h3><div id="student-completed-list" class="dashboard-grid"></div>`; const todo = p.querySelector('#student-todo-list'); if (d.todo.length === 0) { todo.innerHTML = "<p>Bravo, tu es à jour !</p>"; } else { d.todo.forEach(i => createStudentCard(i)); } const comp = p.querySelector('#student-completed-list'); if (d.completed.length === 0) { comp.innerHTML = "<p>Aucun devoir terminé.</p>"; } else { d.completed.forEach(i => createStudentCard(i, true)); } }
+        async function renderStudentDashboard() { const p = document.getElementById('student-dashboard-page'); p.innerHTML = `<div class=spinner></div>`; changePage('student-dashboard-page'); const d = await apiRequest(`/student/dashboard?studentEmail=${currentUser.email}`); console.log("Données reçues pour le dashboard élève:", d); p.innerHTML = `<h2>Bonjour ${currentUser.firstName}!</h2><h3>À faire</h3><div id="student-todo-list" class="dashboard-grid"></div><h3 style=margin-top:2rem>Archives</h3><div id="student-completed-list" class="dashboard-grid"></div>`; const todo = p.querySelector('#student-todo-list'); if (d.todo.length === 0) { todo.innerHTML = "<p>Bravo, tu es à jour !</p>"; } else { d.todo.forEach(i => createStudentCard(i)); } const comp = p.querySelector('#student-completed-list'); if (d.completed.length === 0) { comp.innerHTML = "<p>Aucun devoir terminé pour le moment.</p>"; } else { d.completed.forEach(i => createStudentCard(i, true)); } }
         
         function createStudentCard(c, isDone) { 
             const container = isDone ? document.getElementById('student-completed-list') : document.getElementById('student-todo-list');
             const card = document.createElement('div');
             card.className = 'dashboard-card-student';
-            const date = new Date(isDone ? c.completedAt : c.assignedAt).toLocaleDateString('fr-FR');
             const subjectTagClass = getSubjectTag(c.title);
+
+            let dateInfoHtml = '';
+            if (isDone) {
+                const date = new Date(c.completedAt).toLocaleDateString('fr-FR');
+                dateInfoHtml = `<span class="deadline-status status-completed">Terminé le ${date}</span>`;
+            } else {
+                const dueDate = new Date(c.dueDate);
+                const today = new Date();
+                today.setHours(0,0,0,0);
+                const tomorrow = new Date(today);
+                tomorrow.setDate(tomorrow.getDate() + 1);
+
+                let statusClass = 'status-ontime';
+                let statusText = `À faire pour le ${dueDate.toLocaleDateString('fr-FR')}`;
+
+                if (dueDate < today) {
+                    statusClass = 'status-overdue';
+                    statusText = `En retard (pour le ${dueDate.toLocaleDateString('fr-FR')})`;
+                } else if (dueDate <= tomorrow) {
+                    statusClass = 'status-due-soon';
+                    statusText = `À rendre bientôt (pour le ${dueDate.toLocaleDateString('fr-FR')})`;
+                }
+                dateInfoHtml = `<span class="deadline-status ${statusClass}">${statusText}</span>`;
+            }
+
             card.innerHTML = `
                 <div class="card-header">
                     <span class="subject-tag ${subjectTagClass}">${c.type.charAt(0).toUpperCase() + c.type.slice(1)}</span>
+                    ${dateInfoHtml}
                 </div>
                 <div class="card-content">
                     <h4>${c.title}</h4>
                     <p>Classe: ${c.className}</p>
                 </div>
                 <div class="card-footer">
-                    <span class="card-date">${isDone ? 'Terminé le' : 'Assigné le'}: ${date}</span>
-                    <button class="btn ${isDone ? 'btn-termine' : 'btn-main'}" ${isDone ? 'disabled' : ''}>
+                    <button class="btn ${isDone ? 'btn-secondary' : 'btn-main'}" ${isDone ? 'disabled' : ''}>
                         ${isDone ? '<i class="fa-solid fa-check"></i> Terminé' : 'Commencer'}
                     </button>
                 </div>`;
@@ -856,16 +789,32 @@
         }
         
         function showAssignModal() {
-            const modalHtml = `<form id="assign-form"><div class="form-group"><label for="assign-class-select">Assigner à</label><select id="assign-class-select" required></select></div><button type="submit" class="btn btn-main">Assigner</button></form>`;
+            const defaultDueDate = new Date();
+            defaultDueDate.setDate(defaultDueDate.getDate() + 7);
+            const formattedDefaultDate = defaultDueDate.toISOString().split('T')[0];
+
+            const modalHtml = `
+                <form id="assign-form">
+                    <div class="form-group">
+                        <label for="assign-class-select">Assigner à la classe</label>
+                        <select id="assign-class-select" required></select>
+                    </div>
+                    <div class="form-group">
+                        <label for="due-date-input">À faire pour le</label>
+                        <input type="date" id="due-date-input" value="${formattedDefaultDate}" required>
+                    </div>
+                    <button type="submit" class="btn btn-main">Assigner</button>
+                </form>`;
             renderModal(getModalTemplate('assign-modal', 'Assigner le contenu', modalHtml));
             const select = document.getElementById('assign-class-select');
             teacherClasses.forEach(c => select.add(new Option(c.className, c.id)));
             document.getElementById('assign-form').addEventListener('submit', async e => {
                 e.preventDefault();
                 const classId = select.value;
-                if (!classId || !generatedContent) return;
+                const dueDate = document.getElementById('due-date-input').value;
+                if (!classId || !generatedContent || !dueDate) return;
                 try {
-                    await apiRequest('/teacher/assign-content', 'POST', { classId, contentData: { ...generatedContent, competence: selectedCompetenceInfo } });
+                    await apiRequest('/teacher/assign-content', 'POST', { classId, contentData: { ...generatedContent, dueDate, competence: selectedCompetenceInfo } });
                     modalContainer.innerHTML = '';
                     renderModal(getModalTemplate('assign-confirm', 'Succès', '<p>Le contenu a bien été assigné !</p>'));
                     setTimeout(() => modalContainer.innerHTML = '', 2000);
