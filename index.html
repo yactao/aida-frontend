@@ -838,13 +838,13 @@
             const page = document.getElementById('workspace-page');
             let html = `<button id="back-to-dashboard-btn" class="btn btn-secondary" style="margin-bottom: 2rem;"><i class="fa-solid fa-arrow-left"></i> Retour au tableau de bord</button>`;
             
-            html += `<h2>Espace de Travail Élève</h2><p>Bloqué sur un exercice ? Collez-le ici, écris ta réponse et demande à AIDA de te corriger.</p>
+            html += `<h2>Espace de Travail Élève</h2><p>Bloqué sur un exercice ? Collez-le ici, écris ta réponse et demande à AIDA de te corriger. Vous pouvez aussi charger un document.</p>
                      <div class="workspace-container" style="margin-top: 2rem;">
                         <div class="workspace-input">
                             <h3>Ton exercice</h3>
                             <form id="student-workspace-form">
                                 <div class="form-group">
-                                    <label for="exercise-text">Colle ton exercice</label>
+                                    <label for="exercise-text">Colle ton exercice ou charge un document</label>
                                     <textarea id="exercise-text" required placeholder="Ex: Calcule 5 + 3."></textarea>
                                 </div>
                                 <div class="form-group">
@@ -855,11 +855,10 @@
                                 </div>
                                 <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
                                     <button type="submit" class="btn btn-main">Corrige-moi, AIDA !</button>
-                                    <button type="button" class="btn btn-secondary" id="student-upload-btn"><i class="fa-solid fa-upload"></i> Charger un .txt</button>
-                                    <button type="button" id="finish-workspace-btn" class="btn btn-secondary"><i class="fa-solid fa-check"></i> Terminé</button>
+                                    <button type="button" class="btn btn-secondary" id="student-upload-btn"><i class="fa-solid fa-upload"></i> Charger un document</button>
                                 </div>
                             </form>
-                            <input type="file" id="student-doc-upload" class="hidden" accept=".txt">
+                            <input type="file" id="student-doc-upload" class="hidden" accept=".pdf,.docx,.png,.jpg,.jpeg">
                         </div>
                         <div class="workspace-output">
                             <h3>La correction d'AIDA</h3>
@@ -871,21 +870,32 @@
             
             page.querySelector('#back-to-dashboard-btn').addEventListener('click', renderStudentDashboard);
             page.querySelector('#student-workspace-form').addEventListener('submit', handleStudentWorkspace);
-            page.querySelector('#finish-workspace-btn').addEventListener('click', renderStudentDashboard);
             
             const studentUploadBtn = page.querySelector('#student-upload-btn');
             const studentFileInput = page.querySelector('#student-doc-upload');
             studentUploadBtn.addEventListener('click', () => studentFileInput.click());
-            studentFileInput.addEventListener('change', (e) => {
+            studentFileInput.addEventListener('change', async (e) => {
                 const file = e.target.files[0];
-                if (file && file.type === "text/plain") {
-                    const reader = new FileReader();
-                    reader.onload = (event) => {
-                        document.getElementById('exercise-text').value = event.target.result;
-                    };
-                    reader.readAsText(file);
-                } else {
-                    alert("Veuillez sélectionner un fichier .txt pour le moment.");
+                if (!file) return;
+
+                const outputContainer = document.getElementById('student-output-container');
+                outputContainer.innerHTML = '<div class="spinner"></div><p>Analyse de votre document en cours...</p>';
+                
+                const formData = new FormData();
+                formData.append('document', file);
+
+                try {
+                    const response = await fetch(`${backendUrl}/api/ai/extract-text-from-student-doc`, {
+                        method: 'POST',
+                        body: formData,
+                    });
+                    const data = await response.json();
+                    if (!response.ok) throw new Error(data.error);
+                    
+                    document.getElementById('exercise-text').value = data.extractedText;
+                    outputContainer.innerHTML = "<p>✅ Document analysé ! Vous pouvez maintenant écrire votre réponse et demander une correction.</p>";
+                } catch (err) {
+                    outputContainer.innerHTML = `<p class="error-message">Erreur lors de l'analyse du document : ${err.message}</p>`;
                 }
             });
             
