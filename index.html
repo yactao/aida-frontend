@@ -36,7 +36,7 @@
         
         header { padding: 1rem 5%; background-color: var(--background-color); display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 1000; transition: background-color 0.3s ease; }
         .logo { display: flex; align-items: center; text-decoration: none; cursor: pointer; }
-        .logo-icon { width: 120px; height: 120px; object-fit: contain; }
+        .logo-icon { width: 150px; height: 150px; object-fit: contain; }
         .main-nav { display: flex; align-items: center; gap: 1rem; }
         .hidden { display: none !important; }
 
@@ -48,7 +48,7 @@
         body.dark-mode .btn-secondary { background-color: #333; color: var(--primary-color); }
         
         .user-menu-container { position: relative; }
-        #user-info-clickable { background: none; border: none; display: flex; align-items: center; gap: 0.5rem; cursor: pointer; color: var(--text-color); }
+        #user-info-clickable { background: none; border: none; display: flex; align-items: center; gap: 0.75rem; cursor: pointer; color: var(--text-color); }
         .user-dropdown { position: absolute; top: 120%; right: 0; background-color: var(--card-bg-color); border-radius: 8px; box-shadow: var(--shadow); width: 250px; z-index: 101; padding: 0.5rem; }
         .dropdown-section { display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0.75rem; }
         .dropdown-section a { text-decoration: none; color: var(--text-color); font-weight: 600; display: flex; align-items: center; gap: 0.75rem; width: 100%; padding: 0.5rem 0; }
@@ -71,7 +71,7 @@
         .dashboard-card:hover { transform: translateY(-5px); box-shadow: 0 8px 25px rgba(0,0,0,0.1); }
         body.dark-mode .dashboard-card:hover { box-shadow: 0 8px 25px rgba(0,0,0,0.3); }
         
-        .dashboard-card-student { padding: 0; cursor: default; background: var(--card-bg-color); border-radius: 12px; box-shadow: var(--shadow); border-top: 4px solid var(--secondary-color); }
+        .dashboard-card-student { padding: 0; cursor: default; background: var(--card-bg-color); border-radius: 12px; box-shadow: var(--shadow); }
         .dashboard-card-student .card-header { padding: 1rem 1.5rem; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; }
         body.dark-mode .dashboard-card-student .card-header { border-color: #333; }
         .dashboard-card-student .card-content { padding: 1.5rem; }
@@ -108,16 +108,20 @@
         .workspace-input, .workspace-output { background: var(--card-bg-color); padding: 2rem; border-radius: 12px; box-shadow: var(--shadow); height: 100%; }
         #edit-form .form-group { border-left: 3px solid #eee; padding-left: 1rem; margin-top: 1.5rem; }
         body.dark-mode #edit-form .form-group { border-left-color: #333; }
-        body.dark-mode #student-details-page h2 { color: var(--primary-color); }
 
         .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem; }
-
+        .page-header h2 { display: flex; align-items: center; gap: 1rem; }
+        
         .deadline-status { padding: 3px 10px; border-radius: 12px; font-size: 0.8rem; font-weight: 600; color: white; }
         .status-ontime { background-color: var(--correct-color); }
         .status-due-soon { background-color: var(--warning-color); }
         .status-overdue { background-color: var(--incorrect-color); }
         .status-completed { background-color: var(--primary-color); }
-        
+
+        .avatar { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; }
+        #user-info-clickable .avatar { border: 2px solid var(--card-bg-color); }
+        .dashboard-card h4 .avatar, .page-header h2 .avatar { width: 40px; height: 40px; }
+
         /* NOUVEAU VISUEL PAGE D'ACCUEIL */
         #home-page.active { display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 80vh; text-align: center; overflow: hidden; }
         .intro-text-wrapper { display: flex; flex-wrap: nowrap; justify-content: center; align-items: center; gap: 0.8rem; font-size: 3.5rem; font-weight: 900; margin-bottom: 2rem; position: relative; }
@@ -132,7 +136,7 @@
         .word-5 { background-image: linear-gradient(45deg, #F5A623, #D0021B); }
         #aida-final-text { display: none; opacity: 0; animation: fade-in-final 1s forwards; animation-delay: 1s; }
         @keyframes fade-in-final { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-        #home-page .subtitle, #start-app-btn { opacity: 0; animation: fade-in-subtitle 1s ease-out forwards; animation-delay: 10.1s; }
+        #home-page .subtitle, #start-app-btn { opacity: 0; animation: fade-in-subtitle 1s ease-out forwards; animation-delay: 1.5s; }
         @keyframes fade-in-subtitle { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
         #home-page .subtitle { font-size: 1.5rem; color: #666; margin-bottom: 2.5rem; }
         body.dark-mode #home-page .subtitle { color: #aaa; }
@@ -155,7 +159,11 @@
             <a href="playground.html" class="btn btn-secondary hidden" id="playground-link"><i class="fa-solid fa-flask"></i> Terrain de Jeux</a>
              <button class="btn theme-toggle" id="theme-toggle-header-btn"><i class="fa-solid fa-moon"></i></button>
             <div class="user-menu-container hidden">
-                 <button class="btn" id="user-info-clickable"><span id="user-name-display"></span> <i class="fa-solid fa-chevron-down"></i></button>
+                 <button class="btn" id="user-info-clickable">
+                    <img src="" alt="Avatar" id="user-avatar-display" class="avatar">
+                    <span id="user-name-display"></span> 
+                    <i class="fa-solid fa-chevron-down"></i>
+                </button>
                 <div class="card user-dropdown hidden" id="user-dropdown">
                     <div class="dropdown-section">
                         <a href="#"><i class="fa-solid fa-user-circle"></i> Mes infos perso</a>
@@ -230,6 +238,7 @@
         const workspaceLink = document.getElementById('workspace-link');
         const userMenuContainer = document.querySelector('.user-menu-container');
         const userNameDisplay = document.getElementById('user-name-display');
+        const userAvatarDisplay = document.getElementById('user-avatar-display');
         const userInfoClickable = document.getElementById('user-info-clickable');
         const userDropdown = document.getElementById('user-dropdown');
         const logoutBtn = document.getElementById('logout-btn');
@@ -277,6 +286,7 @@
             
             if (loggedIn) {
                 userNameDisplay.textContent = currentUser.firstName;
+                userAvatarDisplay.src = `${backendUrl}/avatars/${currentUser.avatar}`;
                 adminModuleLink.classList.toggle('hidden', currentUser.role !== 'teacher');
                 if (currentUser.role === 'teacher') renderTeacherDashboard();
                 else renderStudentDashboard();
@@ -295,8 +305,8 @@
             changePage('auth-page');
         }
 
-        async function handleLogin(e) { e.preventDefault(); try { const data = await apiRequest('/auth/login', 'POST', { email: document.getElementById('login-email').value, password: document.getElementById('login-password').value }); currentUser = data.user; localStorage.setItem('currentUser', JSON.stringify(currentUser)); updateUI(); } catch (err) { document.getElementById('login-error').textContent = err.message; } }
-        async function handleSignup(e) { e.preventDefault(); try { const data = await apiRequest('/auth/signup', 'POST', { email: document.getElementById('signup-email').value, password: document.getElementById('signup-password').value, role: document.getElementById('signup-role').value }); currentUser = data.user; localStorage.setItem('currentUser', JSON.stringify(currentUser)); updateUI(); } catch (err) { document.getElementById('signup-error').textContent = err.message; } }
+        async function handleLogin(e) { e.preventDefault(); try { const data = await apiRequest('/auth/login', 'POST', { email: document.getElementById('login-email').value, password: document.getElementById('login-password').value }); currentUser = data.user; updateUI(); } catch (err) { document.getElementById('login-error').textContent = err.message; } }
+        async function handleSignup(e) { e.preventDefault(); try { const data = await apiRequest('/auth/signup', 'POST', { email: document.getElementById('signup-email').value, password: document.getElementById('signup-password').value, role: document.getElementById('signup-role').value }); currentUser = data.user; updateUI(); } catch (err) { document.getElementById('signup-error').textContent = err.message; } }
         function toggleAuthForms(e) { e.preventDefault(); document.getElementById('login-form-container').classList.toggle('hidden'); document.getElementById('signup-form-container').classList.toggle('hidden'); }
         
         function calculateCompletionRate(cls) {
@@ -353,7 +363,7 @@
         
         async function renderClassDetailsPage(id) {
             const page = document.getElementById('class-details-page');
-            page.innerHTML = `<button id="back-to-teacher" class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> Retour</button><div class=spinner></div>`;
+            page.innerHTML = `<button id="back-to-teacher" class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> Retour</button><div class="spinner"></div>`;
             page.querySelector('#back-to-teacher').addEventListener('click', renderTeacherDashboard);
             changePage('class-details-page');
             currentClassData = await apiRequest(`/teacher/classes/${id}`);
@@ -409,19 +419,19 @@
         }
         
         function renderStudentListPanel() {
-            let studentCardsHtml = (currentClassData.students || []).map(studentEmail => {
-                const studentResults = (currentClassData.results || []).filter(r => r.studentEmail === studentEmail);
+            let studentCardsHtml = (currentClassData.studentsWithDetails || []).map(student => {
+                const studentResults = (currentClassData.results || []).filter(r => r.studentEmail === student.email);
                 const assignedContentCount = (currentClassData.content || []).length;
                 const completionRate = assignedContentCount > 0 ? (studentResults.length / assignedContentCount) * 100 : 0;
-                return `<div class="dashboard-card" data-student-email="${studentEmail}">
-                            <h4><i class="fa-solid fa-user"></i> ${studentEmail.split('@')[0]}</h4>
+                return `<div class="dashboard-card" data-student-email="${student.email}">
+                            <h4><img src="${backendUrl}/avatars/${student.avatar}" class="avatar"> ${student.firstName}</h4>
                             <p>Taux de complétion: ${Math.round(completionRate)}%</p>
                             <p>${studentResults.length} / ${assignedContentCount} exercice(s) fait(s)</p>
                         </div>`;
             }).join('');
             
             const studentListContainer = document.getElementById('student-list');
-            studentListContainer.innerHTML = (currentClassData.students || []).length > 0 ? studentCardsHtml : "<p>Aucun élève dans cette classe pour le moment.</p>";
+            studentListContainer.innerHTML = (currentClassData.studentsWithDetails || []).length > 0 ? studentCardsHtml : "<p>Aucun élève dans cette classe pour le moment.</p>";
             studentListContainer.querySelectorAll('.dashboard-card').forEach(card => {
                 card.addEventListener('click', () => renderStudentDetailsPage(card.dataset.studentEmail));
             });
@@ -461,6 +471,7 @@
 
         function renderStudentDetailsPage(studentEmail) {
             const page = document.getElementById('student-details-page');
+            const student = currentClassData.studentsWithDetails.find(s => s.email === studentEmail);
             const studentResults = (currentClassData.results || []).filter(r => r.studentEmail === studentEmail);
             
             let resultsHtml = `<div class="dashboard-grid">`;
@@ -492,7 +503,9 @@
             page.innerHTML = `
                 <button id="back-to-class-details" class="btn btn-secondary" style="margin-bottom: 2rem;"><i class="fa-solid fa-arrow-left"></i> Retour à la classe</button>
                 <div class="card">
-                    <h2>Profil de ${studentEmail.split('@')[0]}</h2>
+                    <div class="page-header">
+                         <h2><img src="${backendUrl}/avatars/${student.avatar}" class="avatar"> Profil de ${student.firstName}</h2>
+                    </div>
                     <h3 style="margin-top: 2rem; margin-bottom: 1rem;">Résultats des exercices terminés</h3>
                     ${resultsHtml}
                 </div>`;
@@ -708,7 +721,7 @@
             m.addEventListener('change', () => { resetSelects([no, co]); const d = programmes[cy.value][n.value]?.[m.value]; if (d) { Object.keys(d).filter(k => k !== 'nom').forEach(nk => { no.add(new Option(d[nk].nom, nk)); }); no.disabled = false; } });
             no.addEventListener('change', () => { resetSelects([co]); const d = programmes[cy.value][n.value]?.[m.value]?.[no.value]; if (d && d.sous_notions) { Object.values(d.sous_notions).forEach(sn => { (sn.competences || []).forEach(c => co.add(new Option(c, c))); }); co.disabled = false; } });
             co.addEventListener('change', () => { gen.disabled = !co.value; });
-            document.getElementById('generation-form').addEventListener('submit', async e => { e.preventDefault(); selectedCompetenceInfo = { level: n.value, competence: co.value }; const comp = co.value; const contentType = contentTypeSelect.value; const exerciseCount = document.getElementById('exercise-count').value; document.getElementById('generation-spinner').classList.remove('hidden'); const d = await apiRequest('/ai/generate-content', 'POST', { competences: comp, contentType, exerciseCount }); generatedContent = d.structured_content; showEditModal(); });
+            document.getElementById('generation-form').addEventListener('submit', async e => { e.preventDefault(); selectedCompetenceInfo = { level: n.value, competence: co.value }; const comp = `Pour un élève de ${n.value}, ${co.value}`; const contentType = contentTypeSelect.value; const exerciseCount = document.getElementById('exercise-count').value; document.getElementById('generation-spinner').classList.remove('hidden'); const d = await apiRequest('/ai/generate-content', 'POST', { competences: comp, contentType, exerciseCount }); generatedContent = d.structured_content; showEditModal(); });
             
             document.getElementById('generate-from-text-form').addEventListener('submit', async (e) => {
                 e.preventDefault();
@@ -910,12 +923,6 @@
             } else {
                  applyTheme(savedTheme || 'light');
             }
-
-            const savedUser = localStorage.getItem('currentUser');
-            if (savedUser) {
-                currentUser = JSON.parse(savedUser);
-            }
-
             await loadProgrammes();
             updateUI();
         }
@@ -924,7 +931,7 @@
         startAppBtn.addEventListener('click', renderAuthPage);
         homeLink.addEventListener('click', () => { if(currentUser) { currentUser.role === 'teacher' ? renderTeacherDashboard() : renderStudentDashboard() } else { changePage('home-page'); } });
         workspaceLink.addEventListener('click', (e) => { e.preventDefault(); renderWorkspacePage(); });
-        logoutBtn.addEventListener('click', () => { currentUser = null; localStorage.removeItem('currentUser'); updateUI(); });
+        logoutBtn.addEventListener('click', () => { currentUser = null; updateUI(); });
         userInfoClickable.addEventListener('click', () => userDropdown.classList.toggle('hidden'));
         window.addEventListener('click', (e) => {
             if (userMenuContainer && !userMenuContainer.contains(e.target)) {
