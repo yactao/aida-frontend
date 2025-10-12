@@ -122,6 +122,8 @@
             flex-shrink: 0;
         }
         .chat-input #voice-input-btn { background-color: transparent; color: var(--primary-color); }
+        .chat-input #voice-input-btn:disabled { color: #ccc; cursor: not-allowed; }
+        body.dark-mode .chat-input #voice-input-btn:disabled { color: #555; }
         .chat-input #voice-input-btn.active { color: var(--incorrect-color); animation: pulse 1.5s infinite; }
         
         @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.2); } }
@@ -150,7 +152,7 @@
             </div>
             <div class="chat-input">
                 <form id="chat-form" style="width: 100%; display: flex; gap: 0.5rem;">
-                    <input type="text" id="user-input" placeholder="Écrivez ou dictez votre message..." autocomplete="off" required>
+                    <input type="text" id="user-input" placeholder="Écrivez votre message..." autocomplete="off" required>
                     <button type="button" id="voice-input-btn" title="Parler à AÏDA"><i class="fa-solid fa-microphone"></i></button>
                     <button type="submit" title="Envoyer"><i class="fa-solid fa-paper-plane"></i></button>
                 </form>
@@ -186,8 +188,10 @@
             recognition.onend = () => voiceInputBtn.classList.remove('active');
             
             voiceInputBtn.addEventListener('click', () => recognition.start());
+            userInput.placeholder = "Écrivez ou dictez votre message...";
         } else {
-            voiceInputBtn.style.display = 'none';
+            voiceInputBtn.disabled = true;
+            voiceInputBtn.title = "La reconnaissance vocale n'est pas supportée par ce navigateur.";
         }
 
         function applyTheme(theme) { document.body.classList.toggle('dark-mode', theme === 'dark'); }
@@ -196,6 +200,8 @@
         
         backToDashboardBtn.addEventListener('click', (e) => {
             e.preventDefault();
+            // Utilise l'historique du navigateur pour un retour plus naturel
+            // qui préserve l'état de la page précédente.
             window.history.back();
         });
 
