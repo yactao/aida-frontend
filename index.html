@@ -157,7 +157,7 @@
         <nav class="main-nav">
             <a href="#" class="btn btn-secondary hidden" id="workspace-link"><i class="fa-solid fa-pen-ruler"></i> Espace de Travail</a>
             <a href="playground.html" class="btn btn-secondary hidden" id="playground-link"><i class="fa-solid fa-flask"></i> Terrain de Jeux</a>
-             <button class="btn theme-toggle" id="theme-toggle-header-btn"><i class="fa-solid fa-moon"></i></button>
+            <button class="btn theme-toggle" id="theme-toggle-header-btn"><i class="fa-solid fa-moon"></i></button>
             <div class="user-menu-container hidden">
                  <button class="btn" id="user-info-clickable">
                     <img src="" alt="Avatar" id="user-avatar-display" class="avatar">
@@ -168,10 +168,10 @@
                     <div class="dropdown-section">
                         <a href="#"><i class="fa-solid fa-user-circle"></i> Mes infos perso</a>
                     </div>
-                     <div class="dropdown-section">
+                    <div class="dropdown-section">
                         <a href="#"><i class="fa-solid fa-key"></i> Changer de mot de passe</a>
                     </div>
-                     <div class="dropdown-section hidden" id="admin-module-link">
+                    <div class="dropdown-section hidden" id="admin-module-link">
                         <a href="#"><i class="fa-solid fa-user-shield"></i> Module Admin</a>
                     </div>
                     <div class="dropdown-section">
@@ -504,7 +504,7 @@
                 <button id="back-to-class-details" class="btn btn-secondary" style="margin-bottom: 2rem;"><i class="fa-solid fa-arrow-left"></i> Retour à la classe</button>
                 <div class="card">
                     <div class="page-header">
-                         <h2><img src="${backendUrl}/avatars/${student.avatar}" class="avatar"> Profil de ${student.firstName}</h2>
+                        <h2><img src="${backendUrl}/avatars/${student.avatar}" class="avatar"> Profil de ${student.firstName}</h2>
                     </div>
                     <h3 style="margin-top: 2rem; margin-bottom: 1rem;">Résultats des exercices terminés</h3>
                     ${resultsHtml}
@@ -527,16 +527,20 @@
         
         function showResultDetailsModal(result, content) {
             let detailsHtml = '';
-            content.questions.forEach((q, index) => {
-                const studentAnswerIndex = result.answers[index];
-                const correctAnswerIndex = q.correct_answer_index;
-                const isCorrect = studentAnswerIndex === correctAnswerIndex;
-                detailsHtml += `<div class="feedback-item ${isCorrect ? 'correct' : 'incorrect'}">
-                                    <p><strong>${q.question_text}</strong></p>
-                                    <p>Réponse de l'élève : ${studentAnswerIndex > -1 ? q.options[studentAnswerIndex] : 'Aucune'}</p>
-                                    ${!isCorrect ? `<p>Bonne réponse : ${q.options[correctAnswerIndex]}</p>` : ''}
-                                </div>`;
-            });
+            if (content.type === 'quiz' && result.answers && Array.isArray(result.answers)) {
+                content.questions.forEach((q, index) => {
+                    const studentAnswerIndex = result.answers[index];
+                    const correctAnswerIndex = q.correct_answer_index;
+                    const isCorrect = studentAnswerIndex === correctAnswerIndex;
+                    detailsHtml += `<div class="feedback-item ${isCorrect ? 'correct' : 'incorrect'}">
+                                        <p><strong>${q.question_text}</strong></p>
+                                        <p>Réponse de l'élève : ${studentAnswerIndex > -1 ? q.options[studentAnswerIndex] : 'Aucune'}</p>
+                                        ${!isCorrect ? `<p>Bonne réponse : ${q.options[correctAnswerIndex]}</p>` : ''}
+                                    </div>`;
+                });
+            } else {
+                 detailsHtml = `<p>Cet exercice n'était pas un quiz interactif ou les détails des réponses ne sont pas disponibles.</p><p>Statut: Terminé le ${new Date(result.submittedAt).toLocaleDateString('fr-FR')}</p>`;
+            }
             renderModal(getModalTemplate('result-details-modal', `Détail pour : ${result.title}`, detailsHtml));
         }
         
@@ -634,13 +638,13 @@
             }
 
             p.innerHTML = `<button id="back-to-student" class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> Retour</button>
-                         <div class="card" style="margin-top:1rem;">
-                            <h2>${c.title}</h2>
-                            <form id="content-form">
-                                <div>${html}</div>
-                                ${footerHtml}
-                            </form>
-                         </div>`;
+                             <div class="card" style="margin-top:1rem;">
+                                <h2>${c.title}</h2>
+                                <form id="content-form">
+                                    <div>${html}</div>
+                                    ${footerHtml}
+                                </form>
+                             </div>`;
 
             p.querySelector('#back-to-student').addEventListener('click', renderStudentDashboard);
             const form = p.querySelector('#content-form');
@@ -839,32 +843,32 @@
             let html = `<button id="back-to-dashboard-btn" class="btn btn-secondary" style="margin-bottom: 2rem;"><i class="fa-solid fa-arrow-left"></i> Retour au tableau de bord</button>`;
             
             html += `<h2>Espace de Travail Élève</h2><p>Bloqué sur un exercice ? Collez-le ici, écris ta réponse et demande à AIDA de te corriger. Vous pouvez aussi charger un document.</p>
-                     <div class="workspace-container" style="margin-top: 2rem;">
-                        <div class="workspace-input">
-                            <h3>Ton exercice</h3>
-                            <form id="student-workspace-form">
-                                <div class="form-group">
-                                    <label for="exercise-text">Colle ton exercice ou charge un document</label>
-                                    <textarea id="exercise-text" required placeholder="Ex: Calcule 5 + 3."></textarea>
-                                </div>
-                                <div class="form-group">
-                                    <label for="student-answer">Ta réponse</label>
-                                    <div class="textarea-container">
-                                        <textarea id="student-answer" required placeholder="Ex: Ma réponse est 8."></textarea>
+                         <div class="workspace-container" style="margin-top: 2rem;">
+                            <div class="workspace-input">
+                                <h3>Ton exercice</h3>
+                                <form id="student-workspace-form">
+                                    <div class="form-group">
+                                        <label for="exercise-text">Colle ton exercice ou charge un document</label>
+                                        <textarea id="exercise-text" required placeholder="Ex: Calcule 5 + 3."></textarea>
                                     </div>
-                                </div>
-                                <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
-                                    <button type="submit" class="btn btn-main">Corrige-moi, AIDA !</button>
-                                    <button type="button" class="btn btn-secondary" id="student-upload-btn"><i class="fa-solid fa-upload"></i> Charger un document</button>
-                                </div>
-                            </form>
-                            <input type="file" id="student-doc-upload" class="hidden" accept=".pdf,.docx,.png,.jpg,.jpeg">
-                        </div>
-                        <div class="workspace-output">
-                            <h3>La correction d'AIDA</h3>
-                            <div id="student-output-container"><p>La correction d'AIDA apparaîtra ici.</p></div>
-                        </div>
-                    </div>`;
+                                    <div class="form-group">
+                                        <label for="student-answer">Ta réponse</label>
+                                        <div class="textarea-container">
+                                            <textarea id="student-answer" required placeholder="Ex: Ma réponse est 8."></textarea>
+                                        </div>
+                                    </div>
+                                    <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
+                                        <button type="submit" class="btn btn-main">Corrige-moi, AIDA !</button>
+                                        <button type="button" class="btn btn-secondary" id="student-upload-btn"><i class="fa-solid fa-upload"></i> Charger un document</button>
+                                    </div>
+                                </form>
+                                <input type="file" id="student-doc-upload" class="hidden" accept=".pdf,.docx,.png,.jpg,.jpeg">
+                            </div>
+                            <div class="workspace-output">
+                                <h3>La correction d'AIDA</h3>
+                                <div id="student-output-container"><p>La correction d'AIDA apparaîtra ici.</p></div>
+                            </div>
+                        </div>`;
             
             page.innerHTML = html;
             
