@@ -121,14 +121,12 @@
         .avatar { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; }
         #user-info-clickable .avatar { border: 2px solid var(--card-bg-color); }
         .dashboard-card h4 .avatar, .page-header h2 .avatar { width: 40px; height: 40px; }
-        
+
         .quiz-question .question-header { display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
         .btn-help { background: none; border: none; color: var(--primary-color); cursor: pointer; font-size: 0.9rem; font-weight: 600; padding: 0.5rem; border-radius: 6px; flex-shrink: 0; }
         .btn-help:hover { background-color: #E9F2FF; }
         body.dark-mode .btn-help:hover { background-color: #333; }
 
-
-        /* NOUVEAU VISUEL PAGE D'ACCUEIL */
         #home-page.active { display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 80vh; text-align: center; overflow: hidden; }
         .intro-text-wrapper { display: flex; flex-wrap: nowrap; justify-content: center; align-items: center; gap: 0.8rem; font-size: 3.5rem; font-weight: 900; margin-bottom: 2rem; position: relative; }
         .rotating-text-container { height: 80px; overflow: hidden; width: 350px; }
@@ -147,7 +145,7 @@
         #home-page .subtitle { font-size: 1.5rem; color: #666; margin-bottom: 2.5rem; }
         body.dark-mode #home-page .subtitle { color: #aaa; }
         .highlight-word { background: linear-gradient(45deg, var(--primary-color), var(--secondary-color)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 700; }
-        .dots span { animation: color-pulse 1.5s infinite; }
+        .dots span { animation: color-pulse 1.s infinite; }
         .dots span:nth-child(2) { animation-delay: 0.2s; }
         .dots span:nth-child(3) { animation-delay: 0.4s; }
         @keyframes color-pulse { 0%, 100% { color: var(--text-color); } 50% { color: var(--secondary-color); } }
@@ -480,31 +478,55 @@
             const student = currentClassData.studentsWithDetails.find(s => s.email === studentEmail);
             const studentResults = (currentClassData.results || []).filter(r => r.studentEmail === studentEmail);
             
-            let resultsHtml = `<div class="dashboard-grid">`;
+            let resultsHtml = '';
             if (studentResults.length > 0) {
-                studentResults.forEach(result => {
+                const groupedResults = studentResults.reduce((acc, result) => {
                     const content = (currentClassData.content || []).find(c => c.id === result.contentId);
                     if (content) {
-                        const scorePercentage = result.totalQuestions > 0 ? (result.score / result.totalQuestions) * 100 : 0;
-                        resultsHtml += `
-                            <div class="dashboard-card" style="cursor: default;">
-                                <h4>${result.title}</h4>
-                                <p style="margin-bottom: 1rem;">Terminé le: ${new Date(result.submittedAt).toLocaleDateString('fr-FR')}</p>
-                                ${result.totalQuestions > 0 ? `
-                                <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem;">
-                                    <strong>Score: ${result.score}/${result.totalQuestions}</strong>
-                                    <div class="progress-bar">
-                                        <div class="progress-bar-fill" style="width: ${scorePercentage}%;"></div>
-                                    </div>
-                                </div>` : ''}
-                                <button class="btn btn-secondary view-details" data-content-id="${result.contentId}">Voir les détails</button>
-                            </div>`;
+                        const subject = getSubjectInfo(content.title).name;
+                        if (!acc[subject]) {
+                            acc[subject] = [];
+                        }
+                        acc[subject].push(result);
                     }
-                });
+                    return acc;
+                }, {});
+
+                for (const subject in groupedResults) {
+                    resultsHtml += `<h4 style="margin-top:1.5rem; margin-bottom:1rem; border-bottom: 2px solid var(--primary-color); padding-bottom:0.5rem;">${subject}</h4>`;
+                    resultsHtml += '<div class="dashboard-grid">';
+                    groupedResults[subject]
+                        .sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt))
+                        .forEach(result => {
+                            const content = (currentClassData.content || []).find(c => c.id === result.contentId);
+                            if (content) {
+                                let scoreHtml = '';
+                                if (content.type === 'quiz') {
+                                    const scorePercentage = result.totalQuestions > 0 ? (result.score / result.totalQuestions) * 100 : 0;
+                                    scoreHtml = `
+                                    <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem;">
+                                        <strong>Score: ${result.score}/${result.totalQuestions}</strong>
+                                        <div class="progress-bar">
+                                            <div class="progress-bar-fill" style="width: ${scorePercentage}%;"></div>
+                                        </div>
+                                    </div>`;
+                                }
+
+                                resultsHtml += `
+                                    <div class="dashboard-card" style="cursor: default;">
+                                        <h4>${result.title}</h4>
+                                        <p style="margin-bottom: 1rem;">Terminé le: ${new Date(result.submittedAt).toLocaleDateString('fr-FR')}</p>
+                                        ${scoreHtml}
+                                        <button class="btn btn-secondary view-details" data-content-id="${result.contentId}">Voir les détails</button>
+                                    </div>`;
+                            }
+                        });
+                    resultsHtml += '</div>';
+                }
+
             } else {
-                resultsHtml += '<p>Aucun exercice terminé pour le moment.</p>';
+                resultsHtml = '<p>Aucun exercice terminé pour le moment.</p>';
             }
-            resultsHtml += '</div>';
 
             page.innerHTML = `
                 <button id="back-to-class-details" class="btn btn-secondary" style="margin-bottom: 2rem;"><i class="fa-solid fa-arrow-left"></i> Retour à la classe</button>
