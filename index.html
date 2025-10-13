@@ -121,6 +121,12 @@
         .avatar { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; }
         #user-info-clickable .avatar { border: 2px solid var(--card-bg-color); }
         .dashboard-card h4 .avatar, .page-header h2 .avatar { width: 40px; height: 40px; }
+        
+        .quiz-question .question-header { display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
+        .btn-help { background: none; border: none; color: var(--primary-color); cursor: pointer; font-size: 0.9rem; font-weight: 600; padding: 0.5rem; border-radius: 6px; flex-shrink: 0; }
+        .btn-help:hover { background-color: #E9F2FF; }
+        body.dark-mode .btn-help:hover { background-color: #333; }
+
 
         /* NOUVEAU VISUEL PAGE D'ACCUEIL */
         #home-page.active { display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 80vh; text-align: center; overflow: hidden; }
@@ -253,14 +259,14 @@
         function renderModal(template) { modalContainer.innerHTML = template; modalContainer.querySelector('.close-modal')?.addEventListener('click', () => modalContainer.innerHTML = ''); }
         function getModalTemplate(id, title, html) { return `<div class="modal-overlay" id="${id}"><div class="modal-content"><button class="close-modal">&times;</button><h3>${title}</h3>${html}</div></div>`; }
         
-        function getSubjectTag(title) {
-            if (!title) return 'tag-autre';
+        function getSubjectInfo(title) {
+            if (!title) return { name: 'Autre', cssClass: 'tag-autre' };
             const lowerTitle = title.toLowerCase();
-            if (lowerTitle.includes('math') || lowerTitle.includes('addition') || lowerTitle.includes('calcul')) return 'tag-maths';
-            if (lowerTitle.includes('français') || lowerTitle.includes('lecture') || lowerTitle.includes('grammaire')) return 'tag-francais';
-            if (lowerTitle.includes('science')) return 'tag-sciences';
-            if (lowerTitle.includes('histoire')) return 'tag-histoire';
-            return 'tag-autre';
+            if (lowerTitle.includes('math') || lowerTitle.includes('addition') || lowerTitle.includes('calcul')) return { name: 'Mathématiques', cssClass: 'tag-maths' };
+            if (lowerTitle.includes('français') || lowerTitle.includes('lecture') || lowerTitle.includes('grammaire')) return { name: 'Français', cssClass: 'tag-francais' };
+            if (lowerTitle.includes('science')) return { name: 'Sciences', cssClass: 'tag-sciences' };
+            if (lowerTitle.includes('histoire')) return { name: 'Histoire', cssClass: 'tag-histoire' };
+            return { name: 'Autre', cssClass: 'tag-autre' };
         }
 
         function applyTheme(theme) {
@@ -559,13 +565,68 @@
         }
         function showCreateClassModal() { renderModal(getModalTemplate('create-class-modal', 'Nouvelle Classe', `<form id=create-class-form><div class=form-group><label for=class-name-input>Nom</label><input type=text id=class-name-input required></div><button type=submit class="btn btn-main">Créer</button></form>`)); document.getElementById('create-class-form').addEventListener('submit', async e => { e.preventDefault(); await apiRequest('/teacher/classes', 'POST', { className: document.getElementById('class-name-input').value, teacherEmail: currentUser.email }); modalContainer.innerHTML = ''; renderTeacherDashboard(); }); }
         
-        async function renderStudentDashboard() { const p = document.getElementById('student-dashboard-page'); p.innerHTML = `<div class=spinner></div>`; changePage('student-dashboard-page'); const d = await apiRequest(`/student/dashboard?studentEmail=${currentUser.email}`); console.log("Données reçues pour le dashboard élève:", d); p.innerHTML = `<h2>Bonjour ${currentUser.firstName}!</h2><h3>À faire</h3><div id="student-todo-list" class="dashboard-grid"></div><h3 style=margin-top:2rem>Archives</h3><div id="student-completed-list" class="dashboard-grid"></div>`; const todo = p.querySelector('#student-todo-list'); if (d.todo.length === 0) { todo.innerHTML = "<p>Bravo, tu es à jour !</p>"; } else { d.todo.forEach(i => createStudentCard(i)); } const comp = p.querySelector('#student-completed-list'); if (d.completed.length === 0) { comp.innerHTML = "<p>Aucun devoir terminé pour le moment.</p>"; } else { d.completed.forEach(i => createStudentCard(i, true)); } }
-        
-        function createStudentCard(c, isDone) { 
-            const container = isDone ? document.getElementById('student-completed-list') : document.getElementById('student-todo-list');
-            const card = document.createElement('div');
-            card.className = 'dashboard-card-student';
-            const subjectTagClass = getSubjectTag(c.title);
+        async function renderStudentDashboard() {
+            const page = document.getElementById('student-dashboard-page');
+            page.innerHTML = `<div class=spinner></div>`;
+            changePage('student-dashboard-page');
+            
+            try {
+                const data = await apiRequest(`/student/dashboard?studentEmail=${currentUser.email}`);
+                
+                let todoHtml = '<h3>À faire</h3>';
+                if (data.todo.length === 0) {
+                    todoHtml += "<p>Bravo, tu es à jour !</p>";
+                } else {
+                    todoHtml += '<div class="dashboard-grid">';
+                    data.todo.forEach(item => {
+                        todoHtml += createStudentCardHtml(item, false);
+                    });
+                    todoHtml += '</div>';
+                }
+
+                let completedHtml = '<h3 style="margin-top:2rem">Archives</h3>';
+                if (data.completed.length === 0) {
+                    completedHtml += "<p>Aucun devoir terminé pour le moment.</p>";
+                } else {
+                    const groupedBySubject = data.completed.reduce((acc, item) => {
+                        const subject = getSubjectInfo(item.title).name;
+                        if (!acc[subject]) {
+                            acc[subject] = [];
+                        }
+                        acc[subject].push(item);
+                        return acc;
+                    }, {});
+
+                    for (const subject in groupedBySubject) {
+                        completedHtml += `<h4 style="margin-top:1.5rem; margin-bottom:1rem; border-bottom: 2px solid var(--primary-color); padding-bottom:0.5rem;">${subject}</h4>`;
+                        completedHtml += '<div class="dashboard-grid">';
+                        groupedBySubject[subject]
+                            .sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt))
+                            .forEach(item => {
+                                completedHtml += createStudentCardHtml(item, true);
+                            });
+                        completedHtml += '</div>';
+                    }
+                }
+
+                page.innerHTML = `<h2>Bonjour ${currentUser.firstName}!</h2>${todoHtml}${completedHtml}`;
+                
+                page.querySelectorAll('.btn-main').forEach(button => {
+                    if (button.dataset.content) {
+                        button.addEventListener('click', (e) => {
+                            const content = JSON.parse(e.target.dataset.content);
+                            renderContentViewer(content);
+                        });
+                    }
+                });
+
+            } catch (error) {
+                page.innerHTML = `<p class="error-message">Impossible de charger le tableau de bord.</p>`;
+            }
+        }
+
+        function createStudentCardHtml(c, isDone) {
+            const subjectInfo = getSubjectInfo(c.title);
 
             let dateInfoHtml = '';
             if (isDone) {
@@ -573,10 +634,8 @@
                 dateInfoHtml = `<span class="deadline-status status-completed">Terminé le ${date}</span>`;
             } else {
                 const dueDate = new Date(c.dueDate);
-                const today = new Date();
-                today.setHours(0,0,0,0);
-                const tomorrow = new Date(today);
-                tomorrow.setDate(tomorrow.getDate() + 1);
+                const today = new Date(); today.setHours(0,0,0,0);
+                const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate() + 1);
 
                 let statusClass = 'status-ontime';
                 let statusText = `À faire pour le ${dueDate.toLocaleDateString('fr-FR')}`;
@@ -586,27 +645,27 @@
                     statusText = `En retard (pour le ${dueDate.toLocaleDateString('fr-FR')})`;
                 } else if (dueDate <= tomorrow) {
                     statusClass = 'status-due-soon';
-                    statusText = `À rendre bientôt (pour le ${dueDate.toLocaleDateString('fr-FR')})`;
+                    statusText = `À rendre bientôt`;
                 }
                 dateInfoHtml = `<span class="deadline-status ${statusClass}">${statusText}</span>`;
             }
 
-            card.innerHTML = `
-                <div class="card-header">
-                    <span class="subject-tag ${subjectTagClass}">${c.type.charAt(0).toUpperCase() + c.type.slice(1)}</span>
-                    ${dateInfoHtml}
-                </div>
-                <div class="card-content">
-                    <h4>${c.title}</h4>
-                    <p>Classe: ${c.className}</p>
-                </div>
-                <div class="card-footer">
-                    <button class="btn ${isDone ? 'btn-secondary' : 'btn-main'}" ${isDone ? 'disabled' : ''}>
-                        ${isDone ? '<i class="fa-solid fa-check"></i> Terminé' : 'Commencer'}
-                    </button>
+            return `
+                <div class="dashboard-card-student">
+                    <div class="card-header">
+                        <span class="subject-tag ${subjectInfo.cssClass}">${c.type.charAt(0).toUpperCase() + c.type.slice(1)}</span>
+                        ${dateInfoHtml}
+                    </div>
+                    <div class="card-content">
+                        <h4>${c.title}</h4>
+                        <p>Classe: ${c.className}</p>
+                    </div>
+                    <div class="card-footer">
+                        <button class="btn ${isDone ? 'btn-secondary' : 'btn-main'}" ${isDone ? 'disabled' : ''} data-content='${!isDone ? JSON.stringify(c) : ''}'>
+                            ${isDone ? '<i class="fa-solid fa-check"></i> Terminé' : 'Commencer'}
+                        </button>
+                    </div>
                 </div>`;
-            if (!isDone) card.querySelector('button').addEventListener('click', () => renderContentViewer(c));
-            container.appendChild(card);
         }
 
         function renderContentViewer(c) {
