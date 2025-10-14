@@ -46,6 +46,9 @@
         .btn-main:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.1); }
         .btn-secondary { background-color: #E9F2FF; color: var(--primary-color); }
         body.dark-mode .btn-secondary { background-color: #333; color: var(--primary-color); }
+        .btn-icon { background: none; border: none; color: #aaa; padding: 5px; border-radius: 50%; width: 32px; height: 32px; flex-shrink: 0; }
+        .btn-icon:hover { background-color: #fdeeee; color: var(--incorrect-color); }
+        body.dark-mode .btn-icon:hover { background-color: #444; }
         
         .user-menu-container { position: relative; }
         #user-info-clickable { background: none; border: none; display: flex; align-items: center; gap: 0.75rem; cursor: pointer; color: var(--text-color); }
@@ -70,6 +73,7 @@
         }
         .dashboard-card:hover { transform: translateY(-5px); box-shadow: 0 8px 25px rgba(0,0,0,0.1); }
         body.dark-mode .dashboard-card:hover { box-shadow: 0 8px 25px rgba(0,0,0,0.3); }
+        .dashboard-card-title { display: flex; justify-content: space-between; align-items: center; }
         
         .dashboard-card-student { padding: 0; cursor: default; background: var(--card-bg-color); border-radius: 12px; box-shadow: var(--shadow); }
         .dashboard-card-student .card-header { padding: 1rem 1.5rem; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; }
@@ -445,7 +449,10 @@
                 const assignedContentCount = (currentClassData.content || []).length;
                 const completionRate = assignedContentCount > 0 ? (studentResults.length / assignedContentCount) * 100 : 0;
                 return `<div class="dashboard-card" data-student-email="${student.email}">
-                            <h4><img src="${backendUrl}/avatars/${student.avatar}" class="avatar"> ${student.firstName}</h4>
+                            <div class="dashboard-card-title">
+                                <h4><img src="${backendUrl}/avatars/${student.avatar}" class="avatar"> ${student.firstName}</h4>
+                                <button class="btn-icon delete-student-btn" data-student-email="${student.email}" title="Supprimer l'élève"><i class="fa-solid fa-trash-alt"></i></button>
+                            </div>
                             <p>Taux de complétion: ${Math.round(completionRate)}%</p>
                             <p>${studentResults.length} / ${assignedContentCount} exercice(s) fait(s)</p>
                         </div>`;
@@ -453,9 +460,42 @@
             
             const studentListContainer = document.getElementById('student-list');
             studentListContainer.innerHTML = (currentClassData.studentsWithDetails || []).length > 0 ? studentCardsHtml : "<p>Aucun élève dans cette classe pour le moment.</p>";
+            
             studentListContainer.querySelectorAll('.dashboard-card').forEach(card => {
-                card.addEventListener('click', () => renderStudentDetailsPage(card.dataset.studentEmail));
+                card.addEventListener('click', (e) => {
+                    if (!e.target.closest('.delete-student-btn')) {
+                        renderStudentDetailsPage(card.dataset.studentEmail);
+                    }
+                });
             });
+            
+            studentListContainer.querySelectorAll('.delete-student-btn').forEach(button => {
+                button.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const studentEmail = button.dataset.studentEmail;
+                    const student = currentClassData.studentsWithDetails.find(s => s.email === studentEmail);
+                    renderModal(getModalTemplate('delete-student-confirm', 'Confirmer la suppression', `
+                        <p>Êtes-vous sûr de vouloir supprimer <strong>${student.firstName} (${student.email})</strong> de cette classe ?</p>
+                        <p>Cette action est irréversible et supprimera également tous ses résultats associés à cette classe.</p>
+                        <div style="display:flex; justify-content: flex-end; gap: 1rem; margin-top: 2rem;">
+                            <button class="btn btn-secondary" id="cancel-delete">Annuler</button>
+                            <button class="btn" style="background: var(--incorrect-color); color: white;" id="confirm-delete">Confirmer la suppression</button>
+                        </div>
+                    `));
+                    document.getElementById('cancel-delete').addEventListener('click', () => modalContainer.innerHTML = '');
+                    document.getElementById('confirm-delete').addEventListener('click', () => handleRemoveStudent(studentEmail));
+                });
+            });
+        }
+
+        async function handleRemoveStudent(studentEmail) {
+            try {
+                await apiRequest(`/teacher/classes/${currentClassData.id}/remove-student`, 'POST', { studentEmail });
+                modalContainer.innerHTML = '';
+                renderClassDetailsPage(currentClassData.id); 
+            } catch (error) {
+                alert(`Erreur lors de la suppression de l'élève: ${error.message}`);
+            }
         }
         
         async function renderCompetencyReport(classId) {
