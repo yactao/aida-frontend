@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AÏDA - Assistant Intelligent</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
         :root {
@@ -68,7 +69,7 @@
             border-radius: 12px; 
             box-shadow: var(--shadow); 
             transition: transform 0.3s, box-shadow 0.3s; 
-            cursor: pointer; 
+            cursor: grab; 
             border-top: 4px solid var(--primary-color);
         }
         .dashboard-card:hover { transform: translateY(-5px); box-shadow: 0 8px 25px rgba(0,0,0,0.1); }
@@ -363,11 +364,23 @@
             p.querySelector('#open-class-modal').addEventListener('click', showCreateClassModal);
             p.querySelector('#open-gen-modal').addEventListener('click', showGenerationModal);
             teacherClasses = await apiRequest(`/teacher/classes?teacherEmail=${currentUser.email}`);
+            
+            if (currentUser.classOrder && Array.isArray(currentUser.classOrder)) {
+                teacherClasses.sort((a, b) => {
+                    const indexA = currentUser.classOrder.indexOf(a.id);
+                    const indexB = currentUser.classOrder.indexOf(b.id);
+                    if (indexA === -1) return 1;
+                    if (indexB === -1) return -1;
+                    return indexA - indexB;
+                });
+            }
+            
             const grid = p.querySelector('#class-grid');
             grid.innerHTML = teacherClasses.length === 0 ? "<p>Aucune classe pour le moment. Créez-en une pour commencer !</p>" : "";
             teacherClasses.forEach(c => {
                 const card = document.createElement('div');
                 card.className = 'dashboard-card';
+                card.dataset.classId = c.id;
                 const completionRate = calculateCompletionRate(c);
                 card.innerHTML = `
                     <h4>${c.className}</h4>
@@ -383,6 +396,26 @@
                 `;
                 card.addEventListener('click', () => renderClassDetailsPage(c.id));
                 grid.appendChild(card);
+            });
+
+            new Sortable(grid, {
+                animation: 150,
+                onEnd: async function (evt) {
+                    const orderedIds = Array.from(grid.children).map(card => card.dataset.classId);
+                    this.option('disabled', true);
+                    try {
+                        const data = await apiRequest('/teacher/classes/reorder', 'POST', {
+                            teacherEmail: currentUser.email,
+                            classOrder: orderedIds
+                        });
+                        currentUser.classOrder = data.classOrder; // Mettre à jour l'ordre localement
+                    } catch (error) {
+                        alert("Erreur lors de la sauvegarde de l'ordre des classes.");
+                        renderTeacherDashboard(); // Re-render pour annuler le changement visuel
+                    } finally {
+                        this.option('disabled', false);
+                    }
+                }
             });
         }
         
