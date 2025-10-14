@@ -108,6 +108,7 @@
         .tab-button.active { color: var(--primary-color); border-bottom-color: var(--primary-color); }
         .tab-panel { display: none; }
         .tab-panel.active { display: block; }
+        .new-tag { background-color: var(--warning-color); color: #FFF; padding: 0.1rem 0.5rem; border-radius: 20px; font-weight: 700; font-size: 0.8rem; margin-left: 0.5rem; }
 
         .progress-bar { width: 100%; background-color: #eee; border-radius: 5px; height: 10px; overflow: hidden; }
         body.dark-mode .progress-bar { background-color: #333; }
@@ -131,7 +132,6 @@
         #user-info-clickable .avatar { border: 2px solid var(--card-bg-color); }
         .dashboard-card h4 .avatar, .page-header h2 .avatar { width: 40px; height: 40px; }
         
-        /* --- NOUVELLE PRÉSENTATION DES OPTIONS DE QUIZ --- */
         .quiz-question { margin-bottom: 2.5rem; }
         .question-header { 
             display: flex; 
@@ -515,6 +515,7 @@
                 <div class="tabs">
                     <button class="tab-button active" data-tab="students-panel">Élèves</button>
                     <button class="tab-button" data-tab="competencies-panel">Analyse par Compétence</button>
+                    <button class="tab-button" data-tab="corrections-panel">Corrections en attente <span id="pending-count" class="new-tag hidden"></span></button>
                 </div>
                 <div id="students-panel" class="tab-panel active">
                     <div class="page-header" style="margin-bottom: 1.5rem;">
@@ -525,9 +526,18 @@
                 </div>
                 <div id="competencies-panel" class="tab-panel">
                     ${spinnerHtml}
-                </div>`;
+                </div>
+                <div id="corrections-panel" class="tab-panel"></div>`;
             
             renderStudentListPanel();
+            renderCorrectionsPanel();
+
+            const pendingCorrections = (currentClassData.results || []).filter(r => r.status === 'pending_validation');
+            const pendingCountSpan = page.querySelector('#pending-count');
+            if (pendingCorrections.length > 0) {
+                pendingCountSpan.textContent = pendingCorrections.length;
+                pendingCountSpan.classList.remove('hidden');
+            }
             
             page.querySelector('#back-to-teacher').addEventListener('click', renderTeacherDashboard);
             page.querySelector('#open-add-student-modal-btn').addEventListener('click', () => {
