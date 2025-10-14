@@ -245,7 +245,8 @@
         let currentClassData = null;
         let programmes = {};
         let selectedCompetenceInfo = null;
-        let studentDashboardData = null; // Store dashboard data
+        let studentDashboardData = null;
+        let helpUsedInQuiz = false;
         
         const spinnerHtml = `<div class="spinner"><div class="dot1"></div><div class="dot2"></div><div class="dot3"></div></div>`;
         
@@ -425,7 +426,7 @@
                         <span style="font-weight: 600; font-size: 0.9rem;">${completionRate}%</span>
                     </div>
                 `;
-                card.addEventListener('click', (e) => {
+                 card.addEventListener('click', (e) => {
                     if (e.target.closest('button')) return;
                     if (card.classList.contains('sortable-ghost')) return;
                     renderClassDetailsPage(c.id);
@@ -636,10 +637,12 @@
                                         </div>
                                     </div>`;
                                 }
+                                
+                                const helpIcon = result.helpUsed ? `<i class="fa-solid fa-lightbulb" title="L'élève a demandé de l'aide pour ce devoir" style="font-size: 0.9rem; color: var(--warning-color); margin-left: 0.5rem;"></i>` : '';
 
                                 resultsHtml += `
                                     <div class="dashboard-card" style="cursor: default;">
-                                        <h4>${result.title}</h4>
+                                        <h4>${result.title} ${helpIcon}</h4>
                                         <p style="margin-bottom: 1rem;">Terminé le: ${new Date(result.submittedAt).toLocaleDateString('fr-FR')}</p>
                                         ${scoreHtml}
                                         <button class="btn btn-secondary view-details" data-content-id="${result.contentId}">Voir les détails</button>
@@ -744,7 +747,7 @@
 
                 page.innerHTML = `<h2>Bonjour ${currentUser.firstName}!</h2>${todoHtml}${completedHtml}`;
                 
-                renderFilteredArchives('all'); // Initial render
+                renderFilteredArchives('all'); 
                 
                 page.querySelector('#archive-filters').addEventListener('click', (e) => {
                     if (e.target.tagName === 'BUTTON') {
@@ -780,14 +783,14 @@
                 const completedDate = new Date(item.completedAt);
                 if (filter === 'week') {
                     const startOfWeek = new Date(now);
-                    startOfWeek.setDate(now.getDate() - now.getDay() + (now.getDay() === 0 ? -6 : 1)); // Monday
+                    startOfWeek.setDate(now.getDate() - now.getDay() + (now.getDay() === 0 ? -6 : 1)); 
                     startOfWeek.setHours(0,0,0,0);
                     return completedDate >= startOfWeek;
                 }
                 if (filter === 'month') {
                     return completedDate.getFullYear() === now.getFullYear() && completedDate.getMonth() === now.getMonth();
                 }
-                return true; // 'all'
+                return true; 
             });
 
             if (filteredItems.length === 0) {
@@ -865,6 +868,8 @@
             let html = '';
             let footerHtml = '';
             const isQuiz = c.type === 'quiz';
+            
+            helpUsedInQuiz = false;
 
             if (isQuiz) {
                 c.questions.forEach((q, i) => {
@@ -878,10 +883,12 @@
                 });
                 footerHtml = `<button type="submit" class="btn btn-main" style="margin-top:1rem;">Valider</button>`;
             } else { 
-                if (c.content && c.content.length > 0) {
+                if (c.content && Array.isArray(c.content)) { 
                      c.content.forEach(e => {
                         html += `<div style="margin-bottom: 1.5rem;"><h4>Exercice</h4><p>${e.enonce}</p></div>`;
                     });
+                } else if (c.content && typeof c.content === 'string') {
+                    html = `<div class="revision-content">${c.content.replace(/\n/g, '<br>')}</div>`;
                 } else {
                     html = `<p>Ce contenu n'est pas interactif. Cliquez sur 'Terminé' lorsque vous avez fini de le consulter.</p>`;
                 }
@@ -913,8 +920,9 @@
                             contentId: c.id, 
                             title: c.title, 
                             score: 0, 
-                            totalQuestions: (c.content || []).length, 
-                            answers: [] 
+                            totalQuestions: 0, 
+                            answers: [],
+                            helpUsed: false
                         });
                         renderStudentDashboard();
                     });
@@ -923,11 +931,42 @@
             changePage('content-viewer-page');
         }
 
-        async function handleHelpRequest(e) { e.preventDefault(); const q = e.target.closest('button').dataset.question; renderModal(getModalTemplate('help-modal', 'Indice d\'AIDA', `<p><strong>Question:</strong> ${q}</p><div id=hint-container style=margin-top:1rem>${spinnerHtml}</div>`)); try { const d = await apiRequest('/ai/get-hint', 'POST', { questionText: q }); document.getElementById('hint-container').innerHTML = `<p>${d.hint}</p>`; } catch (err) { document.getElementById('hint-container').innerHTML = `<p class=error-message>Indice indisponible.</p>`; } }
-        async function handleSubmitQuiz(c) { const answers = c.questions.map((q, i) => { const sel = document.querySelector(`input[name=q${i}]:checked`); return sel ? parseInt(sel.value) : -1; }); const score = answers.reduce((acc, ans, i) => acc + (ans == c.questions[i].correct_answer_index ? 1 : 0), 0); await apiRequest('/student/submit-quiz', 'POST', { studentEmail: currentUser.email, classId: c.classId, contentId: c.id, title: c.title, score, totalQuestions: c.questions.length, answers }); renderFeedbackPage(c, answers, score); }
+        async function handleHelpRequest(e) { 
+            e.preventDefault(); 
+            helpUsedInQuiz = true;
+            const q = e.target.closest('button').dataset.question; 
+            renderModal(getModalTemplate('help-modal', 'Indice d\'AIDA', `<p><strong>Question:</strong> ${q}</p><div id=hint-container style=margin-top:1rem>${spinnerHtml}</div>`)); 
+            try { 
+                const d = await apiRequest('/ai/get-hint', 'POST', { questionText: q }); 
+                document.getElementById('hint-container').innerHTML = `<p>${d.hint}</p>`; 
+            } catch (err) { 
+                document.getElementById('hint-container').innerHTML = `<p class=error-message>Indice indisponible.</p>`; 
+            } 
+        }
+
+        async function handleSubmitQuiz(c) { 
+            const answers = c.questions.map((q, i) => { const sel = document.querySelector(`input[name=q${i}]:checked`); return sel ? parseInt(sel.value) : -1; }); 
+            const score = answers.reduce((acc, ans, i) => acc + (ans == c.questions[i].correct_answer_index ? 1 : 0), 0); 
+            await apiRequest('/student/submit-quiz', 'POST', { 
+                studentEmail: currentUser.email, 
+                classId: c.classId, 
+                contentId: c.id, 
+                title: c.title, 
+                score, 
+                totalQuestions: c.questions.length, 
+                answers,
+                helpUsed: helpUsedInQuiz
+            }); 
+            renderFeedbackPage(c, answers, score); 
+        }
         function renderFeedbackPage(c, answers, score) { const p = document.getElementById('feedback-page'); p.innerHTML = `<div class=card><h2>Résultats du Quiz: ${c.title}</h2><p><strong>Ton score: ${score} / ${c.questions.length}</strong></p><div id=feedback-details style=margin-top:2rem></div><button id=back-to-dash class="btn btn-main">Retour au tableau de bord</button></div>`; p.querySelector('#back-to-dash').addEventListener('click', renderStudentDashboard); const details = p.querySelector('#feedback-details'); c.questions.forEach((q, i) => { const correct = answers[i] == c.questions[i].correct_answer_index; const item = document.createElement('div'); item.className = `feedback-item ${correct ? 'correct' : 'incorrect'}`; let html = `<p><strong>${q.question_text}</strong></p>`; if (correct) { html += `<p style=color:var(--correct-color)>Ta réponse: ${q.options[answers[i]]} (Correct)</p>`; } else { html += `<p style=color:var(--incorrect-color)>Ta réponse: ${answers[i] > -1 ? q.options[answers[i]] : 'Aucune'} (Incorrect)</p><p>Bonne réponse: ${q.options[q.correct_answer_index]}</p><div class=aida-explanation id=explanation-${i}>${spinnerHtml}</div>`; } item.innerHTML = html; details.appendChild(item); if (!correct) { apiRequest('/ai/get-feedback-for-error', 'POST', { question: q.question_text, userAnswer: answers[i] > -1 ? q.options[answers[i]] : 'Aucune', correctAnswer: q.options[q.correct_answer_index] }).then(d => { document.getElementById(`explanation-${i}`).innerHTML = `<p><strong>L'explication d'AIDA :</strong> ${d.feedback}</p>`; }); } }); changePage('feedback-page'); }
         
         function showGenerationModal() {
+            if (Object.keys(programmes).length === 0) {
+                alert("Les programmes scolaires n'ont pas pu être chargés. Impossible de générer du contenu.");
+                return;
+            }
+            
             const h = `
                 <div class="tabs">
                     <button class="tab-button active" data-tab="from-program">Depuis le Programme</button>
@@ -935,8 +974,19 @@
                 </div>
                 <div id="from-program" class="tab-panel active">
                     <form id="generation-form">
-                        <div class="form-group"><label>Type</label><select id="content-type-select"><option value="quiz">Quiz</option><option value="exercices">Fiche d'exercices</option></select></div>
-                        <div class="form-group hidden" id="exercise-count-group"><label for="exercise-count">Nombre d'exercices</label><input type="number" id="exercise-count" value="5" min="1" max="10"></div>
+                        <div class="form-group">
+                            <label>Type de contenu</label>
+                            <select id="content-type-select">
+                                <option value="quiz">Quiz</option>
+                                <option value="exercices">Fiche d'exercices</option>
+                                <option value="revision">Fiche de révision</option>
+                                <option value="dm">Devoir Maison</option>
+                            </select>
+                        </div>
+                        <div class="form-group" id="exercise-count-group">
+                            <label for="exercise-count" id="exercise-count-label">Nombre de questions</label>
+                            <input type="number" id="exercise-count" value="3" min="1" max="15">
+                        </div>
                         <div class="form-group"><label>Cycle</label><select id="cycle-select"><option value="">-- Choisir --</option></select></div>
                         <div class="form-group"><label>Niveau</label><select id="niveau-select" disabled><option value="">-- Choisir --</option></select></div>
                         <div class="form-group"><label>Matière</label><select id="matiere-select" disabled><option value="">-- Choisir --</option></select></div>
@@ -951,8 +1001,19 @@
                             <label for="document-upload-input">Chargez un document (PDF, DOCX, PNG, JPG)</label>
                             <input type="file" id="document-upload-input" accept=".pdf,.docx,.png,.jpg,.jpeg" required>
                         </div>
-                        <div class="form-group"><label>Type de contenu à générer</label><select id="teacher-content-type-upload"><option value="quiz">Quiz</option><option value="exercices">Fiche d'exercices</option></select></div>
-                        <div class="form-group hidden" id="exercise-count-group-upload"><label for="exercise-count-upload">Nombre d'exercices</label><input type="number" id="exercise-count-upload" value="5" min="1" max="10"></div>
+                        <div class="form-group">
+                            <label>Type de contenu à générer</label>
+                            <select id="teacher-content-type-upload">
+                                <option value="quiz">Quiz</option>
+                                <option value="exercices">Fiche d'exercices</option>
+                                <option value="revision">Fiche de révision</option>
+                                <option value="dm">Devoir Maison</option>
+                            </select>
+                        </div>
+                        <div class="form-group" id="exercise-count-group-upload">
+                            <label for="exercise-count-upload" id="exercise-count-label-upload">Nombre de questions</label>
+                            <input type="number" id="exercise-count-upload" value="3" min="1" max="15">
+                        </div>
                         <button type="submit" class="btn btn-main">Analyser et Générer</button>
                     </form>
                 </div>
@@ -960,13 +1021,23 @@
             
             renderModal(getModalTemplate('generation-modal', 'Générer du contenu pédagogique', h));
             
-            const contentTypeSelect = document.getElementById('content-type-select');
-            const exerciseCountGroup = document.getElementById('exercise-count-group');
-            contentTypeSelect.addEventListener('change', () => exerciseCountGroup.classList.toggle('hidden', contentTypeSelect.value !== 'exercices'));
+            const setupContentTypeListener = (typeSelectId, countGroupId, countLabelId) => {
+                const typesWithCount = ['quiz', 'exercices', 'dm'];
+                const typeSelect = document.getElementById(typeSelectId);
+                const countGroup = document.getElementById(countGroupId);
+                const countLabel = document.getElementById(countLabelId);
+                
+                typeSelect.addEventListener('change', () => {
+                    const selectedType = typeSelect.value;
+                    countGroup.classList.toggle('hidden', !typesWithCount.includes(selectedType));
+                    if(selectedType === 'quiz') countLabel.textContent = "Nombre de questions";
+                    else if (selectedType === 'exercices' || selectedType === 'dm') countLabel.textContent = "Nombre d'exercices";
+                });
+                typeSelect.dispatchEvent(new Event('change'));
+            };
 
-            const contentTypeUpload = document.getElementById('teacher-content-type-upload');
-            const exerciseCountGroupUpload = document.getElementById('exercise-count-group-upload');
-            contentTypeUpload.addEventListener('change', () => exerciseCountGroupUpload.classList.toggle('hidden', contentTypeUpload.value !== 'exercices'));
+            setupContentTypeListener('content-type-select', 'exercise-count-group', 'exercise-count-label');
+            setupContentTypeListener('teacher-content-type-upload', 'exercise-count-group-upload', 'exercise-count-label-upload');
             
             const cy = document.getElementById('cycle-select'), n = document.getElementById('niveau-select'), m = document.getElementById('matiere-select'), no = document.getElementById('notion-select'), co = document.getElementById('competence-select'), gen = document.getElementById('generate-btn');
             Object.keys(programmes).forEach(c => cy.add(new Option(c, c)));
@@ -985,7 +1056,7 @@
                 
                 const formData = new FormData();
                 formData.append('document', document.getElementById('document-upload-input').files[0]);
-                formData.append('contentType', contentTypeUpload.value);
+                formData.append('contentType', document.getElementById('teacher-content-type-upload').value);
                 formData.append('exerciseCount', document.getElementById('exercise-count-upload').value);
 
                 try {
@@ -1025,10 +1096,12 @@
                         ${q.options.map((opt, j) => `<input type="text" id="edit-q-${i}-opt-${j}" value="${opt}" style="margin-bottom: 0.5rem;">`).join('')}
                     </div>`;
                 });
-            } else if (generatedContent.type === 'exercices') {
+            } else if (generatedContent.type === 'exercices' || generatedContent.type === 'dm') {
                 generatedContent.content.forEach((ex, i) => {
                     editHtml += `<div class="form-group"><label>Exercice ${i+1}</label><textarea id="edit-ex-${i}" rows="3">${ex.enonce}</textarea></div>`;
                 });
+            } else if (generatedContent.type === 'revision') {
+                editHtml += `<div class="form-group"><label>Contenu de la fiche</label><textarea id="edit-revision-content" rows="10">${generatedContent.content}</textarea></div>`;
             }
             editHtml += `<button type="submit" class="btn btn-main">Valider et Assigner</button></form>`;
             renderModal(getModalTemplate('edit-modal', 'Modifier et Valider le Contenu', editHtml));
@@ -1043,10 +1116,12 @@
                             q.options[j] = document.getElementById(`edit-q-${i}-opt-${j}`).value;
                         });
                     });
-                } else if (generatedContent.type === 'exercices') {
+                } else if (generatedContent.type === 'exercices' || generatedContent.type === 'dm') {
                     generatedContent.content.forEach((ex, i) => {
                         ex.enonce = document.getElementById(`edit-ex-${i}`).value;
                     });
+                } else if (generatedContent.type === 'revision') {
+                    generatedContent.content = document.getElementById('edit-revision-content').value;
                 }
                 showAssignModal();
             });
@@ -1176,8 +1251,8 @@
                 renderAuthPage();
                 return;
             }
-            const savedTheme = localStorage.getItem('theme');
-            applyTheme(savedTheme || 'light');
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            applyTheme(savedTheme);
             await loadProgrammes();
             updateUI();
         }
