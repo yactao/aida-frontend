@@ -131,24 +131,53 @@
         #user-info-clickable .avatar { border: 2px solid var(--card-bg-color); }
         .dashboard-card h4 .avatar, .page-header h2 .avatar { width: 40px; height: 40px; }
         
-        /* --- NOUVEAU STYLE POUR LES QUIZ --- */
-        .quiz-question {
-            background-color: var(--background-color);
-            padding: 1.5rem;
-            border-radius: 12px;
+        /* --- NOUVELLE PRÉSENTATION DES OPTIONS DE QUIZ --- */
+        .quiz-question { margin-bottom: 2.5rem; }
+        .question-header { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            gap: 1rem;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 1rem;
             margin-bottom: 1.5rem;
-            border: 1px solid #eee;
         }
-        body.dark-mode .quiz-question {
-            background-color: #2c2c2c;
-            border-color: #444;
+        body.dark-mode .question-header { border-color: #333; }
+
+        .quiz-options-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
         }
-        .quiz-question .question-header { display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
-        .quiz-options { display: flex; flex-direction: column; gap: 0.5rem; margin-top: 1rem; }
-        .quiz-options label { display: flex; align-items: center; justify-content: flex-start; gap: 0.75rem; cursor: pointer; padding: 0.75rem; border-radius: 8px; border: 1px solid transparent; }
-        .quiz-options input[type="radio"] { flex-shrink: 0; }
-        .quiz-options label:hover { background-color: #E9F2FF; }
-        body.dark-mode .quiz-options label:hover { background-color: #333; }
+        @media (max-width: 600px) { .quiz-options-grid { grid-template-columns: 1fr; } }
+        
+        .quiz-option { display: block; position: relative; }
+        .quiz-option input[type="radio"] { position: absolute; opacity: 0; width: 0; height: 0; }
+        .quiz-option .option-label {
+            display: flex;
+            align-items: center;
+            padding: 1rem 1.5rem;
+            background-color: var(--card-bg-color);
+            border-radius: 12px;
+            border: 2px solid #eee;
+            box-shadow: var(--shadow);
+            transition: all 0.3s ease;
+            cursor: pointer;
+            min-height: 80px;
+        }
+        body.dark-mode .quiz-option .option-label { border-color: #333; }
+
+        .quiz-option .option-label:hover {
+            border-color: var(--secondary-color);
+            transform: translateY(-3px);
+        }
+
+        .quiz-option input[type="radio"]:checked + .option-label {
+            border-color: var(--primary-color);
+            background-color: #E9F2FF;
+            box-shadow: 0 6px 20px rgba(74, 144, 226, 0.3);
+        }
+        body.dark-mode .quiz-option input[type="radio"]:checked + .option-label { background-color: #2a3a50; }
 
         .btn-help { background: none; border: none; color: var(--primary-color); cursor: pointer; font-size: 0.9rem; font-weight: 600; padding: 0.5rem; border-radius: 6px; flex-shrink: 0; }
         .btn-help:hover { background-color: #E9F2FF; }
@@ -895,13 +924,18 @@
             helpUsedInQuiz = false;
 
             if (isQuiz) {
-                c.questions.forEach((q, i) => {
+                 c.questions.forEach((q, i) => {
                     html += `<div class="quiz-question">
                                 <div class="question-header">
                                     <p><strong>${q.question_text}</strong></p>
                                     <button type="button" class="btn-help" data-question="${q.question_text}"><i class="fa-solid fa-lightbulb"></i> Aide</button>
                                 </div>
-                                <div class="quiz-options">${q.options.map((o, j) => `<label><input type="radio" name="q${i}" value="${j}" required> ${o}</label>`).join('')}</div>
+                                <div class="quiz-options-grid">${q.options.map((o, j) => `
+                                    <label class="quiz-option">
+                                        <input type="radio" name="q${i}" value="${j}" required>
+                                        <div class="option-label">${o}</div>
+                                    </label>`).join('')}
+                                </div>
                             </div>`;
                 });
                 footerHtml = `<button type="submit" class="btn btn-main" style="margin-top:1rem;">Valider</button>`;
