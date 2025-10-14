@@ -568,6 +568,43 @@
                 });
             });
         }
+
+        function renderCorrectionsPanel() {
+            const panel = document.getElementById('corrections-panel');
+            const pendingCorrections = (currentClassData.results || []).filter(r => r.status === 'pending_validation');
+
+            if (pendingCorrections.length === 0) {
+                panel.innerHTML = '<p>Aucun devoir à corriger pour le moment. Bravo !</p>';
+                return;
+            }
+
+            let html = '<div class="dashboard-grid">';
+            pendingCorrections.forEach(result => {
+                const student = (currentClassData.studentsWithDetails || []).find(s => s.email === result.studentEmail);
+                const studentName = student ? student.firstName : result.studentEmail;
+                const submittedDate = new Date(result.submittedAt).toLocaleDateString('fr-FR');
+                html += `
+                    <div class="dashboard-card" style="cursor: pointer;" data-result='${JSON.stringify(result)}'>
+                        <h4>${result.title}</h4>
+                        <p><strong>Élève :</strong> ${studentName}</p>
+                        <p><strong>Soumis le :</strong> ${submittedDate}</p>
+                        <div style="text-align: right; margin-top: 1rem;">
+                            <button class="btn btn-secondary">Voir la copie</button>
+                        </div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+            panel.innerHTML = html;
+            
+            panel.querySelectorAll('.dashboard-card').forEach(card => {
+                card.addEventListener('click', (e) => {
+                    const resultData = JSON.parse(e.currentTarget.dataset.result);
+                    console.log("Ouvrir l'interface de validation pour:", resultData);
+                    alert("L'interface de validation sera implémentée dans la prochaine étape.");
+                });
+            });
+        }
         
         function renderStudentListPanel() {
             let studentCardsHtml = (currentClassData.studentsWithDetails || []).map(student => {
