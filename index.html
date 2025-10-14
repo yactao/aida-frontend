@@ -132,6 +132,12 @@
         .dashboard-card h4 .avatar, .page-header h2 .avatar { width: 40px; height: 40px; }
         
         .quiz-question .question-header { display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
+        .quiz-options { display: flex; flex-direction: column; gap: 0.5rem; margin-top: 1rem; }
+        .quiz-options label { display: flex; align-items: center; gap: 0.75rem; cursor: pointer; padding: 0.5rem; border-radius: 6px; }
+        .quiz-options input[type="radio"] { flex-shrink: 0; }
+        .quiz-options label:hover { background-color: #f0f0f0; }
+        body.dark-mode .quiz-options label:hover { background-color: #333; }
+
         .btn-help { background: none; border: none; color: var(--primary-color); cursor: pointer; font-size: 0.9rem; font-weight: 600; padding: 0.5rem; border-radius: 6px; flex-shrink: 0; }
         .btn-help:hover { background-color: #E9F2FF; }
         body.dark-mode .btn-help:hover { background-color: #333; }
