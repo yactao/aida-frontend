@@ -757,10 +757,10 @@
                     }
                 });
 
-                page.querySelectorAll('.btn-main').forEach(button => {
+                page.querySelectorAll('.dashboard-card-student .btn-main').forEach(button => {
                     if (button.dataset.content) {
                         button.addEventListener('click', (e) => {
-                            const content = JSON.parse(e.target.closest('button').dataset.content);
+                            const content = JSON.parse(e.currentTarget.dataset.content);
                             renderContentViewer(content);
                         });
                     }
@@ -1047,7 +1047,7 @@
             no.addEventListener('change', () => { resetSelects([co]); const d = programmes[cy.value][n.value]?.[m.value]?.[no.value]; if (d && d.sous_notions) { Object.values(d.sous_notions).forEach(sn => { (sn.competences || []).forEach(c => co.add(new Option(c, c))); }); co.disabled = false; } });
             co.addEventListener('change', () => { gen.disabled = !co.value; });
             
-            document.getElementById('generation-form').addEventListener('submit', async e => { e.preventDefault(); selectedCompetenceInfo = { level: n.value, competence: co.value }; const comp = co.value; const contentType = contentTypeSelect.value; const exerciseCount = document.getElementById('exercise-count').value; document.getElementById('generation-spinner').classList.remove('hidden'); const d = await apiRequest('/ai/generate-content', 'POST', { competences: comp, contentType, exerciseCount }); generatedContent = d.structured_content; showEditModal(); });
+            document.getElementById('generation-form').addEventListener('submit', async e => { e.preventDefault(); selectedCompetenceInfo = { level: n.value, competence: co.value }; const comp = co.value; const contentType = document.getElementById('content-type-select').value; const exerciseCount = document.getElementById('exercise-count').value; document.getElementById('generation-spinner').classList.remove('hidden'); const d = await apiRequest('/ai/generate-content', 'POST', { competences: comp, contentType, exerciseCount }); generatedContent = d.structured_content; showEditModal(); });
             
             document.getElementById('generate-from-upload-form').addEventListener('submit', async (e) => {
                 e.preventDefault();
