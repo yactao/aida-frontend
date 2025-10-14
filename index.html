@@ -96,9 +96,13 @@
         input, select, textarea { width: 100%; padding: 12px; border: 1px solid #D1D5DB; border-radius: 8px; font-size: 1rem; font-family: 'Inter', sans-serif; background-color: var(--background-color); color: var(--text-color); }
         body.dark-mode input, body.dark-mode select, body.dark-mode textarea { border-color: #444; }
         .error-message { color: var(--incorrect-color); font-size: 0.9rem; }
-        .spinner { border: 4px solid #f3f3f3; border-top: 4px solid var(--primary-color); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 2rem auto; }
-        body.dark-mode .spinner { border-color: #333; border-top-color: var(--primary-color); }
         
+        .spinner { margin: 2rem auto; width: 70px; text-align: center; }
+        .spinner > div { width: 18px; height: 18px; background-color: var(--primary-color); border-radius: 50%; display: inline-block; animation: sk-bouncedelay 1.4s infinite ease-in-out both; }
+        .spinner .dot1 { animation-delay: -0.32s; }
+        .spinner .dot2 { animation-delay: -0.16s; }
+        @keyframes sk-bouncedelay { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1.0); } }
+
         .tabs { display: flex; gap: 1rem; border-bottom: 1px solid #D1D5DB; margin-bottom: 1.5rem; }
         .tab-button { background: none; border: none; padding: 10px 15px; cursor: pointer; font-size: 1rem; font-weight: 600; border-bottom: 3px solid transparent; color: var(--text-color); }
         .tab-button.active { color: var(--primary-color); border-bottom-color: var(--primary-color); }
@@ -243,6 +247,8 @@
         let selectedCompetenceInfo = null;
         let studentDashboardData = null; // Store dashboard data
         
+        const spinnerHtml = `<div class="spinner"><div class="dot1"></div><div class="dot2"></div><div class="dot3"></div></div>`;
+        
         const main = document.querySelector('main');
         const modalContainer = document.getElementById('modal-container');
         const loginNavBtn = document.getElementById('login-nav-btn');
@@ -253,14 +259,39 @@
         const userNameDisplay = document.getElementById('user-name-display');
         const userAvatarDisplay = document.getElementById('user-avatar-display');
         const userInfoClickable = document.getElementById('user-info-clickable');
-        const userDropdown = document.getElementById('user-dropdown');
+        const userDropdown = document.querySelector('.user-dropdown');
         const logoutBtn = document.getElementById('logout-btn');
         const themeToggleHeaderBtn = document.getElementById('theme-toggle-header-btn');
         const themeToggleDropdownBtn = document.getElementById('theme-toggle-dropdown-btn');
         const startAppBtn = document.getElementById('start-app-btn');
         const adminModuleLink = document.getElementById('admin-module-link');
 
-        async function loadProgrammes() { try { const [p, c, l] = await Promise.all([fetch(`${backendUrl}/programmes-primaire.json`).then(r=>r.json()), fetch(`${backendUrl}/programmes-college.json`).then(r=>r.json()), fetch(`${backendUrl}/programmes-lycee.json`).then(r=>r.json())]); programmes = {Primaire:p, Collège:c, Lycée:l}; } catch (e) { console.error("Could not load programmes.", e); } }
+        async function loadProgrammes() {
+            try {
+                const fetchProgram = async (fileName) => {
+                    const response = await fetch(`${backendUrl}/${fileName}`);
+                    if (!response.ok) {
+                        throw new Error(`Le fichier ${fileName} est introuvable ou illisible (statut: ${response.status}). Vérifiez qu'il est bien déployé dans le dossier 'public' de votre backend.`);
+                    }
+                    return response.json();
+                };
+
+                const [p, c, l] = await Promise.all([
+                    fetchProgram('programmes-primaire.json'),
+                    fetchProgram('programmes-college.json'),
+                    fetchProgram('programmes-lycee.json')
+                ]);
+                
+                programmes = { Primaire: p, Collège: c, Lycée: l };
+                console.log("Programmes chargés avec succès.");
+
+            } catch (e) {
+                console.error("Erreur critique lors du chargement des programmes:", e);
+                alert("Erreur critique : Impossible de charger les programmes scolaires. La génération de contenu est désactivée. Détails : " + e.message);
+                programmes = {}; 
+            }
+        }
+        
         async function apiRequest(endpoint, method = 'GET', body = null) { try { const opts = { method, headers: { 'Content-Type': 'application/json' } }; if (body) opts.body = JSON.stringify(body); const res = await fetch(`${backendUrl}/api${endpoint}`, opts); if (!res.ok) { const errText = await res.text(); try { const err = JSON.parse(errText); throw new Error(err.error || 'Une erreur est survenue'); } catch (e) { throw new Error(errText); } } return res.status === 204 ? null : res.json(); } catch (e) { console.error(`API Error:`, e); throw e; } }
         function changePage(id) { main.querySelectorAll('.page').forEach(p=>p.classList.remove('active')); document.getElementById(id).classList.add('active'); }
         function renderModal(template) { modalContainer.innerHTML = template; modalContainer.querySelector('.close-modal')?.addEventListener('click', () => modalContainer.innerHTML = ''); }
@@ -359,7 +390,7 @@
                         <button class="btn btn-secondary" id="open-class-modal"><i class="fa-solid fa-users"></i> Nouvelle Classe</button>
                     </div>
                 </div>
-                <div id="class-grid" class="dashboard-grid"><div class="spinner"></div></div>`;
+                <div id="class-grid" class="dashboard-grid">${spinnerHtml}</div>`;
             changePage('teacher-dashboard-page');
             p.querySelector('#open-class-modal').addEventListener('click', showCreateClassModal);
             p.querySelector('#open-gen-modal').addEventListener('click', showGenerationModal);
@@ -394,7 +425,11 @@
                         <span style="font-weight: 600; font-size: 0.9rem;">${completionRate}%</span>
                     </div>
                 `;
-                card.addEventListener('click', () => renderClassDetailsPage(c.id));
+                card.addEventListener('click', (e) => {
+                    if (e.target.closest('button')) return;
+                    if (card.classList.contains('sortable-ghost')) return;
+                    renderClassDetailsPage(c.id);
+                });
                 grid.appendChild(card);
             });
 
@@ -408,10 +443,10 @@
                             teacherEmail: currentUser.email,
                             classOrder: orderedIds
                         });
-                        currentUser.classOrder = data.classOrder; // Mettre à jour l'ordre localement
+                        currentUser.classOrder = data.classOrder;
                     } catch (error) {
                         alert("Erreur lors de la sauvegarde de l'ordre des classes.");
-                        renderTeacherDashboard(); // Re-render pour annuler le changement visuel
+                        renderTeacherDashboard();
                     } finally {
                         this.option('disabled', false);
                     }
@@ -421,7 +456,7 @@
         
         async function renderClassDetailsPage(id) {
             const page = document.getElementById('class-details-page');
-            page.innerHTML = `<button id="back-to-teacher" class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> Retour</button><div class="spinner"></div>`;
+            page.innerHTML = `<button id="back-to-teacher" class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> Retour</button>${spinnerHtml}`;
             page.querySelector('#back-to-teacher').addEventListener('click', renderTeacherDashboard);
             changePage('class-details-page');
             currentClassData = await apiRequest(`/teacher/classes/${id}`);
@@ -441,7 +476,7 @@
                     <div id="student-list" class="dashboard-grid"></div>
                 </div>
                 <div id="competencies-panel" class="tab-panel">
-                    <div class="spinner"></div>
+                    ${spinnerHtml}
                 </div>`;
             
             renderStudentListPanel();
@@ -495,10 +530,10 @@
             studentListContainer.innerHTML = (currentClassData.studentsWithDetails || []).length > 0 ? studentCardsHtml : "<p>Aucun élève dans cette classe pour le moment.</p>";
             
             studentListContainer.querySelectorAll('.dashboard-card').forEach(card => {
+                card.style.cursor = 'pointer';
                 card.addEventListener('click', (e) => {
-                    if (!e.target.closest('.delete-student-btn')) {
-                        renderStudentDetailsPage(card.dataset.studentEmail);
-                    }
+                    if (e.target.closest('.delete-student-btn')) return;
+                    renderStudentDetailsPage(card.dataset.studentEmail);
                 });
             });
             
@@ -533,7 +568,7 @@
         
         async function renderCompetencyReport(classId) {
             const panel = document.getElementById('competencies-panel');
-            panel.innerHTML = '<div class="spinner"></div>';
+            panel.innerHTML = spinnerHtml;
             try {
                 const report = await apiRequest(`/teacher/classes/${classId}/competency-report`);
                 if (report.length === 0) {
@@ -679,7 +714,7 @@
         
         async function renderStudentDashboard() {
             const page = document.getElementById('student-dashboard-page');
-            page.innerHTML = `<div class=spinner></div>`;
+            page.innerHTML = spinnerHtml;
             changePage('student-dashboard-page');
             
             try {
@@ -888,9 +923,9 @@
             changePage('content-viewer-page');
         }
 
-        async function handleHelpRequest(e) { e.preventDefault(); const q = e.target.closest('button').dataset.question; renderModal(getModalTemplate('help-modal', 'Indice d\'AIDA', `<p><strong>Question:</strong> ${q}</p><div id=hint-container style=margin-top:1rem><div class=spinner></div></div>`)); try { const d = await apiRequest('/ai/get-hint', 'POST', { questionText: q }); document.getElementById('hint-container').innerHTML = `<p>${d.hint}</p>`; } catch (err) { document.getElementById('hint-container').innerHTML = `<p class=error-message>Indice indisponible.</p>`; } }
+        async function handleHelpRequest(e) { e.preventDefault(); const q = e.target.closest('button').dataset.question; renderModal(getModalTemplate('help-modal', 'Indice d\'AIDA', `<p><strong>Question:</strong> ${q}</p><div id=hint-container style=margin-top:1rem>${spinnerHtml}</div>`)); try { const d = await apiRequest('/ai/get-hint', 'POST', { questionText: q }); document.getElementById('hint-container').innerHTML = `<p>${d.hint}</p>`; } catch (err) { document.getElementById('hint-container').innerHTML = `<p class=error-message>Indice indisponible.</p>`; } }
         async function handleSubmitQuiz(c) { const answers = c.questions.map((q, i) => { const sel = document.querySelector(`input[name=q${i}]:checked`); return sel ? parseInt(sel.value) : -1; }); const score = answers.reduce((acc, ans, i) => acc + (ans == c.questions[i].correct_answer_index ? 1 : 0), 0); await apiRequest('/student/submit-quiz', 'POST', { studentEmail: currentUser.email, classId: c.classId, contentId: c.id, title: c.title, score, totalQuestions: c.questions.length, answers }); renderFeedbackPage(c, answers, score); }
-        function renderFeedbackPage(c, answers, score) { const p = document.getElementById('feedback-page'); p.innerHTML = `<div class=card><h2>Résultats du Quiz: ${c.title}</h2><p><strong>Ton score: ${score} / ${c.questions.length}</strong></p><div id=feedback-details style=margin-top:2rem></div><button id=back-to-dash class="btn btn-main">Retour au tableau de bord</button></div>`; p.querySelector('#back-to-dash').addEventListener('click', renderStudentDashboard); const details = p.querySelector('#feedback-details'); c.questions.forEach((q, i) => { const correct = answers[i] == c.questions[i].correct_answer_index; const item = document.createElement('div'); item.className = `feedback-item ${correct ? 'correct' : 'incorrect'}`; let html = `<p><strong>${q.question_text}</strong></p>`; if (correct) { html += `<p style=color:var(--correct-color)>Ta réponse: ${q.options[answers[i]]} (Correct)</p>`; } else { html += `<p style=color:var(--incorrect-color)>Ta réponse: ${answers[i] > -1 ? q.options[answers[i]] : 'Aucune'} (Incorrect)</p><p>Bonne réponse: ${q.options[q.correct_answer_index]}</p><div class=aida-explanation id=explanation-${i}><div class=spinner></div></div>`; } item.innerHTML = html; details.appendChild(item); if (!correct) { apiRequest('/ai/get-feedback-for-error', 'POST', { question: q.question_text, userAnswer: answers[i] > -1 ? q.options[answers[i]] : 'Aucune', correctAnswer: q.options[q.correct_answer_index] }).then(d => { document.getElementById(`explanation-${i}`).innerHTML = `<p><strong>L'explication d'AIDA :</strong> ${d.feedback}</p>`; }); } }); changePage('feedback-page'); }
+        function renderFeedbackPage(c, answers, score) { const p = document.getElementById('feedback-page'); p.innerHTML = `<div class=card><h2>Résultats du Quiz: ${c.title}</h2><p><strong>Ton score: ${score} / ${c.questions.length}</strong></p><div id=feedback-details style=margin-top:2rem></div><button id=back-to-dash class="btn btn-main">Retour au tableau de bord</button></div>`; p.querySelector('#back-to-dash').addEventListener('click', renderStudentDashboard); const details = p.querySelector('#feedback-details'); c.questions.forEach((q, i) => { const correct = answers[i] == c.questions[i].correct_answer_index; const item = document.createElement('div'); item.className = `feedback-item ${correct ? 'correct' : 'incorrect'}`; let html = `<p><strong>${q.question_text}</strong></p>`; if (correct) { html += `<p style=color:var(--correct-color)>Ta réponse: ${q.options[answers[i]]} (Correct)</p>`; } else { html += `<p style=color:var(--incorrect-color)>Ta réponse: ${answers[i] > -1 ? q.options[answers[i]] : 'Aucune'} (Incorrect)</p><p>Bonne réponse: ${q.options[q.correct_answer_index]}</p><div class=aida-explanation id=explanation-${i}>${spinnerHtml}</div>`; } item.innerHTML = html; details.appendChild(item); if (!correct) { apiRequest('/ai/get-feedback-for-error', 'POST', { question: q.question_text, userAnswer: answers[i] > -1 ? q.options[answers[i]] : 'Aucune', correctAnswer: q.options[q.correct_answer_index] }).then(d => { document.getElementById(`explanation-${i}`).innerHTML = `<p><strong>L'explication d'AIDA :</strong> ${d.feedback}</p>`; }); } }); changePage('feedback-page'); }
         
         function showGenerationModal() {
             const h = `
@@ -921,7 +956,7 @@
                         <button type="submit" class="btn btn-main">Analyser et Générer</button>
                     </form>
                 </div>
-                <div id="generation-spinner" class="spinner hidden"></div>`;
+                <div id="generation-spinner" class="hidden">${spinnerHtml}</div>`;
             
             renderModal(getModalTemplate('generation-modal', 'Générer du contenu pédagogique', h));
             
@@ -1099,7 +1134,7 @@
                 if (!file) return;
 
                 const outputContainer = document.getElementById('student-output-container');
-                outputContainer.innerHTML = '<div class="spinner"></div><p>Analyse de votre document en cours...</p>';
+                outputContainer.innerHTML = spinnerHtml + '<p>Analyse de votre document en cours...</p>';
                 
                 const formData = new FormData();
                 formData.append('document', file);
@@ -1125,7 +1160,7 @@
         async function handleStudentWorkspace(e) {
             e.preventDefault();
             const outputContainer = document.getElementById('student-output-container');
-            outputContainer.innerHTML = '<div class="spinner"></div>';
+            outputContainer.innerHTML = spinnerHtml;
             try {
                 const exerciseText = document.getElementById('exercise-text').value;
                 const studentAnswer = document.getElementById('student-answer').value;
