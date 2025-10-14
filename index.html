@@ -121,11 +121,12 @@
         .avatar { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; }
         #user-info-clickable .avatar { border: 2px solid var(--card-bg-color); }
         .dashboard-card h4 .avatar, .page-header h2 .avatar { width: 40px; height: 40px; }
-
+        
         .quiz-question .question-header { display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
         .btn-help { background: none; border: none; color: var(--primary-color); cursor: pointer; font-size: 0.9rem; font-weight: 600; padding: 0.5rem; border-radius: 6px; flex-shrink: 0; }
         .btn-help:hover { background-color: #E9F2FF; }
         body.dark-mode .btn-help:hover { background-color: #333; }
+
 
         #home-page.active { display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 80vh; text-align: center; overflow: hidden; }
         .intro-text-wrapper { display: flex; flex-wrap: nowrap; justify-content: center; align-items: center; gap: 0.8rem; font-size: 3.5rem; font-weight: 900; margin-bottom: 2rem; position: relative; }
@@ -145,7 +146,7 @@
         #home-page .subtitle { font-size: 1.5rem; color: #666; margin-bottom: 2.5rem; }
         body.dark-mode #home-page .subtitle { color: #aaa; }
         .highlight-word { background: linear-gradient(45deg, var(--primary-color), var(--secondary-color)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 700; }
-        .dots span { animation: color-pulse 1.s infinite; }
+        .dots span { animation: color-pulse 1.5s infinite; }
         .dots span:nth-child(2) { animation-delay: 0.2s; }
         .dots span:nth-child(3) { animation-delay: 0.4s; }
         @keyframes color-pulse { 0%, 100% { color: var(--text-color); } 50% { color: var(--secondary-color); } }
@@ -260,10 +261,23 @@
         function getSubjectInfo(title) {
             if (!title) return { name: 'Autre', cssClass: 'tag-autre' };
             const lowerTitle = title.toLowerCase();
-            if (lowerTitle.includes('math') || lowerTitle.includes('addition') || lowerTitle.includes('calcul')) return { name: 'Mathématiques', cssClass: 'tag-maths' };
-            if (lowerTitle.includes('français') || lowerTitle.includes('lecture') || lowerTitle.includes('grammaire')) return { name: 'Français', cssClass: 'tag-francais' };
-            if (lowerTitle.includes('science')) return { name: 'Sciences', cssClass: 'tag-sciences' };
-            if (lowerTitle.includes('histoire')) return { name: 'Histoire', cssClass: 'tag-histoire' };
+
+            const subjects = {
+                'Mathématiques': { cssClass: 'tag-maths', keywords: ['math', 'addition', 'calcul', 'multiplication', 'géométrie', 'nombre', 'tables'] },
+                'Français': { cssClass: 'tag-francais', keywords: ['français', 'lecture', 'grammaire', 'conjugaison', 'orthographe', 'verbe', 'phrase'] },
+                'Histoire': { cssClass: 'tag-histoire', keywords: ['histoire', 'antiquité', 'moyen âge', 'révolution'] },
+                'Géographie': { cssClass: 'tag-histoire', keywords: ['géographie'] },
+                'Sciences': { cssClass: 'tag-sciences', keywords: ['science', 'svt', 'physique', 'chimie', 'vivant', 'atome', 'univers'] },
+                'Anglais': { cssClass: 'tag-autre', keywords: ['anglais', 'english'] },
+                'Programmation': { cssClass: 'tag-autre', keywords: ['programmation', 'code', 'python'] }
+            };
+
+            for (const subjectName in subjects) {
+                if (subjects[subjectName].keywords.some(keyword => lowerTitle.includes(keyword))) {
+                    return { name: subjectName, cssClass: subjects[subjectName].cssClass };
+                }
+            }
+
             return { name: 'Autre', cssClass: 'tag-autre' };
         }
 
