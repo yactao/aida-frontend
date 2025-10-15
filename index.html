@@ -224,10 +224,13 @@
             gap: 1rem;
             margin-bottom: 1.5rem;
         }
-        .appreciation-option { display: block; position: relative; }
-        .appreciation-option input[type="radio"] { position: absolute; opacity: 0; }
+        .appreciation-option { position: relative; }
+        .appreciation-option input[type="radio"] { position: absolute; opacity: 0; width: 0; height: 0; }
         .appreciation-option label {
-            display: block;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 60px;
             padding: 1rem;
             border: 2px solid #eee;
             border-radius: 8px;
@@ -237,13 +240,12 @@
             transition: all 0.3s ease;
         }
         body.dark-mode .appreciation-option label { border-color: #444; }
-        .appreciation-option label:hover {
-            border-color: var(--secondary-color);
-        }
+        .appreciation-option label:hover { border-color: var(--secondary-color); transform: translateY(-2px); }
         .appreciation-option input[type="radio"]:checked + label {
             border-color: var(--primary-color);
             background-color: #E9F2FF;
             color: var(--primary-color);
+            box-shadow: 0 4px 15px rgba(74, 144, 226, 0.2);
         }
          body.dark-mode .appreciation-option input[type="radio"]:checked + label {
             background-color: #2a3a50;
@@ -839,10 +841,22 @@
                     <h4>Valider la copie</h4>
                     <form id="validation-form">
                         <div class="appreciation-grid">
-                            <label class="appreciation-option"><input type="radio" name="appreciation" value="acquis" required><span>Acquis</span></label>
-                            <label class="appreciation-option"><input type="radio" name="appreciation" value="en_cours"><span>En cours d'acquisition</span></label>
-                            <label class="appreciation-option"><input type="radio" name="appreciation" value="non_acquis"><span>Non acquis</span></label>
-                            <label class="appreciation-option"><input type="radio" name="appreciation" value="a_revoir"><span>À revoir</span></label>
+                            <div class="appreciation-option">
+                                <input type="radio" id="appreciation-acquis" name="appreciation" value="acquis" required>
+                                <label for="appreciation-acquis">Acquis</label>
+                            </div>
+                            <div class="appreciation-option">
+                                <input type="radio" id="appreciation-en_cours" name="appreciation" value="en_cours" required>
+                                <label for="appreciation-en_cours">En cours d'acquisition</label>
+                            </div>
+                            <div class="appreciation-option">
+                                <input type="radio" id="appreciation-non_acquis" name="appreciation" value="non_acquis" required>
+                                <label for="appreciation-non_acquis">Non acquis</label>
+                            </div>
+                             <div class="appreciation-option">
+                                <input type="radio" id="appreciation-a_revoir" name="appreciation" value="a_revoir" required>
+                                <label for="appreciation-a_revoir">À revoir</label>
+                            </div>
                         </div>
                         <div class="form-group">
                             <label for="teacher-comment">Commentaire (optionnel)</label>
