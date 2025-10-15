@@ -211,6 +211,43 @@
         @keyframes color-pulse { 0%, 100% { color: var(--text-color); } 50% { color: var(--secondary-color); } }
         @media (max-width: 900px) { .intro-text-wrapper { font-size: 2.5rem; } .rotating-text-inner span, .rotating-text-container { height: 60px; line-height: 60px;} .rotating-text-container { width: 280px; } @keyframes slide-up { 0%, 19% { transform: translateY(0); } 20%, 39% { transform: translateY(-60px); } 40%, 59% { transform: translateY(-120px); } 60%, 79% { transform: translateY(-180px); } 80%, 100% { transform: translateY(-240px); } } }
         @media (max-width: 600px) { .workspace-container { grid-template-columns: 1fr; } .intro-text-wrapper { font-size: 1.8rem; flex-direction: column; gap: 0.2rem; } .rotating-text-inner span, .rotating-text-container { height: 50px; line-height: 50px;} .rotating-text-container { width: 220px; } @keyframes slide-up { 0%, 19% { transform: translateY(0); } 20%, 39% { transform: translateY(-50px); } 40%, 59% { transform: translateY(-100px); } 60%, 79% { transform: translateY(-150px); } 80%, 100% { transform: translateY(-200px); } } #home-page .subtitle { font-size: 1.2rem; } }
+    
+        .validation-section {
+            border-top: 1px solid #eee;
+            margin-top: 2rem;
+            padding-top: 2rem;
+        }
+        body.dark-mode .validation-section { border-color: #333; }
+        .appreciation-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        .appreciation-option { display: block; position: relative; }
+        .appreciation-option input[type="radio"] { position: absolute; opacity: 0; }
+        .appreciation-option label {
+            display: block;
+            padding: 1rem;
+            border: 2px solid #eee;
+            border-radius: 8px;
+            text-align: center;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        body.dark-mode .appreciation-option label { border-color: #444; }
+        .appreciation-option label:hover {
+            border-color: var(--secondary-color);
+        }
+        .appreciation-option input[type="radio"]:checked + label {
+            border-color: var(--primary-color);
+            background-color: #E9F2FF;
+            color: var(--primary-color);
+        }
+         body.dark-mode .appreciation-option input[type="radio"]:checked + label {
+            background-color: #2a3a50;
+         }
     </style>
 </head>
 <body>
@@ -605,7 +642,7 @@
                     const resultData = JSON.parse(card.dataset.result);
                     const content = (currentClassData.content || []).find(c => c.id === resultData.contentId);
                     if(resultData && content) {
-                        showResultDetailsModal(resultData, content);
+                        showValidationModal(resultData, content);
                     }
                 });
             });
@@ -772,7 +809,7 @@
                     const result = studentResults.find(r => r.contentId === contentId);
                     const content = (currentClassData.content || []).find(c => c.id === contentId);
                     if (result && content) {
-                        showResultDetailsModal(result, content);
+                        showValidationModal(result, content);
                     }
                 });
             });
@@ -780,7 +817,7 @@
             changePage('student-details-page');
         }
         
-        function showResultDetailsModal(result, content) {
+        function showValidationModal(result, content) {
             let detailsHtml = '';
             if (content.type === 'quiz' && result.answers && Array.isArray(result.answers)) {
                 content.questions.forEach((q, index) => {
@@ -796,7 +833,45 @@
             } else {
                  detailsHtml = `<p>Cet exercice n'était pas un quiz interactif ou les détails des réponses ne sont pas disponibles.</p><p>Statut: Terminé le ${new Date(result.submittedAt).toLocaleDateString('fr-FR')}</p>`;
             }
-            renderModal(getModalTemplate('result-details-modal', `Détail pour : ${result.title}`, detailsHtml));
+
+            const validationHtml = `
+                <div class="validation-section">
+                    <h4>Valider la copie</h4>
+                    <form id="validation-form">
+                        <div class="appreciation-grid">
+                            <label class="appreciation-option"><input type="radio" name="appreciation" value="acquis" required><span>Acquis</span></label>
+                            <label class="appreciation-option"><input type="radio" name="appreciation" value="en_cours"><span>En cours d'acquisition</span></label>
+                            <label class="appreciation-option"><input type="radio" name="appreciation" value="non_acquis"><span>Non acquis</span></label>
+                            <label class="appreciation-option"><input type="radio" name="appreciation" value="a_revoir"><span>À revoir</span></label>
+                        </div>
+                        <div class="form-group">
+                            <label for="teacher-comment">Commentaire (optionnel)</label>
+                            <textarea id="teacher-comment" rows="3"></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-main">Valider la correction</button>
+                    </form>
+                </div>
+            `;
+
+            renderModal(getModalTemplate('validation-modal', `Correction pour : ${result.title}`, detailsHtml + validationHtml));
+            
+            document.getElementById('validation-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const appreciation = document.querySelector('input[name="appreciation"]:checked').value;
+                const comment = document.getElementById('teacher-comment').value;
+
+                await apiRequest('/teacher/validate-result', 'POST', {
+                    classId: currentClassData.id,
+                    teacherEmail: currentUser.email,
+                    studentEmail: result.studentEmail,
+                    contentId: result.contentId,
+                    appreciation,
+                    comment
+                });
+
+                modalContainer.innerHTML = '';
+                renderClassDetailsPage(currentClassData.id);
+            });
         }
         
         async function handleAddStudent(e) { 
