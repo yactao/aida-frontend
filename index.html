@@ -38,13 +38,16 @@
         header { padding: 1rem 5%; background-color: var(--background-color); display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 1000; transition: background-color 0.3s ease; }
         .logo { display: flex; align-items: center; text-decoration: none; cursor: pointer; }
         .logo-icon { 
-            width: 140px; 
+            width: 100px; 
             height: auto; 
             object-fit: contain; 
             transition: filter 0.3s ease-in-out;
         }
+        body:not(.dark-mode) .logo-icon {
+            filter: sepia(1) hue-rotate(180deg) saturate(5);
+        }
         body.dark-mode .logo-icon { 
-            filter: invert(1) hue-rotate(180deg);
+            filter: brightness(1.2);
         }
         .main-nav { display: flex; align-items: center; gap: 1rem; }
         .hidden { display: none !important; }
@@ -1019,15 +1022,7 @@
                      button.addEventListener('click', (e) => {
                         const contentId = e.target.dataset.contentId;
                         const content = studentDashboardData.completed.find(item => item.id === contentId);
-                        const result = {
-                            title: content.title,
-                            answers: [], // Placeholder, student doesn't need to see answers again here
-                            appreciation: content.appreciation,
-                            teacherComment: content.teacherComment
-                        };
-                        // We need the original content for question details
-                        const originalContent = studentDashboardData.completed.find(c => c.id === contentId);
-                        if(result && originalContent) showValidatedResultModal(result, originalContent);
+                        if(content) showValidatedResultModal(content, content);
                     });
                 });
 
@@ -1083,22 +1078,11 @@
             }
             container.innerHTML = completedHtml;
             
-            // Re-attach event listeners for newly rendered buttons
             container.querySelectorAll('.view-correction-btn').forEach(button => {
                  button.addEventListener('click', (e) => {
                     const contentId = e.target.dataset.contentId;
                     const content = studentDashboardData.completed.find(item => item.id === contentId);
-                    
-                    // The student dashboard data doesn't contain the full result object,
-                    // we need to find it in the original `studentResults` if we stored it globally
-                    // Or, more simply, construct what we need.
-                    const result = {
-                        title: content.title,
-                        answers: content.answers, // Let's assume server sends this
-                        appreciation: content.appreciation,
-                        teacherComment: content.teacherComment
-                    };
-                    if(content) showValidatedResultModal(result, content);
+                    if(content) showValidatedResultModal(content, content);
                 });
             });
         }
