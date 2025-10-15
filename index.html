@@ -127,6 +127,7 @@
         .status-due-soon { background-color: var(--warning-color); }
         .status-overdue { background-color: var(--incorrect-color); }
         .status-completed { background-color: var(--primary-color); }
+        .status-pending { background-color: #777; }
 
         .avatar { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; }
         #user-info-clickable .avatar { border: 2px solid var(--card-bg-color); }
@@ -600,8 +601,10 @@
             panel.querySelectorAll('.dashboard-card').forEach(card => {
                 card.addEventListener('click', (e) => {
                     const resultData = JSON.parse(e.currentTarget.dataset.result);
-                    console.log("Ouvrir l'interface de validation pour:", resultData);
-                    alert("L'interface de validation sera implémentée dans la prochaine étape.");
+                    const content = (currentClassData.content || []).find(c => c.id === resultData.contentId);
+                    if(resultData && content) {
+                        showResultDetailsModal(resultData, content);
+                    }
                 });
             });
         }
@@ -823,9 +826,20 @@
                 } else {
                     todoHtml += '<div class="dashboard-grid">';
                     studentDashboardData.todo.forEach(item => {
-                        todoHtml += createStudentCard(item, false);
+                        todoHtml += createStudentCard(item, 'todo');
                     });
                     todoHtml += '</div>';
+                }
+
+                let pendingHtml = '<h3 style="margin-top: 2rem;">En attente de validation</h3>';
+                if (studentDashboardData.pending.length === 0) {
+                    pendingHtml += "<p>Aucun devoir en attente de correction.</p>";
+                } else {
+                    pendingHtml += '<div class="dashboard-grid">';
+                    studentDashboardData.pending.forEach(item => {
+                        pendingHtml += createStudentCard(item, 'pending');
+                    });
+                    pendingHtml += '</div>';
                 }
 
                 let completedHtml = `
@@ -839,7 +853,7 @@
                     </div>
                     <div id="student-completed-list"></div>`;
 
-                page.innerHTML = `<h2>Bonjour ${currentUser.firstName}!</h2>${todoHtml}${completedHtml}`;
+                page.innerHTML = `<h2>Bonjour ${currentUser.firstName}!</h2>${todoHtml}${pendingHtml}${completedHtml}`;
                 
                 renderFilteredArchives('all'); 
                 
@@ -909,7 +923,7 @@
                 groupedBySubject[subject]
                     .sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt))
                     .forEach(item => {
-                        completedHtml += createStudentCard(item, true);
+                        completedHtml += createStudentCard(item, 'completed');
                     });
                 completedHtml += '</div>';
             }
@@ -917,34 +931,38 @@
         }
 
 
-        function createStudentCard(c, isDone) {
+        function createStudentCard(c, status) {
             const subjectInfo = getSubjectInfo(c.title);
-
             let dateInfoHtml = '';
-            if (isDone) {
-                const date = new Date(c.completedAt).toLocaleDateString('fr-FR');
-                dateInfoHtml = `<span class="deadline-status status-completed">Terminé le ${date}</span>`;
-            } else {
-                const dueDate = new Date(c.dueDate);
-                const today = new Date(); today.setHours(0,0,0,0);
-                const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate() + 1);
+            let buttonHtml = '';
 
-                let statusClass = 'status-ontime';
-                let statusText = `À faire pour le ${dueDate.toLocaleDateString('fr-FR')}`;
-
-                if (dueDate < today) {
-                    statusClass = 'status-overdue';
-                    statusText = `En retard (pour le ${dueDate.toLocaleDateString('fr-FR')})`;
-                } else if (dueDate <= tomorrow) {
-                    statusClass = 'status-due-soon';
-                    statusText = `À rendre bientôt`;
-                }
-                dateInfoHtml = `<span class="deadline-status ${statusClass}">${statusText}</span>`;
+            switch(status) {
+                case 'todo':
+                    const dueDate = new Date(c.dueDate);
+                    const today = new Date(); today.setHours(0,0,0,0);
+                    const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate() + 1);
+                    let statusClass = 'status-ontime';
+                    let statusText = `À faire pour le ${dueDate.toLocaleDateString('fr-FR')}`;
+                    if (dueDate < today) {
+                        statusClass = 'status-overdue';
+                        statusText = `En retard (pour le ${dueDate.toLocaleDateString('fr-FR')})`;
+                    } else if (dueDate <= tomorrow) {
+                        statusClass = 'status-due-soon';
+                        statusText = `À rendre bientôt`;
+                    }
+                    dateInfoHtml = `<span class="deadline-status ${statusClass}">${statusText}</span>`;
+                    buttonHtml = `<button class="btn btn-main" data-content-id="${c.id}">Commencer</button>`;
+                    break;
+                case 'pending':
+                    dateInfoHtml = `<span class="deadline-status status-pending">En attente de correction</span>`;
+                    buttonHtml = `<button class="btn btn-secondary" disabled>En attente</button>`;
+                    break;
+                case 'completed':
+                    const date = new Date(c.completedAt).toLocaleDateString('fr-FR');
+                    dateInfoHtml = `<span class="deadline-status status-completed">Terminé le ${date}</span>`;
+                    buttonHtml = `<button class="btn btn-secondary" disabled><i class="fa-solid fa-check"></i> Terminé</button>`;
+                    break;
             }
-
-            const buttonHtml = isDone 
-                ? `<button class="btn btn-secondary" disabled><i class="fa-solid fa-check"></i> Terminé</button>`
-                : `<button class="btn btn-main" data-content-id="${c.id}">Commencer</button>`;
 
             return `
                 <div class="dashboard-card-student">
