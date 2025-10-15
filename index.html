@@ -37,7 +37,15 @@
         
         header { padding: 1rem 5%; background-color: var(--background-color); display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 1000; transition: background-color 0.3s ease; }
         .logo { display: flex; align-items: center; text-decoration: none; cursor: pointer; }
-        .logo-icon { width: 110px; height: 110px; object-fit: contain; }
+        .logo-icon { 
+            width: 140px; 
+            height: auto; 
+            object-fit: contain; 
+            transition: filter 0.3s ease-in-out;
+        }
+        body.dark-mode .logo-icon { 
+            filter: invert(1) hue-rotate(180deg);
+        }
         .main-nav { display: flex; align-items: center; gap: 1rem; }
         .hidden { display: none !important; }
 
@@ -810,8 +818,12 @@
                     const contentId = e.target.closest('button').dataset.contentId;
                     const result = studentResults.find(r => r.contentId === contentId);
                     const content = (currentClassData.content || []).find(c => c.id === contentId);
-                    if (result && content) {
-                        showValidationModal(result, content);
+                     if (result && content) {
+                        if (result.status === 'validated') {
+                            showValidatedResultModal(result, content);
+                        } else {
+                            showValidationModal(result, content);
+                        }
                     }
                 });
             });
@@ -888,6 +900,44 @@
             });
         }
         
+        function getAppreciationText(appreciationKey) {
+            const map = {
+                acquis: 'Acquis',
+                en_cours: "En cours d'acquisition",
+                non_acquis: 'Non acquis',
+                a_revoir: 'À revoir'
+            };
+            return map[appreciationKey] || 'Validé';
+        }
+
+        function showValidatedResultModal(result, content) {
+             let detailsHtml = '<h4>Détail des réponses</h4>';
+            if (content.type === 'quiz' && result.answers && Array.isArray(result.answers)) {
+                content.questions.forEach((q, index) => {
+                    const studentAnswerIndex = result.answers[index];
+                    const correctAnswerIndex = q.correct_answer_index;
+                    const isCorrect = studentAnswerIndex === correctAnswerIndex;
+                    detailsHtml += `<div class="feedback-item ${isCorrect ? 'correct' : 'incorrect'}">
+                                        <p><strong>${q.question_text}</strong></p>
+                                        <p>Réponse de l'élève : ${studentAnswerIndex > -1 ? q.options[studentAnswerIndex] : 'Aucune'}</p>
+                                        ${!isCorrect ? `<p>Bonne réponse : ${q.options[correctAnswerIndex]}</p>` : ''}
+                                    </div>`;
+                });
+            } else {
+                 detailsHtml = `<p>Les détails des réponses pour ce devoir ne sont pas disponibles.</p>`;
+            }
+
+            let feedbackHtml = `
+                <div class="validation-section">
+                    <h4>Retour du professeur</h4>
+                    <p><strong>Appréciation :</strong> ${getAppreciationText(result.appreciation)}</p>
+                    ${result.teacherComment ? `<p><strong>Commentaire :</strong> ${result.teacherComment}</p>` : ''}
+                </div>
+            `;
+            
+            renderModal(getModalTemplate('validated-result-modal', `Résultat pour : ${result.title}`, detailsHtml + feedbackHtml));
+        }
+
         async function handleAddStudent(e) { 
             e.preventDefault(); 
             const email = document.getElementById('student-email-input').value; 
@@ -948,24 +998,37 @@
                 
                 renderFilteredArchives('all'); 
                 
-                page.querySelector('#archive-filters').addEventListener('click', (e) => {
-                    if (e.target.tagName === 'BUTTON') {
-                        page.querySelectorAll('#archive-filters button').forEach(btn => btn.classList.remove('active'));
-                        e.target.classList.add('active');
-                        renderFilteredArchives(e.target.dataset.filter);
-                    }
+                page.querySelectorAll('#archive-filters').forEach(button => {
+                    button.addEventListener('click', (e) => {
+                        if (e.target.tagName === 'BUTTON') {
+                            page.querySelectorAll('#archive-filters button').forEach(btn => btn.classList.remove('active'));
+                            e.target.classList.add('active');
+                            renderFilteredArchives(e.target.dataset.filter);
+                        }
+                    });
                 });
 
-                page.querySelectorAll('.dashboard-card-student .btn-main').forEach(button => {
-                    const contentId = button.dataset.contentId;
-                    if (contentId) {
-                        button.addEventListener('click', () => {
-                            const content = studentDashboardData.todo.find(item => item.id === contentId);
-                            if (content) {
-                                renderContentViewer(content);
-                            }
-                        });
-                    }
+                page.querySelectorAll('.start-btn').forEach(button => {
+                     button.addEventListener('click', (e) => {
+                        const content = studentDashboardData.todo.find(item => item.id === e.target.dataset.contentId);
+                        if (content) renderContentViewer(content);
+                    });
+                });
+
+                 page.querySelectorAll('.view-correction-btn').forEach(button => {
+                     button.addEventListener('click', (e) => {
+                        const contentId = e.target.dataset.contentId;
+                        const content = studentDashboardData.completed.find(item => item.id === contentId);
+                        const result = {
+                            title: content.title,
+                            answers: [], // Placeholder, student doesn't need to see answers again here
+                            appreciation: content.appreciation,
+                            teacherComment: content.teacherComment
+                        };
+                        // We need the original content for question details
+                        const originalContent = studentDashboardData.completed.find(c => c.id === contentId);
+                        if(result && originalContent) showValidatedResultModal(result, originalContent);
+                    });
                 });
 
             } catch (error) {
@@ -1019,6 +1082,25 @@
                 completedHtml += '</div>';
             }
             container.innerHTML = completedHtml;
+            
+            // Re-attach event listeners for newly rendered buttons
+            container.querySelectorAll('.view-correction-btn').forEach(button => {
+                 button.addEventListener('click', (e) => {
+                    const contentId = e.target.dataset.contentId;
+                    const content = studentDashboardData.completed.find(item => item.id === contentId);
+                    
+                    // The student dashboard data doesn't contain the full result object,
+                    // we need to find it in the original `studentResults` if we stored it globally
+                    // Or, more simply, construct what we need.
+                    const result = {
+                        title: content.title,
+                        answers: content.answers, // Let's assume server sends this
+                        appreciation: content.appreciation,
+                        teacherComment: content.teacherComment
+                    };
+                    if(content) showValidatedResultModal(result, content);
+                });
+            });
         }
 
 
@@ -1042,16 +1124,16 @@
                         statusText = `À rendre bientôt`;
                     }
                     dateInfoHtml = `<span class="deadline-status ${statusClass}">${statusText}</span>`;
-                    buttonHtml = `<button class="btn btn-main" data-content-id="${c.id}">Commencer</button>`;
+                    buttonHtml = `<button class="btn btn-main start-btn" data-content-id="${c.id}">Commencer</button>`;
                     break;
                 case 'pending':
                     dateInfoHtml = `<span class="deadline-status status-pending">En attente de correction</span>`;
                     buttonHtml = `<button class="btn btn-secondary" disabled>En attente</button>`;
                     break;
                 case 'completed':
-                    const date = new Date(c.completedAt).toLocaleDateString('fr-FR');
-                    dateInfoHtml = `<span class="deadline-status status-completed">Terminé le ${date}</span>`;
-                    buttonHtml = `<button class="btn btn-secondary" disabled><i class="fa-solid fa-check"></i> Terminé</button>`;
+                    const appreciationText = c.appreciation ? getAppreciationText(c.appreciation) : 'Validé';
+                    dateInfoHtml = `<span class="deadline-status status-completed">${appreciationText}</span>`;
+                    buttonHtml = `<button class="btn btn-secondary view-correction-btn" data-content-id="${c.id}">Voir la correction</button>`;
                     break;
             }
 
@@ -1170,9 +1252,8 @@
                 answers,
                 helpUsed: helpUsedInQuiz
             }); 
-            renderFeedbackPage(c, answers, score); 
+            renderStudentDashboard();
         }
-        function renderFeedbackPage(c, answers, score) { const p = document.getElementById('feedback-page'); p.innerHTML = `<div class=card><h2>Résultats du Quiz: ${c.title}</h2><p><strong>Ton score: ${score} / ${c.questions.length}</strong></p><div id=feedback-details style=margin-top:2rem></div><button id=back-to-dash class="btn btn-main">Retour au tableau de bord</button></div>`; p.querySelector('#back-to-dash').addEventListener('click', renderStudentDashboard); const details = p.querySelector('#feedback-details'); c.questions.forEach((q, i) => { const correct = answers[i] == c.questions[i].correct_answer_index; const item = document.createElement('div'); item.className = `feedback-item ${correct ? 'correct' : 'incorrect'}`; let html = `<p><strong>${q.question_text}</strong></p>`; if (correct) { html += `<p style=color:var(--correct-color)>Ta réponse: ${q.options[answers[i]]} (Correct)</p>`; } else { html += `<p style=color:var(--incorrect-color)>Ta réponse: ${answers[i] > -1 ? q.options[answers[i]] : 'Aucune'} (Incorrect)</p><p>Bonne réponse: ${q.options[q.correct_answer_index]}</p><div class=aida-explanation id=explanation-${i}>${spinnerHtml}</div>`; } item.innerHTML = html; details.appendChild(item); if (!correct) { apiRequest('/ai/get-feedback-for-error', 'POST', { question: q.question_text, userAnswer: answers[i] > -1 ? q.options[answers[i]] : 'Aucune', correctAnswer: q.options[q.correct_answer_index] }).then(d => { document.getElementById(`explanation-${i}`).innerHTML = `<p><strong>L'explication d'AIDA :</strong> ${d.feedback}</p>`; }); } }); changePage('feedback-page'); }
         
         function showGenerationModal() {
             if (Object.keys(programmes).length === 0) {
