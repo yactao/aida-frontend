@@ -884,7 +884,7 @@
         
         function renderFilteredArchives(filter) {
             const container = document.getElementById('student-completed-list');
-            if (!studentDashboardData || studentDashboardData.completed.length === 0) {
+            if (!studentDashboardData || !studentDashboardData.completed || studentDashboardData.completed.length === 0) {
                 container.innerHTML = "<p>Aucun devoir terminé pour le moment.</p>";
                 return;
             }
