@@ -585,12 +585,12 @@
                 const studentName = student ? student.firstName : result.studentEmail;
                 const submittedDate = new Date(result.submittedAt).toLocaleDateString('fr-FR');
                 html += `
-                    <div class="dashboard-card" style="cursor: pointer;" data-result='${JSON.stringify(result)}'>
+                    <div class="dashboard-card" data-result='${JSON.stringify(result)}'>
                         <h4>${result.title}</h4>
                         <p><strong>Élève :</strong> ${studentName}</p>
                         <p><strong>Soumis le :</strong> ${submittedDate}</p>
                         <div style="text-align: right; margin-top: 1rem;">
-                            <button class="btn btn-secondary">Voir la copie</button>
+                            <button class="btn btn-secondary view-copy-btn">Voir la copie</button>
                         </div>
                     </div>
                 `;
@@ -598,9 +598,11 @@
             html += '</div>';
             panel.innerHTML = html;
             
-            panel.querySelectorAll('.dashboard-card').forEach(card => {
-                card.addEventListener('click', (e) => {
-                    const resultData = JSON.parse(e.currentTarget.dataset.result);
+            panel.querySelectorAll('.view-copy-btn').forEach(button => {
+                button.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const card = e.target.closest('.dashboard-card');
+                    const resultData = JSON.parse(card.dataset.result);
                     const content = (currentClassData.content || []).find(c => c.id === resultData.contentId);
                     if(resultData && content) {
                         showResultDetailsModal(resultData, content);
