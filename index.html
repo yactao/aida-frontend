@@ -11,6 +11,8 @@
         :root {
             --primary-color: #4A90E2;
             --secondary-color: #50E3C2;
+            --gradient-start-color: #4A90E2; /* Couleur fixe pour le dégradé */
+            --gradient-end-color: #50E3C2;   /* Couleur fixe pour le dégradé */
             --background-color: #F4F7FC;
             --text-color: #333;
             --card-bg-color: #FFFFFF;
@@ -43,19 +45,16 @@
             object-fit: contain; 
             transition: filter 0.3s ease-in-out;
         }
-        body:not(.dark-mode) .logo-icon {
-            filter: sepia(1) hue-rotate(180deg) saturate(5);
-        }
-        body.dark-mode .logo-icon { 
-            filter: brightness(1.2);
+        body.dark-mode .logo-icon {
+            filter: invert(1) hue-rotate(180deg);
         }
         .main-nav { display: flex; align-items: center; gap: 1rem; }
         .hidden { display: none !important; }
 
         .btn { padding: 10px 20px; border: none; border-radius: 8px; font-weight: 700; cursor: pointer; transition: all 0.3s ease; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; }
         .btn:disabled { background: #D1D5DB !important; color: #666 !important; cursor: not-allowed; }
-        .btn-main { background: linear-gradient(45deg, var(--primary-color), var(--secondary-color)); color: #FFF; }
-        .btn-main:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.1); }
+        .btn-main { background: linear-gradient(45deg, var(--gradient-start-color), var(--gradient-end-color)); color: #FFF; }
+        .btn-main:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(74, 144, 226, 0.4); }
         .btn-secondary { background-color: #E9F2FF; color: var(--primary-color); }
         body.dark-mode .btn-secondary { background-color: #333; color: var(--primary-color); }
         .btn-icon { background: none; border: none; color: #aaa; padding: 5px; border-radius: 50%; width: 32px; height: 32px; flex-shrink: 0; }
@@ -330,7 +329,6 @@
         <div class="page" id="student-details-page"></div>
         <div class="page" id="workspace-page"></div>
         <div class="page" id="content-viewer-page"></div>
-        <div class="page" id="feedback-page"></div>
     </main>
     <div id="modal-container"></div>
     
