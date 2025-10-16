@@ -227,7 +227,7 @@
 <body>
     <header>
         <div class="logo">
-             <a href="index.html">
+             <a href="app.html">
                 <img src="https://aida-backend-bqd0fnd2a3c7dadf.francecentral-01.azurewebsites.net/logo%20Aida1.png" alt="Logo AÏDA" class="logo-icon">
              </a>
         </div>
@@ -237,7 +237,7 @@
         <div class="chat-container">
             <div class="chat-header">
                 <h2><i class="fa-solid fa-flask-vial"></i> Espace de Travail AÏDA</h2>
-                <a href="#" id="back-to-dashboard-btn" class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> Retour</a>
+                <a href="app.html" id="back-to-dashboard-btn" class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> Retour</a>
             </div>
             <div class="chat-messages" id="chat-messages">
                 <div class="message assistant">
@@ -270,7 +270,6 @@
         const backToDashboardBtn = document.getElementById('back-to-dashboard-btn');
 
         let chatHistory = [];
-        let attachedFile = null;
         
         // --- Auto-resize textarea ---
         userInput.addEventListener('input', () => {
@@ -349,10 +348,7 @@
         const savedTheme = localStorage.getItem('theme') || 'light';
         applyTheme(savedTheme);
         
-        backToDashboardBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            window.location.href = 'index.html'; // Redirige vers la page principale
-        });
+        // Le bouton est maintenant un lien <a>, donc pas besoin de JS pour la redirection.
 
         // --- GESTION DU CHAT ---
         function addMessage(role, content) {
