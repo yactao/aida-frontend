@@ -226,7 +226,7 @@
 </head>
 <body>
     <header>
-        <div class="logo">
+        <div class="logo" id="home-link">
              <a href="app.html">
                 <img src="https://aida-backend-bqd0fnd2a3c7dadf.francecentral-01.azurewebsites.net/logo%20Aida1.png" alt="Logo AÏDA" class="logo-icon">
              </a>
@@ -268,6 +268,7 @@
         const fileInput = document.getElementById('file-input');
         const filePreviewContainer = document.getElementById('file-preview-container');
         const backToDashboardBtn = document.getElementById('back-to-dashboard-btn');
+        const homeLink = document.getElementById('home-link');
 
         let chatHistory = [];
         
@@ -348,7 +349,16 @@
         const savedTheme = localStorage.getItem('theme') || 'light';
         applyTheme(savedTheme);
         
-        // Le bouton est maintenant un lien <a>, donc pas besoin de JS pour la redirection.
+        // --- NAVIGATION ---
+        backToDashboardBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            window.history.back();
+        });
+        homeLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            window.history.back();
+        });
+
 
         // --- GESTION DU CHAT ---
         function addMessage(role, content) {
