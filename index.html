@@ -40,7 +40,7 @@
         header { padding: 1rem 5%; background-color: var(--background-color); display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 1000; transition: background-color 0.3s ease; }
         .logo { display: flex; align-items: center; text-decoration: none; cursor: pointer; }
         .logo-icon { 
-            width: 120px; 
+            width: 100px; 
             height: auto; 
             object-fit: contain; 
             transition: filter 0.3s ease-in-out;
@@ -265,10 +265,11 @@
 <body>
     <header>
         <div class="logo" id="home-link">
-             <img src="https://aida-backend-bqd0fnd2a3c7dadf.francecentral-01.azurewebsites.net/logo%20Aida11.svg" alt="Logo AÏDA" class="logo-icon">
+             <img src="https://aida-backend-bqd0fnd2a3c7dadf.francecentral-01.azurewebsites.net/logo%20Aida1.png" alt="Logo AÏDA" class="logo-icon">
         </div>
         <nav class="main-nav">
             <a href="#" class="btn btn-secondary hidden" id="workspace-link"><i class="fa-solid fa-pen-ruler"></i> Espace de Travail</a>
+            <a href="#" class="btn btn-secondary hidden" id="library-link"><i class="fa-solid fa-book-bookmark"></i> Bibliothèque</a>
             <a href="playground.html" class="btn btn-secondary hidden" id="playground-link"><i class="fa-solid fa-flask"></i> Terrain de Jeux</a>
             <button class="btn theme-toggle" id="theme-toggle-header-btn"><i class="fa-solid fa-moon"></i></button>
             <div class="user-menu-container hidden">
@@ -329,6 +330,7 @@
         <div class="page" id="student-details-page"></div>
         <div class="page" id="workspace-page"></div>
         <div class="page" id="content-viewer-page"></div>
+        <div class="page" id="library-page"></div>
     </main>
     <div id="modal-container"></div>
     
@@ -352,6 +354,7 @@
         const homeLink = document.getElementById('home-link');
         const playgroundLink = document.getElementById('playground-link');
         const workspaceLink = document.getElementById('workspace-link');
+        const libraryLink = document.getElementById('library-link');
         const userMenuContainer = document.querySelector('.user-menu-container');
         const userNameDisplay = document.getElementById('user-name-display');
         const userAvatarDisplay = document.getElementById('user-avatar-display');
@@ -434,6 +437,7 @@
             userMenuContainer.classList.toggle('hidden', !loggedIn);
             playgroundLink.classList.toggle('hidden', !loggedIn);
             workspaceLink.classList.toggle('hidden', !loggedIn || currentUser.role !== 'student');
+            libraryLink.classList.toggle('hidden', !loggedIn || currentUser.role !== 'teacher');
             
             if (loggedIn) {
                 userNameDisplay.textContent = currentUser.firstName;
@@ -633,7 +637,10 @@
                     <div class="dashboard-card">
                         <div class="dashboard-card-title">
                              <h4>${content.title}</h4>
-                             <button class="btn-icon delete-content-btn" data-content-id="${content.id}" title="Supprimer le contenu"><i class="fa-solid fa-trash-alt"></i></button>
+                             <div>
+                                <button class="btn-icon share-content-btn" data-content-id="${content.id}" title="Partager dans la bibliothèque"><i class="fa-solid fa-share-nodes"></i></button>
+                                <button class="btn-icon delete-content-btn" data-content-id="${content.id}" title="Supprimer le contenu"><i class="fa-solid fa-trash-alt"></i></button>
+                             </div>
                         </div>
                         <p>Type: ${content.type}</p>
                         <p>Assigné le: ${assignedDate}</p>
@@ -659,6 +666,46 @@
                     document.getElementById('cancel-delete').addEventListener('click', () => modalContainer.innerHTML = '');
                     document.getElementById('confirm-delete').addEventListener('click', () => handleDeleteContent(contentId));
                 });
+            });
+            
+            panel.querySelectorAll('.share-content-btn').forEach(button => {
+                button.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const contentId = button.dataset.contentId;
+                    handlePublishContent(contentId);
+                });
+            });
+        }
+        
+        async function handlePublishContent(contentId) {
+            const content = currentClassData.content.find(c => c.id === contentId);
+            if (!content) return;
+
+            const subjectInfo = getSubjectInfo(content.title);
+            
+            renderModal(getModalTemplate('publish-confirm', 'Publier dans la bibliothèque', `
+                <p>Vous êtes sur le point de partager "<strong>${content.title}</strong>" avec d'autres enseignants.</p>
+                <p>Il sera publié dans la catégorie : <strong>${subjectInfo.name}</strong></p>
+                <div style="display:flex; justify-content: flex-end; gap: 1rem; margin-top: 2rem;">
+                    <button class="btn btn-secondary" id="cancel-publish">Annuler</button>
+                    <button class="btn btn-main" id="confirm-publish">Confirmer et Publier</button>
+                </div>
+            `));
+            
+            document.getElementById('cancel-publish').addEventListener('click', () => modalContainer.innerHTML = '');
+            document.getElementById('confirm-publish').addEventListener('click', async () => {
+                try {
+                    await apiRequest('/library/publish', 'POST', {
+                        contentData: content,
+                        teacherName: currentUser.firstName,
+                        subject: subjectInfo.name
+                    });
+                    modalContainer.innerHTML = '';
+                    renderModal(getModalTemplate('publish-success', 'Succès', '<p>Votre contenu a été publié avec succès !</p>'));
+                    setTimeout(() => modalContainer.innerHTML = '', 2000);
+                } catch (error) {
+                    alert(`Erreur de publication: ${error.message}`);
+                }
             });
         }
 
@@ -1592,6 +1639,7 @@
         startAppBtn.addEventListener('click', renderAuthPage);
         homeLink.addEventListener('click', () => { if(currentUser) { currentUser.role === 'teacher' ? renderTeacherDashboard() : renderStudentDashboard() } else { changePage('home-page'); } });
         workspaceLink.addEventListener('click', (e) => { e.preventDefault(); renderWorkspacePage(); });
+        libraryLink.addEventListener('click', (e) => { e.preventDefault(); renderLibraryPage(); });
         logoutBtn.addEventListener('click', () => { currentUser = null; updateUI(); });
         userInfoClickable.addEventListener('click', () => userDropdown.classList.toggle('hidden'));
         window.addEventListener('click', (e) => {
