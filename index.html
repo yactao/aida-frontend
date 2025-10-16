@@ -40,12 +40,11 @@
         header { padding: 1rem 5%; background-color: var(--background-color); display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 1000; transition: background-color 0.3s ease; }
         .logo { display: flex; align-items: center; text-decoration: none; cursor: pointer; }
         .logo-icon { 
-            width: 100px; 
+            width: 120px; 
             height: auto; 
-            object-fit: contain; 
-            transition: filter 0.3s ease-in-out;
+            object-fit: contain;
         }
-        body.dark-mode .logo-icon {
+        body.dark-mode .logo-icon { 
             filter: invert(1) hue-rotate(180deg);
         }
         .main-nav { display: flex; align-items: center; gap: 1rem; }
@@ -399,13 +398,10 @@
             const lowerTitle = title.toLowerCase();
 
             const subjects = {
-                'Mathématiques': { cssClass: 'tag-maths', keywords: ['math', 'addition', 'calcul', 'multiplication', 'géométrie', 'nombre', 'tables'] },
-                'Français': { cssClass: 'tag-francais', keywords: ['français', 'lecture', 'grammaire', 'conjugaison', 'orthographe', 'verbe', 'phrase'] },
-                'Histoire': { cssClass: 'tag-histoire', keywords: ['histoire', 'antiquité', 'moyen âge', 'révolution'] },
-                'Géographie': { cssClass: 'tag-histoire', keywords: ['géographie'] },
-                'Sciences': { cssClass: 'tag-sciences', keywords: ['science', 'svt', 'physique', 'chimie', 'vivant', 'atome', 'univers'] },
-                'Anglais': { cssClass: 'tag-autre', keywords: ['anglais', 'english'] },
-                'Programmation': { cssClass: 'tag-autre', keywords: ['programmation', 'code', 'python'] }
+                'Mathématiques': { cssClass: 'tag-maths', keywords: ['math', 'addition', 'soustraction', 'multiplication', 'division', 'calcul', 'géométrie', 'nombre', 'tables', 'problème', 'fraction'] },
+                'Français': { cssClass: 'tag-francais', keywords: ['français', 'lecture', 'grammaire', 'conjugaison', 'orthographe', 'verbe', 'phrase', 'dictée', 'vocabulaire', 'rédaction', 'littérature'] },
+                'Histoire-Géo': { cssClass: 'tag-histoire', keywords: ['histoire', 'géographie', 'antiquité', 'moyen âge', 'révolution', 'guerre', 'empire', 'pays', 'capitale', 'continent'] },
+                'Sciences': { cssClass: 'tag-sciences', keywords: ['science', 'svt', 'physique', 'chimie', 'vivant', 'atome', 'univers', 'biologie', 'technologie', 'corps humain', 'plante', 'animal'] },
             };
 
             for (const subjectName in subjects) {
