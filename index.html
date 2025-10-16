@@ -42,9 +42,10 @@
         .logo-icon { 
             width: 120px; 
             height: auto; 
-            object-fit: contain;
+            object-fit: contain; 
+            transition: filter 0.3s ease-in-out;
         }
-        body.dark-mode .logo-icon { 
+        body.dark-mode .logo-icon {
             filter: invert(1) hue-rotate(180deg);
         }
         .main-nav { display: flex; align-items: center; gap: 1rem; }
@@ -95,7 +96,7 @@
         .tag-maths { background-color: #4A90E2; }
         .tag-francais { background-color: #D0021B; }
         .tag-sciences { background-color: #50E3C2; }
-        .tag-histoire { background-color: #F5A623; }
+        .tag-histoire-géo { background-color: #F5A623; }
         .tag-autre { background-color: #777; }
         
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); display: flex; justify-content: center; align-items: center; z-index: 2000; animation: fadeIn 0.3s; }
@@ -400,7 +401,7 @@
             const subjects = {
                 'Mathématiques': { cssClass: 'tag-maths', keywords: ['math', 'addition', 'soustraction', 'multiplication', 'division', 'calcul', 'géométrie', 'nombre', 'tables', 'problème', 'fraction'] },
                 'Français': { cssClass: 'tag-francais', keywords: ['français', 'lecture', 'grammaire', 'conjugaison', 'orthographe', 'verbe', 'phrase', 'dictée', 'vocabulaire', 'rédaction', 'littérature'] },
-                'Histoire-Géo': { cssClass: 'tag-histoire', keywords: ['histoire', 'géographie', 'antiquité', 'moyen âge', 'révolution', 'guerre', 'empire', 'pays', 'capitale', 'continent'] },
+                'Histoire-Géo': { cssClass: 'tag-histoire-géo', keywords: ['histoire', 'géographie', 'antiquité', 'moyen âge', 'révolution', 'guerre', 'empire', 'pays', 'capitale', 'continent'] },
                 'Sciences': { cssClass: 'tag-sciences', keywords: ['science', 'svt', 'physique', 'chimie', 'vivant', 'atome', 'univers', 'biologie', 'technologie', 'corps humain', 'plante', 'animal'] },
             };
 
@@ -559,6 +560,7 @@
                 <h2>${currentClassData.className}</h2>
                 <div class="tabs">
                     <button class="tab-button active" data-tab="students-panel">Élèves</button>
+                    <button class="tab-button" data-tab="contents-panel">Contenus</button>
                     <button class="tab-button" data-tab="competencies-panel">Analyse par Compétence</button>
                     <button class="tab-button" data-tab="corrections-panel">Corrections en attente <span id="pending-count" class="new-tag hidden"></span></button>
                 </div>
@@ -569,12 +571,14 @@
                     </div>
                     <div id="student-list" class="dashboard-grid"></div>
                 </div>
+                <div id="contents-panel" class="tab-panel"></div>
                 <div id="competencies-panel" class="tab-panel">
                     ${spinnerHtml}
                 </div>
                 <div id="corrections-panel" class="tab-panel"></div>`;
             
             renderStudentListPanel();
+            renderContentListPanel();
             renderCorrectionsPanel();
 
             const pendingCorrections = (currentClassData.results || []).filter(r => r.status === 'pending_validation');
@@ -613,6 +617,61 @@
                 });
             });
         }
+        
+        function renderContentListPanel() {
+            const panel = document.getElementById('contents-panel');
+            const contents = currentClassData.content || [];
+            if (contents.length === 0) {
+                panel.innerHTML = '<p>Aucun contenu assigné à cette classe pour le moment.</p>';
+                return;
+            }
+
+            let html = '<div class="dashboard-grid">';
+            contents.forEach(content => {
+                const assignedDate = new Date(content.assignedAt).toLocaleDateString('fr-FR');
+                html += `
+                    <div class="dashboard-card">
+                        <div class="dashboard-card-title">
+                             <h4>${content.title}</h4>
+                             <button class="btn-icon delete-content-btn" data-content-id="${content.id}" title="Supprimer le contenu"><i class="fa-solid fa-trash-alt"></i></button>
+                        </div>
+                        <p>Type: ${content.type}</p>
+                        <p>Assigné le: ${assignedDate}</p>
+                    </div>
+                `;
+            });
+            html += '</div>';
+            panel.innerHTML = html;
+
+            panel.querySelectorAll('.delete-content-btn').forEach(button => {
+                button.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const contentId = button.dataset.contentId;
+                    const content = contents.find(c => c.id === contentId);
+                    renderModal(getModalTemplate('delete-content-confirm', 'Confirmer la suppression', `
+                        <p>Êtes-vous sûr de vouloir supprimer le contenu "<strong>${content.title}</strong>" ?</p>
+                        <p>Cette action est irréversible et supprimera également tous les résultats des élèves pour ce devoir.</p>
+                        <div style="display:flex; justify-content: flex-end; gap: 1rem; margin-top: 2rem;">
+                            <button class="btn btn-secondary" id="cancel-delete">Annuler</button>
+                            <button class="btn" style="background: var(--incorrect-color); color: white;" id="confirm-delete">Confirmer</button>
+                        </div>
+                    `));
+                    document.getElementById('cancel-delete').addEventListener('click', () => modalContainer.innerHTML = '');
+                    document.getElementById('confirm-delete').addEventListener('click', () => handleDeleteContent(contentId));
+                });
+            });
+        }
+
+        async function handleDeleteContent(contentId) {
+             try {
+                await apiRequest(`/teacher/classes/${currentClassData.id}/content/${contentId}`, 'DELETE');
+                modalContainer.innerHTML = '';
+                renderClassDetailsPage(currentClassData.id); 
+            } catch (error) {
+                alert(`Erreur lors de la suppression du contenu: ${error.message}`);
+            }
+        }
+
 
         function renderCorrectionsPanel() {
             const panel = document.getElementById('corrections-panel');
