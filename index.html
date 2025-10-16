@@ -1470,8 +1470,82 @@
         }
         function resetSelects(selects) { selects.forEach(s => { s.innerHTML = '<option value="">-- Choisir --</option>'; s.disabled = true; }); document.getElementById('generate-btn').disabled = true; }
         function showEditModal() { let editHtml = `<form id="edit-form"><div class="form-group"><label>Titre</label><input type="text" id="edit-title" value="${generatedContent.title}"></div>`; if (generatedContent.type === 'quiz') { generatedContent.questions.forEach((q, i) => { editHtml += `<div class="form-group"><label>Question ${i+1}</label><input type="text" id="edit-q-${i}" value="${q.question_text}"><label style="margin-top: 0.5rem;">Options</label>${q.options.map((opt, j) => `<input type="text" id="edit-q-${i}-opt-${j}" value="${opt}" style="margin-bottom: 0.5rem;">`).join('')}</div>`; }); } else if (generatedContent.type === 'exercices' || generatedContent.type === 'dm') { generatedContent.content.forEach((ex, i) => { editHtml += `<div class="form-group"><label>Exercice ${i+1}</label><textarea id="edit-ex-${i}" rows="3">${ex.enonce}</textarea></div>`; }); } else if (generatedContent.type === 'revision') { editHtml += `<div class="form-group"><label>Contenu de la fiche</label><textarea id="edit-revision-content" rows="10">${generatedContent.content}</textarea></div>`; } editHtml += `<button type="submit" class="btn btn-main">Valider et Assigner</button></form>`; renderModal(getModalTemplate('edit-modal', 'Modifier et Valider le Contenu', editHtml)); document.getElementById('edit-form').addEventListener('submit', (e) => { e.preventDefault(); generatedContent.title = document.getElementById('edit-title').value; if (generatedContent.type === 'quiz') { generatedContent.questions.forEach((q, i) => { q.question_text = document.getElementById(`edit-q-${i}`).value; q.options.forEach((opt, j) => { q.options[j] = document.getElementById(`edit-q-${i}-opt-${j}`).value; }); }); } else if (generatedContent.type === 'exercices' || generatedContent.type === 'dm') { generatedContent.content.forEach((ex, i) => { ex.enonce = document.getElementById(`edit-ex-${i}`).value; }); } else if (generatedContent.type === 'revision') { generatedContent.content = document.getElementById('edit-revision-content').value; } showAssignModal(); }); }
-        function showAssignModal(contentToAssign) { const content = contentToAssign || generatedContent; const defaultDueDate = new Date(); defaultDueDate.setDate(defaultDueDate.getDate() + 7); const formattedDefaultDate = defaultDueDate.toISOString().split('T')[0]; const modalHtml = `<form id="assign-form"><div class="form-group"><label for="assign-class-select">Assigner à la classe</label><select id="assign-class-select" required></select></div><div class="form-group"><label for="due-date-input">À faire pour le</label><input type="date" id="due-date-input" value="${formattedDefaultDate}" required></div><button type="submit" class="btn btn-main">Assigner</button></form>`; renderModal(getModalTemplate('assign-modal', `Assigner "${content.title}"`, modalHtml)); const select = document.getElementById('assign-class-select'); teacherClasses.forEach(c => select.add(new Option(c.className, c.id))); document.getElementById('assign-form').addEventListener('submit', async e => { e.preventDefault(); const classId = select.value; const dueDate = document.getElementById('due-date-input').value; if (!classId || !content || !dueDate) return; try { await apiRequest('/teacher/assign-content', 'POST', { classId, contentData: { ...content, dueDate, competence: content.competence || selectedCompetenceInfo } }); modalContainer.innerHTML = ''; renderModal(getModalTemplate('assign-confirm', 'Succès', '<p>Le contenu a bien été assigné !</p>')); setTimeout(() => modalContainer.innerHTML = '', 2000); await fetchAndDisplayClasses(); } catch (error) { alert("Erreur lors de l'assignation du contenu."); } }); }
+        function showAssignModal(contentToAssign) { const content = contentToAssign || generatedContent; const defaultDueDate = new Date(); defaultDueDate.setDate(defaultDueDate.getDate() + 7); const formattedDefaultDate = defaultDueDate.toISOString().split('T')[0]; const modalHtml = `<form id="assign-form"><div class="form-group"><label for="assign-class-select">Assigner à la classe</label><select id="assign-class-select" required></select></div><div class="form-group"><label for="due-date-input">À faire pour le</label><input type="date" id="due-date-input" value="${formattedDefaultDate}" required></div><button type="submit" class="btn btn-main">Assigner</button></form>`; renderModal(getModalTemplate('assign-modal', `Assigner "${content.title}"`, modalHtml)); const select = document.getElementById('assign-class-select'); teacherClasses.forEach(c => select.add(new Option(c.className, c.id))); document.getElementById('assign-form').addEventListener('submit', async e => { e.preventDefault(); const classId = select.value; const dueDate = document.getElementById('due-date-input').value; if (!classId || !content || !dueDate) return; try { await apiRequest('/teacher/assign-content', 'POST', { classId, contentData: { ...content, dueDate, competence: content.competence || selectedCompetenceInfo } }); modalContainer.innerHTML = ''; renderModal(getModalTemplate('assign-confirm', 'Succès', '<p>Le contenu a bien été assigné !</p>')); setTimeout(() => { modalContainer.innerHTML = ''; renderTeacherDashboard(); }, 2000); } catch (error) { alert("Erreur lors de l'assignation du contenu."); } }); }
         
+        function renderWorkspacePage() {
+            const page = document.getElementById('workspace-page');
+            changePage('workspace-page');
+            let html = `<button id="back-to-dashboard-btn" class="btn btn-secondary" style="margin-bottom: 2rem;"><i class="fa-solid fa-arrow-left"></i> Retour au tableau de bord</button>`;
+            
+            html += `<h2>Espace de Travail Élève</h2><p>Bloqué sur un exercice ? Collez-le ici, écris ta réponse et demande à AIDA de te corriger. Vous pouvez aussi charger un document.</p>
+                         <div class="workspace-container" style="margin-top: 2rem;">
+                            <div class="workspace-input">
+                                <h3>Ton exercice</h3>
+                                <form id="student-workspace-form">
+                                    <div class="form-group">
+                                        <label for="exercise-text">Colle ton exercice ou charge un document</label>
+                                        <textarea id="exercise-text" required placeholder="Ex: Calcule 5 + 3."></textarea>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="student-answer">Ta réponse</label>
+                                        <div class="textarea-container">
+                                            <textarea id="student-answer" required placeholder="Ex: Ma réponse est 8."></textarea>
+                                        </div>
+                                    </div>
+                                    <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
+                                        <button type="submit" class="btn btn-main">Corrige-moi, AIDA !</button>
+                                        <button type="button" class="btn btn-secondary" id="student-upload-btn"><i class="fa-solid fa-upload"></i> Charger un document</button>
+                                    </div>
+                                </form>
+                                <input type="file" id="student-doc-upload" class="hidden" accept=".pdf,.docx,.png,.jpg,.jpeg">
+                            </div>
+                            <div class="workspace-output">
+                                <h3>La correction d'AIDA</h3>
+                                <div id="student-output-container"><p>La correction d'AIDA apparaîtra ici.</p></div>
+                            </div>
+                        </div>`;
+            
+            page.innerHTML = html;
+            
+            page.querySelector('#back-to-dashboard-btn').addEventListener('click', renderStudentDashboard);
+            page.querySelector('#student-workspace-form').addEventListener('submit', handleStudentWorkspace);
+            
+            const studentUploadBtn = page.querySelector('#student-upload-btn');
+            const studentFileInput = page.querySelector('#student-doc-upload');
+            studentUploadBtn.addEventListener('click', () => studentFileInput.click());
+            studentFileInput.addEventListener('change', async (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                const outputContainer = document.getElementById('student-output-container');
+                outputContainer.innerHTML = spinnerHtml + '<p>Analyse de votre document en cours...</p>';
+                const formData = new FormData();
+                formData.append('document', file);
+                try {
+                    const response = await fetch(`${backendUrl}/api/ai/extract-text-from-student-doc`, { method: 'POST', body: formData });
+                    const data = await response.json();
+                    if (!response.ok) throw new Error(data.error);
+                    document.getElementById('exercise-text').value = data.extractedText;
+                    outputContainer.innerHTML = "<p>✅ Document analysé ! Vous pouvez maintenant écrire votre réponse et demander une correction.</p>";
+                } catch (err) {
+                    outputContainer.innerHTML = `<p class="error-message">Erreur lors de l'analyse du document : ${err.message}</p>`;
+                }
+            });
+        }
+        
+        async function handleStudentWorkspace(e) {
+            e.preventDefault();
+            const outputContainer = document.getElementById('student-output-container');
+            outputContainer.innerHTML = spinnerHtml;
+            try {
+                const exerciseText = document.getElementById('exercise-text').value;
+                const studentAnswer = document.getElementById('student-answer').value;
+                const data = await apiRequest('/ai/correct-exercise', 'POST', { exerciseText, studentAnswer });
+                outputContainer.innerHTML = `<p>${data.correction.replace(/\n/g, '<br>')}</p>`;
+            } catch (err) {
+                outputContainer.innerHTML = `<p class="error-message">Une erreur est survenue: ${err.message}</p>`;
+            }
+        }
+
         async function init() {
             if (window.location.hash === '#login' && !currentUser) {
                 renderAuthPage();
