@@ -149,18 +149,15 @@
 
         let chatHistory = [];
         let recognition;
-        let voices = [];
-
+        
         // --- Fonctions de l'interface du Chat ---
         function addMessage(sender, text) {
             const messageDiv = document.createElement('div');
             messageDiv.className = `chat-message ${sender}`;
-            
             const bubble = document.createElement('div');
             bubble.className = 'message-bubble';
             bubble.innerHTML = text.replace(/\n/g, '<br>');
             messageDiv.appendChild(bubble);
-
             if (sender === 'aida') {
                 const controls = document.createElement('div');
                 controls.className = 'aida-controls';
@@ -172,7 +169,6 @@
                 controls.appendChild(listenBtn);
                 messageDiv.appendChild(controls);
             }
-
             chatWindow.appendChild(messageDiv);
             chatWindow.scrollTop = chatWindow.scrollHeight;
         }
@@ -252,38 +248,55 @@
             }
         }
 
-        function speakText(text) {
-            if ('speechSynthesis' in window) {
-                speechSynthesis.cancel();
-                const utterance = new SpeechSynthesisUtterance(text);
-                const savedVoiceURI = localStorage.getItem('aida-voice');
-                const selectedVoice = voices.find(voice => voice.voiceURI === savedVoiceURI);
+        async function speakText(text) {
+            try {
+                const rate = localStorage.getItem('aida-rate') || 1;
+                const pitch = localStorage.getItem('aida-pitch') || 1;
+                const voice = localStorage.getItem('aida-voice-name');
+
+                const response = await fetch(`${backendUrl}/ai/synthesize-speech`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text, voice, rate, pitch })
+                });
                 
-                utterance.voice = selectedVoice || voices.find(v => v.lang === 'fr-FR') || voices[0];
-                utterance.rate = localStorage.getItem('aida-rate') || 1;
-                utterance.pitch = localStorage.getItem('aida-pitch') || 1;
+                if (!response.ok) {
+                    const err = await response.json();
+                    throw new Error(err.error || "Erreur du serveur vocal.");
+                }
                 
-                speechSynthesis.speak(utterance);
-            } else {
-                alert("La synthèse vocale n'est pas supportée par votre navigateur.");
+                const data = await response.json();
+                const audioBlob = await (await fetch(`data:audio/mp3;base64,${data.audioContent}`)).blob();
+                const audioUrl = URL.createObjectURL(audioBlob);
+                const audio = new Audio(audioUrl);
+                audio.play();
+
+            } catch (error) {
+                console.error("Erreur lors de la lecture de l'audio neuronal:", error);
+                alert(`Impossible de jouer la voix d'AIDA : ${error.message}`);
             }
         }
 
         // --- Fonctions de la modale de paramètres ---
         function populateVoiceList() {
-            voices = speechSynthesis.getVoices().filter(v => v.lang.startsWith('fr'));
+            const googleVoices = [
+                { name: 'Français (France, Femme, Neutre)', value: 'fr-FR-Wavenet-E' },
+                { name: 'Français (France, Homme, Neutre)', value: 'fr-FR-Wavenet-D' },
+                { name: 'Français (Canada, Femme, Neutre)', value: 'fr-CA-Wavenet-A' },
+                { name: 'Français (Canada, Homme, Neutre)', value: 'fr-CA-Wavenet-B' },
+            ];
+            
             voiceSelect.innerHTML = '';
-            voices.forEach(voice => {
+            googleVoices.forEach(voice => {
                 const option = document.createElement('option');
-                option.textContent = `${voice.name} (${voice.lang})`;
-                option.setAttribute('data-lang', voice.lang);
-                option.setAttribute('data-name', voice.name);
-                option.value = voice.voiceURI;
+                option.textContent = voice.name;
+                option.value = voice.value;
                 voiceSelect.appendChild(option);
             });
-            const savedVoiceURI = localStorage.getItem('aida-voice');
-            if (savedVoiceURI) {
-                voiceSelect.value = savedVoiceURI;
+
+            const savedVoiceName = localStorage.getItem('aida-voice-name');
+            if (savedVoiceName) {
+                voiceSelect.value = savedVoiceName;
             }
         }
 
@@ -292,10 +305,10 @@
             pitchSlider.value = localStorage.getItem('aida-pitch') || 1;
             rateValue.textContent = rateSlider.value;
             pitchValue.textContent = pitchSlider.value;
-            voiceSelect.value = localStorage.getItem('aida-voice') || '';
+            voiceSelect.value = localStorage.getItem('aida-voice-name') || 'fr-FR-Wavenet-E';
             voiceSettingsModal.classList.remove('hidden');
         }
-
+        
         function closeSettingsModal() {
             voiceSettingsModal.classList.add('hidden');
         }
@@ -332,7 +345,7 @@
                 addMessage('aida', `Désolé, je n'ai pas pu lire ce document. Erreur : ${err.message}`);
             }
         });
-
+        
         settingsBtn.addEventListener('click', openSettingsModal);
         voiceSettingsModal.querySelector('.close-modal').addEventListener('click', closeSettingsModal);
         rateSlider.addEventListener('input', () => {
@@ -344,13 +357,10 @@
             localStorage.setItem('aida-pitch', pitchSlider.value);
         });
         voiceSelect.addEventListener('change', () => {
-            localStorage.setItem('aida-voice', voiceSelect.value);
+            localStorage.setItem('aida-voice-name', voiceSelect.value);
         });
 
         // --- Initialisation ---
-        if ('speechSynthesis' in window && speechSynthesis.onvoiceschanged !== undefined) {
-            speechSynthesis.onvoiceschanged = populateVoiceList;
-        }
         populateVoiceList();
         setupSpeechRecognition();
 
