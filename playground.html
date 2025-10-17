@@ -152,20 +152,110 @@
         let voices = [];
 
         // --- Fonctions de l'interface du Chat ---
-        function addMessage(sender, text) { /* ... (identique) ... */ }
-        function showTypingIndicator() { /* ... (identique) ... */ }
-        function removeTypingIndicator() { /* ... (identique) ... */ }
-        async function sendMessage() { /* ... (identique) ... */ }
+        function addMessage(sender, text) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `chat-message ${sender}`;
+            
+            const bubble = document.createElement('div');
+            bubble.className = 'message-bubble';
+            bubble.innerHTML = text.replace(/\n/g, '<br>');
+            messageDiv.appendChild(bubble);
+
+            if (sender === 'aida') {
+                const controls = document.createElement('div');
+                controls.className = 'aida-controls';
+                const listenBtn = document.createElement('button');
+                listenBtn.className = 'btn-icon';
+                listenBtn.innerHTML = '<i class="fa-solid fa-volume-high"></i>';
+                listenBtn.title = 'Écouter la réponse';
+                listenBtn.onclick = () => speakText(text);
+                controls.appendChild(listenBtn);
+                messageDiv.appendChild(controls);
+            }
+
+            chatWindow.appendChild(messageDiv);
+            chatWindow.scrollTop = chatWindow.scrollHeight;
+        }
+
+        function showTypingIndicator() {
+            const typingDiv = document.createElement('div');
+            typingDiv.id = 'typing-indicator';
+            typingDiv.className = 'chat-message aida';
+            typingDiv.innerHTML = `<div class="message-bubble"><div class="spinner-dots"><span></span><span></span><span></span></div></div>`;
+            chatWindow.appendChild(typingDiv);
+            chatWindow.scrollTop = chatWindow.scrollHeight;
+        }
+
+        function removeTypingIndicator() {
+            document.getElementById('typing-indicator')?.remove();
+        }
+
+        async function sendMessage() {
+            const message = userInput.value.trim();
+            if (!message) return;
+
+            const selectedMode = document.querySelector('input[name="mode"]:checked').value;
+            const fullMessage = `(Mode: ${selectedMode}) ${message}`;
+            
+            addMessage('user', message);
+            userInput.value = '';
+            showTypingIndicator();
+
+            chatHistory.push({ role: 'user', content: fullMessage });
+            
+            try {
+                const response = await fetch(`${backendUrl}/ai/playground-chat`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ history: chatHistory })
+                });
+                const data = await response.json();
+                chatHistory.push({ role: 'assistant', content: data.reply });
+                removeTypingIndicator();
+                addMessage('aida', data.reply);
+            } catch (error) {
+                removeTypingIndicator();
+                addMessage('aida', "Désolé, une erreur est survenue. Veuillez réessayer.");
+            }
+        }
         
         // --- Fonctions Vocales ---
-        function setupSpeechRecognition() { /* ... (identique) ... */ }
-        function toggleListening() { /* ... (identique) ... */ }
+        function setupSpeechRecognition() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition) {
+                micBtn.disabled = true;
+                micBtn.title = "La reconnaissance vocale n'est pas supportée par votre navigateur.";
+                return;
+            }
+            recognition = new SpeechRecognition();
+            recognition.lang = 'fr-FR';
+            recognition.interimResults = false;
+
+            recognition.onresult = (event) => {
+                const transcript = event.results[0][0].transcript;
+                userInput.value = transcript;
+                sendMessage();
+            };
+            recognition.onstart = () => micBtn.classList.add('recording');
+            recognition.onend = () => micBtn.classList.remove('recording');
+            recognition.onerror = (event) => {
+                console.error("Erreur de reconnaissance vocale:", event.error);
+                micBtn.classList.remove('recording');
+            };
+        }
+
+        function toggleListening() {
+            if (micBtn.classList.contains('recording')) {
+                recognition.stop();
+            } else {
+                recognition.start();
+            }
+        }
 
         function speakText(text) {
             if ('speechSynthesis' in window) {
                 speechSynthesis.cancel();
                 const utterance = new SpeechSynthesisUtterance(text);
-                // Utiliser les paramètres sauvegardés
                 const savedVoiceURI = localStorage.getItem('aida-voice');
                 const selectedVoice = voices.find(voice => voice.voiceURI === savedVoiceURI);
                 
@@ -191,7 +281,6 @@
                 option.value = voice.voiceURI;
                 voiceSelect.appendChild(option);
             });
-            // Sélectionner la voix sauvegardée
             const savedVoiceURI = localStorage.getItem('aida-voice');
             if (savedVoiceURI) {
                 voiceSelect.value = savedVoiceURI;
@@ -199,7 +288,6 @@
         }
 
         function openSettingsModal() {
-            // Charger les valeurs actuelles
             rateSlider.value = localStorage.getItem('aida-rate') || 1;
             pitchSlider.value = localStorage.getItem('aida-pitch') || 1;
             rateValue.textContent = rateSlider.value;
@@ -220,9 +308,31 @@
         });
         micBtn.addEventListener('click', toggleListening);
         uploadBtn.addEventListener('click', () => docUpload.click());
-        docUpload.addEventListener('change', async (e) => { /* ... (identique) ... */ });
+        docUpload.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
 
-        // Événements pour la modale
+            addMessage('user', `Analyse du document: ${file.name}`);
+            showTypingIndicator();
+
+            const formData = new FormData();
+            formData.append('document', file);
+            try {
+                const response = await fetch(`${backendUrl}/ai/playground-extract-text`, { method: 'POST', body: formData });
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.error);
+                
+                const message = `Voici le texte extrait du document. Que veux-tu faire avec ?\n\n---\n${data.extractedText}`;
+                chatHistory.push({ role: 'user', content: message });
+                
+                removeTypingIndicator();
+                addMessage('aida', `J'ai lu le document ! Le texte est maintenant dans notre conversation. Dis-moi comment je peux t'aider avec.`);
+            } catch (err) {
+                removeTypingIndicator();
+                addMessage('aida', `Désolé, je n'ai pas pu lire ce document. Erreur : ${err.message}`);
+            }
+        });
+
         settingsBtn.addEventListener('click', openSettingsModal);
         voiceSettingsModal.querySelector('.close-modal').addEventListener('click', closeSettingsModal);
         rateSlider.addEventListener('input', () => {
@@ -241,7 +351,7 @@
         if ('speechSynthesis' in window && speechSynthesis.onvoiceschanged !== undefined) {
             speechSynthesis.onvoiceschanged = populateVoiceList;
         }
-        populateVoiceList(); // Pour les navigateurs qui ne déclenchent pas onvoiceschanged
+        populateVoiceList();
         setupSpeechRecognition();
 
         const urlParams = new URLSearchParams(window.location.search);
