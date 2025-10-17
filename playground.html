@@ -357,7 +357,7 @@
         }
         
         // --- Écouteurs d'événements ---
-        backToDashboardBtn.addEventListener('click', () => { window.location.href = './app.html'; });
+        backToDashboardBtn.addEventListener('click', () => { window.history.back(); });
         sendBtn.addEventListener('click', sendMessage);
         userInput.addEventListener('keydown', (e) => {
             if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
