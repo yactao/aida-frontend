@@ -483,8 +483,7 @@
             p.innerHTML = `
                 <div class="page-header">
                     <h2>Bonjour ${currentUser.firstName}!</h2>
-                    <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
-                        <button class="btn btn-secondary" id="open-planner-btn"><i class="fa-solid fa-calendar-days"></i> Planificateur de Cours</button>
+                    <div>
                         <button class="btn btn-main" id="open-gen-modal"><i class="fa-solid fa-plus"></i> Nouveau Contenu</button> 
                         <button class="btn btn-secondary" id="open-class-modal"><i class="fa-solid fa-users"></i> Nouvelle Classe</button>
                     </div>
@@ -1553,76 +1552,7 @@
             }
         }
 
-        async function renderPlannerPage() {
-            const page = document.getElementById('planner-page');
-            changePage('planner-page');
-            page.innerHTML = `
-                <div class="page-header">
-                    <h2><i class="fa-solid fa-calendar-days"></i> Planificateur de Cours</h2>
-                    <button id="back-to-teacher-dash" class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> Retour</button>
-                </div>
-                <div class="card">
-                    <form id="planner-form">
-                        <div class="form-group">
-                            <label for="planner-theme">Thème de la séquence</label>
-                            <input type="text" id="planner-theme" placeholder="Ex: L'Empire romain, Les fractions, Le subjonctif..." required>
-                        </div>
-                        <div class="form-group">
-                            <label for="planner-level">Niveau de la classe</label>
-                            <input type="text" id="planner-level" placeholder="Ex: 6ème, CE2, Seconde..." required>
-                        </div>
-                        <div class="form-group">
-                            <label for="planner-sessions">Nombre de séances</label>
-                            <input type="number" id="planner-sessions" value="3" min="1" max="10" required>
-                        </div>
-                        <button type="submit" class="btn btn-main">Générer la séquence</button>
-                    </form>
-                </div>
-                <div id="planner-output">${spinnerHtml}</div>
-            `;
-
-            const outputContainer = document.getElementById('planner-output');
-            outputContainer.classList.add('hidden');
-            
-            page.querySelector('#back-to-teacher-dash').addEventListener('click', renderTeacherDashboard);
-
-            page.querySelector('#planner-form').addEventListener('submit', async (e) => {
-                e.preventDefault();
-                outputContainer.classList.remove('hidden');
-                outputContainer.innerHTML = spinnerHtml;
-
-                const theme = document.getElementById('planner-theme').value;
-                const level = document.getElementById('planner-level').value;
-                const numSessions = document.getElementById('planner-sessions').value;
-
-                try {
-                    const data = await apiRequest('/ai/generate-lesson-plan', 'POST', { theme, level, numSessions });
-                    const plan = data.structured_plan;
-                    
-                    let outputHtml = `<h3>${plan.planTitle} (Niveau ${plan.level})</h3>`;
-                    plan.sessions.forEach(session => {
-                        outputHtml += `
-                            <div class="session-card">
-                                <div class="session-header">
-                                    <div class="session-number">${session.sessionNumber}</div>
-                                    <h4>${session.title}</h4>
-                                </div>
-                                <p><strong>Objectif :</strong> ${session.objective}</p>
-                                <p><strong>Activités proposées :</strong></p>
-                                <ul>${session.activities.map(act => `<li>${act}</li>`).join('')}</ul>
-                                <p><strong>Ressources AIDA à créer :</strong></p>
-                                <ul>${session.resources.map(res => `<li>${res}</li>`).join('')}</ul>
-                            </div>
-                        `;
-                    });
-                    outputContainer.innerHTML = outputHtml;
-                } catch (error) {
-                    outputContainer.innerHTML = `<p class="error-message">Erreur lors de la génération du plan : ${error.message}</p>`;
-                }
-            });
-        }
-
-            async function init() {
+        async function init() {
             if (window.location.hash === '#login' && !currentUser) {
                 renderAuthPage();
                 return;
