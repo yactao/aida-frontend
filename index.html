@@ -599,7 +599,7 @@
             page.innerHTML = `<button id="back-to-teacher" class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> Retour</button>${spinnerHtml}`;
             page.querySelector('#back-to-teacher').addEventListener('click', renderTeacherDashboard);
             changePage('class-details-page');
-            currentClassData = await apiRequest(`/teacher/classes/${id}`);
+            currentClassData = await apiRequest(`/teacher/classes/${id}?teacherEmail=${currentUser.email}`);
             
             page.innerHTML = `
                 <button id="back-to-teacher" class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> Retour</button>
