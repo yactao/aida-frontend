@@ -144,11 +144,6 @@
         #user-info-clickable .avatar { border: 2px solid var(--card-bg-color); }
         .dashboard-card h4 .avatar, .page-header h2 .avatar { width: 40px; height: 40px; }
         
-
-
-
-
-
         .quiz-question { margin-bottom: 2.5rem; }
         .question-header { 
             display: flex; 
@@ -266,6 +261,55 @@
          body.dark-mode .appreciation-option input[type="radio"]:checked + label {
             background-color: #2a3a50;
          }
+
+        #planner-output { margin-top: 2rem; }
+        .session-card {
+            background: var(--card-bg-color);
+            padding: 1.5rem;
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            margin-bottom: 1.5rem;
+            border-left: 5px solid var(--primary-color);
+        }
+        .session-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+        .session-number {
+            background: var(--primary-color);
+            color: white;
+            font-weight: 700;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: grid;
+            place-items: center;
+            flex-shrink: 0;
+        }
+        .session-card h4 {
+            font-size: 1.1rem;
+            margin-bottom: 0.5rem;
+            color: var(--primary-color);
+        }
+        .session-card ul {
+            list-style: none;
+            padding-left: 0;
+        }
+        .session-card li {
+            padding-left: 1.5rem;
+            position: relative;
+            margin-bottom: 0.5rem;
+        }
+        .session-card li::before {
+            content: '\f00c';
+            font-family: "Font Awesome 6 Free";
+            font-weight: 900;
+            color: var(--secondary-color);
+            position: absolute;
+            left: 0;
+        }
     </style>
 </head>
 <body>
@@ -316,7 +360,7 @@
                         <div class="rotating-text-inner">
                             <span class="word-1">Comprendre</span>
                             <span class="word-2">Apprendre</span>
-                            <span class="word-3">Explorer</span>
+                            <span class="word-3">Créer</span>
                             <span class="word-4">Découvrir</span>
                             <span class="word-5">Progresser</span>
                         </div>
@@ -377,24 +421,15 @@
             try {
                 const fetchProgram = async (fileName) => {
                     const response = await fetch(`${backendUrl}/${fileName}`);
-                    if (!response.ok) {
-                        throw new Error(`Le fichier ${fileName} est introuvable ou illisible (statut: ${response.status}). Vérifiez qu'il est bien déployé dans le dossier 'public' de votre backend.`);
-                    }
+                    if (!response.ok) { throw new Error(`Le fichier ${fileName} est introuvable ou illisible (statut: ${response.status}).`); }
                     return response.json();
                 };
-
-                const [p, c, l] = await Promise.all([
-                    fetchProgram('programmes-primaire.json'),
-                    fetchProgram('programmes-college.json'),
-                    fetchProgram('programmes-lycee.json')
-                ]);
-                
+                const [p, c, l] = await Promise.all([ fetchProgram('programmes-primaire.json'), fetchProgram('programmes-college.json'), fetchProgram('programmes-lycee.json') ]);
                 programmes = { Primaire: p, Collège: c, Lycée: l };
                 console.log("Programmes chargés avec succès.");
-
             } catch (e) {
                 console.error("Erreur critique lors du chargement des programmes:", e);
-                alert("Erreur critique : Impossible de charger les programmes scolaires. La génération de contenu est désactivée. Détails : " + e.message);
+                alert("Erreur critique : Impossible de charger les programmes scolaires. Détails : " + e.message);
                 programmes = {}; 
             }
         }
@@ -483,7 +518,8 @@
             p.innerHTML = `
                 <div class="page-header">
                     <h2>Bonjour ${currentUser.firstName}!</h2>
-                    <div>
+                    <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                        <button class="btn btn-secondary" id="open-planner-btn"><i class="fa-solid fa-calendar-days"></i> Planificateur de Cours</button>
                         <button class="btn btn-main" id="open-gen-modal"><i class="fa-solid fa-plus"></i> Nouveau Contenu</button> 
                         <button class="btn btn-secondary" id="open-class-modal"><i class="fa-solid fa-users"></i> Nouvelle Classe</button>
                     </div>
@@ -492,6 +528,8 @@
             changePage('teacher-dashboard-page');
             p.querySelector('#open-class-modal').addEventListener('click', showCreateClassModal);
             p.querySelector('#open-gen-modal').addEventListener('click', showGenerationModal);
+            p.querySelector('#open-planner-btn').addEventListener('click', renderPlannerPage);
+
             teacherClasses = await apiRequest(`/teacher/classes?teacherEmail=${currentUser.email}`);
             
             if (currentUser.classOrder && Array.isArray(currentUser.classOrder)) {
@@ -1339,7 +1377,6 @@
             renderStudentDashboard();
         }
         
-        // --- NOUVELLES FONCTIONS POUR LA BIBLIOTHÈQUE ---
         async function renderLibraryPage() {
             const page = document.getElementById('library-page');
             changePage('library-page');
@@ -1411,7 +1448,6 @@
             }
         }
         
-        // --- Fonctions de génération de contenu (ré-intégrées) ---
         function showGenerationModal() {
             if (Object.keys(programmes).length === 0) {
                 alert("Les programmes scolaires n'ont pas pu être chargés. Impossible de générer du contenu.");
@@ -1482,22 +1518,13 @@
             const page = document.getElementById('workspace-page');
             changePage('workspace-page');
             let html = `<button id="back-to-dashboard-btn" class="btn btn-secondary" style="margin-bottom: 2rem;"><i class="fa-solid fa-arrow-left"></i> Retour au tableau de bord</button>`;
-            
             html += `<h2>Espace de Travail Élève</h2><p>Bloqué sur un exercice ? Collez-le ici, écris ta réponse et demande à AIDA de te corriger. Vous pouvez aussi charger un document.</p>
                          <div class="workspace-container" style="margin-top: 2rem;">
                             <div class="workspace-input">
                                 <h3>Ton exercice</h3>
                                 <form id="student-workspace-form">
-                                    <div class="form-group">
-                                        <label for="exercise-text">Colle ton exercice ou charge un document</label>
-                                        <textarea id="exercise-text" required placeholder="Ex: Calcule 5 + 3."></textarea>
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="student-answer">Ta réponse</label>
-                                        <div class="textarea-container">
-                                            <textarea id="student-answer" required placeholder="Ex: Ma réponse est 8."></textarea>
-                                        </div>
-                                    </div>
+                                    <div class="form-group"><label for="exercise-text">Colle ton exercice ou charge un document</label><textarea id="exercise-text" required placeholder="Ex: Calcule 5 + 3."></textarea></div>
+                                    <div class="form-group"><label for="student-answer">Ta réponse</label><div class="textarea-container"><textarea id="student-answer" required placeholder="Ex: Ma réponse est 8."></textarea></div></div>
                                     <div style="display: flex; gap: 1rem; align-items: center; flex-wrap: wrap;">
                                         <button type="submit" class="btn btn-main">Corrige-moi, AIDA !</button>
                                         <button type="button" class="btn btn-secondary" id="student-upload-btn"><i class="fa-solid fa-upload"></i> Charger un document</button>
@@ -1505,36 +1532,25 @@
                                 </form>
                                 <input type="file" id="student-doc-upload" class="hidden" accept=".pdf,.docx,.png,.jpg,.jpeg">
                             </div>
-                            <div class="workspace-output">
-                                <h3>La correction d'AIDA</h3>
-                                <div id="student-output-container"><p>La correction d'AIDA apparaîtra ici.</p></div>
-                            </div>
+                            <div class="workspace-output"><h3>La correction d'AIDA</h3><div id="student-output-container"><p>La correction d'AIDA apparaîtra ici.</p></div></div>
                         </div>`;
-            
             page.innerHTML = html;
-            
             page.querySelector('#back-to-dashboard-btn').addEventListener('click', renderStudentDashboard);
             page.querySelector('#student-workspace-form').addEventListener('submit', handleStudentWorkspace);
-            
             const studentUploadBtn = page.querySelector('#student-upload-btn');
             const studentFileInput = page.querySelector('#student-doc-upload');
             studentUploadBtn.addEventListener('click', () => studentFileInput.click());
             studentFileInput.addEventListener('change', async (e) => {
-                const file = e.target.files[0];
-                if (!file) return;
+                const file = e.target.files[0]; if (!file) return;
                 const outputContainer = document.getElementById('student-output-container');
                 outputContainer.innerHTML = spinnerHtml + '<p>Analyse de votre document en cours...</p>';
-                const formData = new FormData();
-                formData.append('document', file);
+                const formData = new FormData(); formData.append('document', file);
                 try {
                     const response = await fetch(`${backendUrl}/api/ai/extract-text-from-student-doc`, { method: 'POST', body: formData });
-                    const data = await response.json();
-                    if (!response.ok) throw new Error(data.error);
+                    const data = await response.json(); if (!response.ok) throw new Error(data.error);
                     document.getElementById('exercise-text').value = data.extractedText;
                     outputContainer.innerHTML = "<p>✅ Document analysé ! Vous pouvez maintenant écrire votre réponse et demander une correction.</p>";
-                } catch (err) {
-                    outputContainer.innerHTML = `<p class="error-message">Erreur lors de l'analyse du document : ${err.message}</p>`;
-                }
+                } catch (err) { outputContainer.innerHTML = `<p class="error-message">Erreur lors de l'analyse du document : ${err.message}</p>`; }
             });
         }
         
@@ -1550,6 +1566,44 @@
             } catch (err) {
                 outputContainer.innerHTML = `<p class="error-message">Une erreur est survenue: ${err.message}</p>`;
             }
+        }
+
+        async function renderPlannerPage() {
+            const page = document.getElementById('planner-page');
+            changePage('planner-page');
+            page.innerHTML = `
+                <div class="page-header">
+                    <h2><i class="fa-solid fa-calendar-days"></i> Planificateur de Cours</h2>
+                    <button id="back-to-teacher-dash" class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> Retour</button>
+                </div>
+                <div class="card">
+                    <form id="planner-form">
+                        <div class="form-group"><label for="planner-theme">Thème de la séquence</label><input type="text" id="planner-theme" placeholder="Ex: L'Empire romain, Les fractions..." required></div>
+                        <div class="form-group"><label for="planner-level">Niveau de la classe</label><input type="text" id="planner-level" placeholder="Ex: 6ème, CE2, Seconde..." required></div>
+                        <div class="form-group"><label for="planner-sessions">Nombre de séances</label><input type="number" id="planner-sessions" value="3" min="1" max="10" required></div>
+                        <button type="submit" class="btn btn-main">Générer la séquence</button>
+                    </form>
+                </div>
+                <div id="planner-output" class="hidden">${spinnerHtml}</div>`;
+            const outputContainer = document.getElementById('planner-output');
+            page.querySelector('#back-to-teacher-dash').addEventListener('click', renderTeacherDashboard);
+            page.querySelector('#planner-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                outputContainer.classList.remove('hidden');
+                outputContainer.innerHTML = spinnerHtml;
+                const theme = document.getElementById('planner-theme').value;
+                const level = document.getElementById('planner-level').value;
+                const numSessions = document.getElementById('planner-sessions').value;
+                try {
+                    const data = await apiRequest('/ai/generate-lesson-plan', 'POST', { theme, level, numSessions });
+                    const plan = data.structured_plan;
+                    let outputHtml = `<h3>${plan.planTitle} (Niveau ${plan.level})</h3>`;
+                    plan.sessions.forEach(session => {
+                        outputHtml += `<div class="session-card"><div class="session-header"><div class="session-number">${session.sessionNumber}</div><h4>${session.title}</h4></div><p><strong>Objectif :</strong> ${session.objective}</p><p><strong>Activités :</strong></p><ul>${session.activities.map(act => `<li>${act}</li>`).join('')}</ul><p><strong>Ressources AIDA :</strong></p><ul>${session.resources.map(res => `<li>${res}</li>`).join('')}</ul></div>`;
+                    });
+                    outputContainer.innerHTML = outputHtml;
+                } catch (error) { outputContainer.innerHTML = `<p class="error-message">Erreur lors de la génération du plan : ${error.message}</p>`; }
+            });
         }
 
         async function init() {
