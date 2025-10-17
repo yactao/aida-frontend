@@ -178,13 +178,83 @@
             chatWindow.scrollTop = chatWindow.scrollHeight;
         }
 
-        function showTypingIndicator() { /* ... (identique) ... */ }
-        function removeTypingIndicator() { /* ... (identique) ... */ }
-        async function sendMessage() { /* ... (identique) ... */ }
+        function showTypingIndicator() {
+            const typingDiv = document.createElement('div');
+            typingDiv.id = 'typing-indicator';
+            typingDiv.className = 'chat-message aida';
+            const bubble = document.createElement('div');
+            bubble.className = 'message-bubble';
+            bubble.innerHTML = `<div class="spinner-dots"><span></span><span></span><span></span></div>`;
+            typingDiv.appendChild(bubble);
+            chatWindow.appendChild(typingDiv);
+            chatWindow.scrollTop = chatWindow.scrollHeight;
+        }
+        function removeTypingIndicator() {
+            const indicator = document.getElementById('typing-indicator');
+            if (indicator) {
+                indicator.remove();
+            }
+        }
+        async function sendMessage() {
+            const message = userInput.value.trim();
+            if (!message) return;
+
+            const selectedMode = document.querySelector('input[name="mode"]:checked').value;
+            const fullMessage = `(Mode: ${selectedMode}) ${message}`;
+            
+            addMessage('user', message);
+            userInput.value = '';
+            showTypingIndicator();
+
+            chatHistory.push({ role: 'user', content: fullMessage });
+            
+            try {
+                const response = await fetch(`${backendUrl}/ai/playground-chat`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ history: chatHistory })
+                });
+                const data = await response.json();
+                chatHistory.push({ role: 'assistant', content: data.reply });
+                removeTypingIndicator();
+                addMessage('aida', data.reply);
+            } catch (error) {
+                removeTypingIndicator();
+                addMessage('aida', "Désolé, une erreur est survenue. Veuillez réessayer.");
+            }
+        }
         
         // --- Fonctions Vocales ---
-        function setupSpeechRecognition() { /* ... (identique) ... */ }
-        function toggleListening() { /* ... (identique) ... */ }
+        function setupSpeechRecognition() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition) {
+                micBtn.disabled = true;
+                micBtn.title = "La reconnaissance vocale n'est pas supportée par votre navigateur.";
+                return;
+            }
+            recognition = new SpeechRecognition();
+            recognition.lang = 'fr-FR';
+            recognition.interimResults = false;
+
+            recognition.onresult = (event) => {
+                const transcript = event.results[0][0].transcript;
+                userInput.value = transcript;
+                sendMessage(); // Envoyer le message automatiquement
+            };
+            recognition.onstart = () => micBtn.classList.add('recording');
+            recognition.onend = () => micBtn.classList.remove('recording');
+            recognition.onerror = (event) => {
+                console.error("Erreur de reconnaissance vocale:", event.error);
+                micBtn.classList.remove('recording');
+            };
+        }
+        function toggleListening() {
+            if (micBtn.classList.contains('recording')) {
+                recognition.stop();
+            } else {
+                recognition.start();
+            }
+        }
 
         async function togglePlayback(text, buttonEl) {
             // Si on clique sur le bouton qui est déjà en train de jouer, on l'arrête
@@ -287,14 +357,39 @@
         }
         
         // --- Écouteurs d'événements ---
-        backToDashboardBtn.addEventListener('click', () => { window.history.back(); });
+        backToDashboardBtn.addEventListener('click', () => { window.location.href = './app.html'; });
         sendBtn.addEventListener('click', sendMessage);
         userInput.addEventListener('keydown', (e) => {
             if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
         });
         micBtn.addEventListener('click', toggleListening);
         uploadBtn.addEventListener('click', () => docUpload.click());
-        docUpload.addEventListener('change', async (e) => { /* ... (identique) ... */ });
+        docUpload.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            addMessage('user', `Analyse du document: ${file.name}`);
+            showTypingIndicator();
+
+            const formData = new FormData();
+            formData.append('document', file);
+            try {
+                // NOTE: This endpoint might not exist on the current server.js
+                // Assuming `/api/ai/playground-extract-text` for now.
+                const response = await fetch(`${backendUrl}/ai/playground-extract-text`, { method: 'POST', body: formData });
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.error || 'Erreur du serveur');
+                
+                const message = `Voici le texte extrait du document. Que veux-tu faire avec ?\n\n---\n${data.extractedText}`;
+                chatHistory.push({ role: 'user', content: message });
+                
+                removeTypingIndicator();
+                addMessage('aida', `J'ai lu le document ! Le texte est maintenant dans notre conversation. Dis-moi comment je peux t'aider avec.`);
+            } catch (err) {
+                removeTypingIndicator();
+                addMessage('aida', `Désolé, je n'ai pas pu lire ce document. Erreur : ${err.message}`);
+            }
+        });
         
         settingsBtn.addEventListener('click', openSettingsModal);
         voiceSettingsModal.querySelector('.close-modal').addEventListener('click', closeSettingsModal);
