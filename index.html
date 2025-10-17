@@ -365,7 +365,7 @@
                         <div class="rotating-text-inner">
                             <span class="word-1">Comprendre</span>
                             <span class="word-2">Apprendre</span>
-                            <span class="word-3">Travailler</span>
+                            <span class="word-3">Créer</span>
                             <span class="word-4">Découvrir</span>
                             <span class="word-5">Progresser</span>
                         </div>
@@ -546,12 +546,11 @@
             
             const grid = p.querySelector('#class-grid');
             grid.innerHTML = teacherClasses.length === 0 ? "<p>Aucune classe pour le moment. Créez-en une pour commencer !</p>" : "";
-            teacherClasses.forEach(c => {
-                const card = document.createElement('div');
-                card.className = 'dashboard-card';
-                card.dataset.classId = c.id;
+            
+            const classCardsHtml = teacherClasses.map(c => {
                 const completionRate = calculateCompletionRate(c);
-                card.innerHTML = `
+                return `
+                <div class="dashboard-card" data-class-id="${c.id}">
                     <h4>${c.className}</h4>
                     <p style="margin-top: 1rem;"><i class="fa-solid fa-users" style="margin-right: 8px; width: 20px;"></i> ${c.students.length} élève(s)</p>
                     <p><i class="fa-solid fa-book-open" style="margin-right: 8px; width: 20px;"></i> ${(c.content || []).length} contenu(s) assigné(s)</p>
@@ -562,13 +561,16 @@
                         </div>
                         <span style="font-weight: 600; font-size: 0.9rem;">${completionRate}%</span>
                     </div>
-                `;
-                 card.addEventListener('click', (e) => {
+                </div>`;
+            }).join('');
+            grid.innerHTML = classCardsHtml;
+
+            grid.addEventListener('click', (e) => {
+                const card = e.target.closest('.dashboard-card');
+                if (card && card.dataset.classId) {
                     if (e.target.closest('button')) return;
-                    if (card.classList.contains('sortable-ghost')) return;
-                    renderClassDetailsPage(c.id);
-                });
-                grid.appendChild(card);
+                    renderClassDetailsPage(card.dataset.classId);
+                }
             });
 
             new Sortable(grid, {
