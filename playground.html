@@ -62,6 +62,7 @@
         .spinner-dots span:nth-child(1) { animation-delay: -0.32s; }
         .spinner-dots span:nth-child(2) { animation-delay: -0.16s; }
         @keyframes bounce { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1); } }
+        .hidden { display: none !important; }
     </style>
 </head>
 <body>
@@ -156,12 +157,8 @@
             }
         }
         
-        // --- NOUVELLE FONCTION DE RETOUR INTELLIGENT ---
         backToDashboardBtn.addEventListener('click', () => {
-            // Puisque playground.html est utilisé par les deux rôles, 
-            // nous ne pouvons pas savoir directement où retourner.
-            // La solution la plus simple est de revenir à la page principale de l'app.
-            window.location.href = 'app.html';
+            window.history.back();
         });
 
         sendBtn.addEventListener('click', sendMessage);
