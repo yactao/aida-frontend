@@ -1518,14 +1518,68 @@
             m.addEventListener('change', () => { resetSelects([no, co]); const d = programmes[cy.value][n.value]?.[m.value]; if (d) { Object.keys(d).filter(k => k !== 'nom').forEach(nk => { no.add(new Option(d[nk].nom, nk)); }); no.disabled = false; } });
             no.addEventListener('change', () => { resetSelects([co]); const d = programmes[cy.value][n.value]?.[m.value]?.[no.value]; if (d && d.sous_notions) { Object.values(d.sous_notions).forEach(sn => { (sn.competences || []).forEach(c => co.add(new Option(c, c))); }); co.disabled = false; } });
             co.addEventListener('change', () => { gen.disabled = !co.value; });
-            document.getElementById('generation-form').addEventListener('submit', async e => { e.preventDefault(); selectedCompetenceInfo = { level: n.value, competence: co.value }; const comp = co.value; const contentType = document.getElementById('content-type-select').value; const exerciseCount = document.getElementById('exercise-count').value; document.getElementById('generation-spinner').classList.remove('hidden'); const d = await apiRequest('/ai/generate-content', 'POST', { competences: comp, contentType, exerciseCount }); generatedContent = d.structured_content; showEditModal(); });
+            document.getElementById('generation-form').addEventListener('submit', async e => { e.preventDefault(); selectedCompetenceInfo = { level: n.value, competence: co.value }; const comp = co.value; const contentType = document.getElementById('content-type-select').value; const exerciseCount = document.getElementById('exercise-count').value; document.getElementById('generation-spinner').classList.remove('hidden'); try { const d = await apiRequest('/ai/generate-content', 'POST', { competences: comp, contentType, exerciseCount }); generatedContent = d.structured_content; showEditModal(); } catch(err) { alert("Erreur: " + err.message); } finally { document.getElementById('generation-spinner').classList.add('hidden'); } });
             document.getElementById('generate-from-upload-form').addEventListener('submit', async (e) => { e.preventDefault(); const spinner = document.getElementById('generation-spinner'); spinner.classList.remove('hidden'); const formData = new FormData(); formData.append('document', document.getElementById('document-upload-input').files[0]); formData.append('contentType', document.getElementById('teacher-content-type-upload').value); formData.append('exerciseCount', document.getElementById('exercise-count-upload').value); try { const response = await fetch(`${backendUrl}/api/ai/generate-from-upload`, { method: 'POST', body: formData }); const data = await response.json(); if (!response.ok) throw new Error(data.error); generatedContent = data.structured_content; showEditModal(); } catch (err) { alert('Erreur: ' + err.message); } finally { spinner.classList.add('hidden'); } });
             const modal = document.getElementById('generation-modal');
             modal.querySelectorAll('.tab-button').forEach(button => { button.addEventListener('click', (e) => { modal.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active')); modal.querySelectorAll('.tab-panel').forEach(panel => panel.classList.remove('active')); e.target.classList.add('active'); document.getElementById(e.target.dataset.tab).classList.add('active'); }); });
         }
         function resetSelects(selects) { selects.forEach(s => { s.innerHTML = '<option value="">-- Choisir --</option>'; s.disabled = true; }); document.getElementById('generate-btn').disabled = true; }
-        function showEditModal() { let editHtml = `<form id="edit-form"><div class="form-group"><label>Titre</label><input type="text" id="edit-title" value="${generatedContent.title}"></div>`; if (generatedContent.type === 'quiz') { generatedContent.questions.forEach((q, i) => { editHtml += `<div class="form-group"><label>Question ${i+1}</label><input type="text" id="edit-q-${i}" value="${q.question_text}"><label style="margin-top: 0.5rem;">Options</label>${q.options.map((opt, j) => `<input type="text" id="edit-q-${i}-opt-${j}" value="${opt}" style="margin-bottom: 0.5rem;">`).join('')}</div>`; }); } else if (generatedContent.type === 'exercices' || generatedContent.type === 'dm') { generatedContent.content.forEach((ex, i) => { editHtml += `<div class="form-group"><label>Exercice ${i+1}</label><textarea id="edit-ex-${i}" rows="3">${ex.enonce}</textarea></div>`; }); } else if (generatedContent.type === 'revision') { editHtml += `<div class="form-group"><label>Contenu de la fiche</label><textarea id="edit-revision-content" rows="10">${generatedContent.content}</textarea></div>`; } editHtml += `<button type="submit" class="btn btn-main">Valider et Assigner</button></form>`; renderModal(getModalTemplate('edit-modal', 'Modifier et Valider le Contenu', editHtml)); document.getElementById('edit-form').addEventListener('submit', (e) => { e.preventDefault(); generatedContent.title = document.getElementById('edit-title').value; if (generatedContent.type === 'quiz') { generatedContent.questions.forEach((q, i) => { q.question_text = document.getElementById(`edit-q-${i}`).value; q.options.forEach((opt, j) => { q.options[j] = document.getElementById(`edit-q-${i}-opt-${j}`).value; }); }); } else if (generatedContent.type === 'exercices' || generatedContent.type === 'dm') { generatedContent.content.forEach((ex, i) => { ex.enonce = document.getElementById(`edit-ex-${i}`).value; }); } else if (generatedContent.type === 'revision') { generatedContent.content = document.getElementById('edit-revision-content').value; } showAssignModal(); }); }
         
+        function showEditModal() {
+            let editHtml = `<form id="edit-form"><div class="form-group"><label>Titre</label><input type="text" id="edit-title" value="${generatedContent.title || ''}"></div>`;
+
+            if (generatedContent.type === 'quiz' && Array.isArray(generatedContent.questions)) {
+                generatedContent.questions.forEach((q, i) => {
+                    editHtml += `<div class="form-group"><label>Question ${i + 1}</label><input type="text" id="edit-q-${i}" value="${q.question_text || ''}"><label style="margin-top: 0.5rem;">Options</label>`;
+                    if (Array.isArray(q.options)) {
+                        editHtml += q.options.map((opt, j) => `<input type="text" id="edit-q-${i}-opt-${j}" value="${opt || ''}" style="margin-bottom: 0.5rem;">`).join('');
+                    }
+                    editHtml += `</div>`;
+                });
+            } else if ((generatedContent.type === 'exercices' || generatedContent.type === 'dm') && Array.isArray(generatedContent.content)) {
+                generatedContent.content.forEach((ex, i) => {
+                    editHtml += `<div class="form-group"><label>Exercice ${i + 1}</label><textarea id="edit-ex-${i}" rows="3">${ex.enonce || ''}</textarea></div>`;
+                });
+            } else if (generatedContent.type === 'revision' && typeof generatedContent.content === 'string') {
+                editHtml += `<div class="form-group"><label>Contenu de la fiche</label><textarea id="edit-revision-content" rows="10">${generatedContent.content || ''}</textarea></div>`;
+            } else {
+                editHtml += `<p class="error-message">Le contenu généré par l'IA a une structure inattendue. Vous pouvez le modifier manuellement ci-dessous.</p>`;
+                editHtml += `<div class="form-group"><label>Contenu brut (JSON)</label><textarea rows="10" id="raw-json-edit">${JSON.stringify(generatedContent, null, 2)}</textarea></div>`;
+            }
+            editHtml += `<button type="submit" class="btn btn-main">Valider et Assigner</button></form>`;
+
+            renderModal(getModalTemplate('edit-modal', 'Modifier et Valider le Contenu', editHtml));
+
+            document.getElementById('edit-form').addEventListener('submit', (e) => {
+                e.preventDefault();
+                try {
+                    const rawJsonTextarea = document.getElementById('raw-json-edit');
+                    if (rawJsonTextarea) {
+                        generatedContent = JSON.parse(rawJsonTextarea.value);
+                    } else {
+                        generatedContent.title = document.getElementById('edit-title').value;
+                        if (generatedContent.type === 'quiz' && Array.isArray(generatedContent.questions)) {
+                            generatedContent.questions.forEach((q, i) => {
+                                q.question_text = document.getElementById(`edit-q-${i}`).value;
+                                if (Array.isArray(q.options)) {
+                                    q.options.forEach((opt, j) => { q.options[j] = document.getElementById(`edit-q-${i}-opt-${j}`).value; });
+                                }
+                            });
+                        } else if ((generatedContent.type === 'exercices' || generatedContent.type === 'dm') && Array.isArray(generatedContent.content)) {
+                            generatedContent.content.forEach((ex, i) => {
+                                ex.enonce = document.getElementById(`edit-ex-${i}`).value;
+                            });
+                        } else if (generatedContent.type === 'revision') {
+                            generatedContent.content = document.getElementById('edit-revision-content').value;
+                        }
+                    }
+                    showAssignModal();
+                } catch (err) {
+                    alert("Le JSON modifié n'est pas valide. Veuillez le corriger avant de continuer.");
+                }
+            });
+        }
+
         function showAssignModal(contentToAssign) { 
             const content = contentToAssign || generatedContent; 
             const defaultDueDate = new Date(); 
@@ -1640,5 +1694,4 @@
     </script>
 </body>
 </html>
-
 
