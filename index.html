@@ -497,8 +497,8 @@
             changePage('auth-page');
         }
 
-        async function handleLogin(e) { e.preventDefault(); try { const data = await apiRequest('/auth/login', 'POST', { email: document.getElementById('login-email').value, password: document.getElementById('login-password').value }); currentUser = data.user; updateUI(); } catch (err) { document.getElementById('login-error').textContent = err.message; } }
-        async function handleSignup(e) { e.preventDefault(); try { const data = await apiRequest('/auth/signup', 'POST', { email: document.getElementById('signup-email').value, password: document.getElementById('signup-password').value, role: document.getElementById('signup-role').value }); currentUser = data.user; updateUI(); } catch (err) { document.getElementById('signup-error').textContent = err.message; } }
+        async function handleLogin(e) { e.preventDefault(); try { const data = await apiRequest('/auth/login', 'POST', { email: document.getElementById('login-email').value, password: document.getElementById('login-password').value }); currentUser = data.user; localStorage.setItem('currentUser', JSON.stringify(currentUser)); updateUI(); } catch (err) { document.getElementById('login-error').textContent = err.message; } }
+        async function handleSignup(e) { e.preventDefault(); try { const data = await apiRequest('/auth/signup', 'POST', { email: document.getElementById('signup-email').value, password: document.getElementById('signup-password').value, role: document.getElementById('signup-role').value }); currentUser = data.user; localStorage.setItem('currentUser', JSON.stringify(currentUser)); updateUI(); } catch (err) { document.getElementById('signup-error').textContent = err.message; } }
         function toggleAuthForms(e) { e.preventDefault(); document.getElementById('login-form-container').classList.toggle('hidden'); document.getElementById('signup-form-container').classList.toggle('hidden'); }
         
         function calculateCompletionRate(cls) {
@@ -1654,6 +1654,11 @@
         }
 
         async function init() {
+            const savedUser = localStorage.getItem('currentUser');
+            if (savedUser) {
+                currentUser = JSON.parse(savedUser);
+            }
+
             if (window.location.hash === '#login' && !currentUser) {
                 renderAuthPage();
                 return;
@@ -1668,7 +1673,11 @@
         startAppBtn.addEventListener('click', renderAuthPage);
         homeLink.addEventListener('click', () => { if(currentUser) { currentUser.role === 'teacher' ? renderTeacherDashboard() : renderStudentDashboard() } else { changePage('home-page'); } });
         libraryLink.addEventListener('click', (e) => { e.preventDefault(); renderLibraryPage(); });
-        logoutBtn.addEventListener('click', () => { currentUser = null; updateUI(); });
+        logoutBtn.addEventListener('click', () => { 
+            currentUser = null; 
+            localStorage.removeItem('currentUser');
+            updateUI(); 
+        });
         userInfoClickable.addEventListener('click', () => userDropdown.classList.toggle('hidden'));
         window.addEventListener('click', (e) => {
             if (userMenuContainer && !userMenuContainer.contains(e.target)) {
