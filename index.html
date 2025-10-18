@@ -776,8 +776,9 @@
                 const student = (currentClassData.studentsWithDetails || []).find(s => s.email === result.studentEmail);
                 const studentName = student ? student.firstName : result.studentEmail;
                 const submittedDate = new Date(result.submittedAt).toLocaleDateString('fr-FR');
+                const resultString = JSON.stringify(result).replace(/"/g, '&quot;');
                 html += `
-                    <div class="dashboard-card" data-result='${JSON.stringify(result)}'>
+                    <div class="dashboard-card" data-result="${resultString}">
                         <h4>${result.title}</h4>
                         <p><strong>Élève :</strong> ${studentName}</p>
                         <p><strong>Soumis le :</strong> ${submittedDate}</p>
@@ -1435,13 +1436,14 @@
                     const subjectInfo = getSubjectInfo(content.title);
                     const card = document.createElement('div');
                     card.className = 'dashboard-card';
+                    const contentString = JSON.stringify(content).replace(/"/g, '&quot;');
                     card.innerHTML = `
                         <div class="dashboard-card-title"><h4>${content.title}</h4></div>
                         <p><span class="subject-tag ${subjectInfo.cssClass}">${subjectInfo.name}</span></p>
                         <p>Type: ${content.type}</p>
                         <p>Auteur: ${content.authorName}</p>
                         <div style="text-align:right; margin-top: 1rem;">
-                           <button class="btn btn-secondary import-content-btn" data-content='${JSON.stringify(content)}'>Ajouter à une classe</button>
+                           <button class="btn btn-secondary import-content-btn" data-content="${contentString}">Ajouter à une classe</button>
                         </div>
                     `;
                     grid.appendChild(card);
@@ -1638,4 +1640,14 @@
     </script>
 </body>
 </html>
+"
+and the query is "j'ai encore une petite erreur :Uncaught SyntaxError: Unterminated string in JSON at position 120 (line 1 column 121)
+    at JSON.parse (<anonymous>)
+    at HTMLButtonElement.<anonymous> (index.html:797:45)
+index.html:1 Uncaught SyntaxError: Unterminated string in JSON at position 120 (line 1 column 121)
+    at JSON.parse (<anonymous>)
+    at HTMLButtonElement.<anonymous> (index.html:797:45)
+index.html:1 Uncaught SyntaxError: Unterminated string in JSON at position 120 (line 1 column 121)
+    at JSON.parse (<anonymous>)
+    at HTMLButtonElement.<anonymous> (index.html:797:45)"
 
