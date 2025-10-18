@@ -753,7 +753,7 @@
 
         async function handleDeleteContent(contentId) {
              try {
-                await apiRequest(`/teacher/classes/${currentClassData.id}/content/${contentId}`, 'DELETE');
+                await apiRequest(`/teacher/classes/${currentClassData.id}/content/${contentId}?teacherEmail=${currentUser.email}`, 'DELETE');
                 modalContainer.innerHTML = '';
                 renderClassDetailsPage(currentClassData.id); 
             } catch (error) {
@@ -850,7 +850,7 @@
 
         async function handleRemoveStudent(studentEmail) {
             try {
-                await apiRequest(`/teacher/classes/${currentClassData.id}/remove-student`, 'POST', { studentEmail });
+                await apiRequest(`/teacher/classes/${currentClassData.id}/remove-student`, 'POST', { studentEmail, teacherEmail: currentUser.email });
                 modalContainer.innerHTML = '';
                 renderClassDetailsPage(currentClassData.id); 
             } catch (error) {
@@ -862,7 +862,7 @@
             const panel = document.getElementById('competencies-panel');
             panel.innerHTML = spinnerHtml;
             try {
-                const report = await apiRequest(`/teacher/classes/${classId}/competency-report`);
+                const report = await apiRequest(`/teacher/classes/${classId}/competency-report?teacherEmail=${currentUser.email}`);
                 if (report.length === 0) {
                     panel.innerHTML = '<p>Aucun résultat pour analyser les compétences. Les élèves doivent d\'abord compléter des exercices.</p>';
                     return;
@@ -1089,7 +1089,7 @@
             const errP = document.getElementById('add-student-error'); 
             try { 
                 if(errP) errP.textContent = ''; 
-                await apiRequest(`/teacher/classes/${currentClassData.id}/add-student`, 'POST', { studentEmail: email });
+                await apiRequest(`/teacher/classes/${currentClassData.id}/add-student`, 'POST', { studentEmail: email, teacherEmail: currentUser.email });
                 modalContainer.innerHTML = ''; 
                 renderClassDetailsPage(currentClassData.id); 
             } catch (err) { 
@@ -1348,7 +1348,8 @@
                             score: 0, 
                             totalQuestions: 0, 
                             answers: [],
-                            helpUsed: false
+                            helpUsed: false,
+                            teacherEmail: c.teacherEmail
                         });
                         renderStudentDashboard();
                     });
@@ -1381,7 +1382,8 @@
                 score, 
                 totalQuestions: c.questions.length, 
                 answers,
-                helpUsed: helpUsedInQuiz
+                helpUsed: helpUsedInQuiz,
+                teacherEmail: c.teacherEmail
             }); 
             renderStudentDashboard();
         }
@@ -1545,6 +1547,7 @@
                 try { 
                     await apiRequest('/teacher/assign-content', 'POST', { 
                         classId, 
+                        teacherEmail: currentUser.email,
                         contentData: { ...content, dueDate, isEvaluated, competence: content.competence || selectedCompetenceInfo } 
                     }); 
                     modalContainer.innerHTML = ''; 
