@@ -357,7 +357,7 @@
         }
         
         // --- Écouteurs d'événements ---
-        backToDashboardBtn.addEventListener('click', () => { window.history.back(); });
+        backToDashboardBtn.addEventListener('click', () => { window.location.href = 'app.html'; });
         sendBtn.addEventListener('click', sendMessage);
         userInput.addEventListener('keydown', (e) => {
             if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
@@ -374,8 +374,6 @@
             const formData = new FormData();
             formData.append('document', file);
             try {
-                // NOTE: This endpoint might not exist on the current server.js
-                // Assuming `/api/ai/playground-extract-text` for now.
                 const response = await fetch(`${backendUrl}/ai/playground-extract-text`, { method: 'POST', body: formData });
                 const data = await response.json();
                 if (!response.ok) throw new Error(data.error || 'Erreur du serveur');
