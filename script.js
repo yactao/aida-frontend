@@ -1123,8 +1123,33 @@ document.addEventListener('DOMContentLoaded', () => {
         Object.keys(programmes).forEach(c => cy.add(new Option(c, c)));
         cy.addEventListener('change', () => { resetSelects([n, m, no, co]); const s = cy.value; if (s) { Object.keys(programmes[s]).forEach(l => n.add(new Option(l, l))); n.disabled = false; } });
         n.addEventListener('change', () => { resetSelects([m, no, co]); const d = programmes[cy.value][n.value]; if (d) { Object.keys(d).forEach(k => m.add(new Option(d[k].nom, k))); m.disabled = false; } });
-        m.addEventListener('change', () => { resetSelects([no, co]); const d = programmes[cy.value][n.value]?.[m.value]; if (d) { Object.keys(d).filter(k => k !== 'nom').forEach(nk => { no.add(new Option(d[nk].nom, nk)); }); no.disabled = false; } });
-        no.addEventListener('change', () => { resetSelects([co]); const d = programmes[cy.value][n.value]?.[m.value]?.[no.value]; if (d && d.sous_notions) { Object.values(d.sous_notions).forEach(sn => { (sn.competences || []).forEach(c => co.add(new Option(c, c))); }); co.disabled = false; } });
+        m.addEventListener('change', () => { 
+            resetSelects([no, co]); 
+            const d = programmes[cy.value][n.value]?.[m.value]; 
+            if (d) { 
+                Object.keys(d).filter(k => k !== 'nom').forEach(nk => { 
+                    no.add(new Option(d[nk].nom, nk)); 
+                }); 
+                no.disabled = false; 
+            } 
+        });
+        no.addEventListener('change', () => {
+            resetSelects([co]);
+            const d = programmes[cy.value][n.value]?.[m.value]?.[no.value];
+            if (!d) return;
+
+            // Handle structure with 'sous_notions' (e.g., Français)
+            if (d.sous_notions) {
+                Object.values(d.sous_notions).forEach(sn => {
+                    (sn.competences || []).forEach(c => co.add(new Option(c, c)));
+                });
+            }
+            // Handle structure with direct 'competences' (e.g., Anglais, Arabe)
+            else if (d.competences && Array.isArray(d.competences)) {
+                d.competences.forEach(c => co.add(new Option(c, c)));
+            }
+            co.disabled = co.options.length <= 1;
+        });
         co.addEventListener('change', () => { gen.disabled = !co.value; });
         document.getElementById('generation-form').addEventListener('submit', async e => {
             e.preventDefault();
