@@ -586,20 +586,30 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     function showValidationModal(result, content) {
-        let detailsHtml = '';
+        let detailsHtml = '<h4>Réponses de l\'élève</h4>';
         if (content.type === 'quiz' && result.answers && Array.isArray(result.answers)) {
             content.questions.forEach((q, index) => {
                 const studentAnswerIndex = result.answers[index];
                 const correctAnswerIndex = q.correct_answer_index;
                 const isCorrect = studentAnswerIndex === correctAnswerIndex;
                 detailsHtml += `<div class="feedback-item ${isCorrect ? 'correct' : 'incorrect'}">
-                                    <p><strong>${q.question_text}</strong></p>
+                                    <p><strong>Question ${index + 1}: ${q.question_text}</strong></p>
                                     <p>Réponse de l'élève : ${studentAnswerIndex > -1 ? q.options[studentAnswerIndex] : 'Aucune'}</p>
                                     ${!isCorrect ? `<p>Bonne réponse : ${q.options[correctAnswerIndex]}</p>` : ''}
                                 </div>`;
             });
+        } else if ((content.type === 'exercices' || content.type === 'dm') && result.answers && Array.isArray(result.answers)) {
+            content.content.forEach((exo, index) => {
+                const studentAnswer = result.answers[index] || "<i>Aucune réponse.</i>";
+                detailsHtml += `
+                    <div class="feedback-item">
+                        <p><strong>Énoncé ${index + 1}:</strong> ${exo.enonce}</p>
+                        <p><strong>Réponse :</strong></p>
+                        <div class="student-answer-box">${studentAnswer.replace(/\n/g, '<br>')}</div>
+                    </div>`;
+            });
         } else {
-             detailsHtml = `<p>Cet exercice n'était pas un quiz interactif ou les détails des réponses ne sont pas disponibles.</p><p>Statut: Terminé le ${new Date(result.submittedAt).toLocaleDateString('fr-FR')}</p>`;
+             detailsHtml = `<p>Le détail des réponses n'est pas disponible pour ce type de devoir.</p>`;
         }
 
         const validationHtml = `
@@ -665,20 +675,30 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function showValidatedResultModal(result, content) {
-         let detailsHtml = '<h4>Détail des réponses</h4>';
+        let detailsHtml = '<h4>Détail des réponses</h4>';
         if (content.type === 'quiz' && result.answers && Array.isArray(result.answers)) {
             content.questions.forEach((q, index) => {
                 const studentAnswerIndex = result.answers[index];
                 const correctAnswerIndex = q.correct_answer_index;
                 const isCorrect = studentAnswerIndex === correctAnswerIndex;
                 detailsHtml += `<div class="feedback-item ${isCorrect ? 'correct' : 'incorrect'}">
-                                    <p><strong>${q.question_text}</strong></p>
+                                    <p><strong>Question ${index + 1}: ${q.question_text}</strong></p>
                                     <p>Réponse de l'élève : ${studentAnswerIndex > -1 ? q.options[studentAnswerIndex] : 'Aucune'}</p>
                                     ${!isCorrect ? `<p>Bonne réponse : ${q.options[correctAnswerIndex]}</p>` : ''}
                                 </div>`;
             });
+        } else if ((content.type === 'exercices' || content.type === 'dm') && result.answers && Array.isArray(result.answers)) {
+            content.content.forEach((exo, index) => {
+                const studentAnswer = result.answers[index] || "<i>Aucune réponse.</i>";
+                detailsHtml += `
+                    <div class="feedback-item">
+                        <p><strong>Énoncé ${index + 1}:</strong> ${exo.enonce}</p>
+                        <p><strong>Réponse de l'élève :</strong></p>
+                        <div class="student-answer-box">${studentAnswer.replace(/\n/g, '<br>')}</div>
+                    </div>`;
+            });
         } else {
-             detailsHtml = `<p>Les détails des réponses pour ce devoir ne sont pas disponibles.</p>`;
+             detailsHtml = `<p>Le détail des réponses n'est pas disponible pour ce devoir.</p>`;
         }
 
         let feedbackHtml = `
@@ -892,11 +912,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const p = document.getElementById('content-viewer-page');
         let html = '';
         let footerHtml = '';
-        const isQuiz = c.type === 'quiz';
-        
-        helpUsedInQuiz = false;
+        const isInteractiveHomework = c.type === 'exercices' || c.type === 'dm';
 
-        if (isQuiz) {
+        if (c.type === 'quiz') {
              c.questions.forEach((q, i) => {
                 html += `<div class="quiz-question">
                             <div class="question-header">
@@ -911,23 +929,24 @@ document.addEventListener('DOMContentLoaded', () => {
                             </div>
                         </div>`;
             });
-            footerHtml = `<button type="submit" class="btn btn-main" style="margin-top:1rem;">Valider</button>`;
-        } else { 
-            if (c.content && Array.isArray(c.content)) { 
-                 c.content.forEach(e => {
-                    html += `<div style="margin-bottom: 1.5rem;"><h4>Exercice</h4><p>${e.enonce}</p></div>`;
-                });
-            } else if (c.content && typeof c.content === 'string') {
-                html = `<div class="revision-content">${c.content.replace(/\n/g, '<br>')}</div>`;
-            } else {
-                html = `<p>Ce contenu n'est pas interactif. Cliquez sur 'Terminé' lorsque vous avez fini de le consulter.</p>`;
-            }
-            
+            footerHtml = `<button type="submit" class="btn btn-main">Valider mes réponses</button>`;
+        } else if (isInteractiveHomework) {
+            c.content.forEach((exo, i) => {
+                html += `
+                    <div class="exercice-block">
+                        <h4>Exercice ${i + 1}</h4>
+                        <p class="enonce">${exo.enonce}</p>
+                        <textarea class="reponse-eleve" data-exercice-index="${i}" placeholder="Rédige ta réponse ici..."></textarea>
+                    </div>
+                `;
+            });
             if (c.isEvaluated) {
-                 footerHtml = `<a href="playground.html?mode=coach&topic=${encodeURIComponent(c.title)}" class="btn btn-secondary" style="margin-top:1rem;"><i class="fa-solid fa-pen-ruler"></i> Obtenir de l'aide</a>`;
+                 footerHtml += `<a href="playground.html?mode=coach&topic=${encodeURIComponent(c.title)}" class="btn btn-secondary"><i class="fa-solid fa-pen-ruler"></i> Obtenir de l'aide</a>`;
             }
-            
-            footerHtml += `<button type="button" id="finish-exercise-btn" class="btn btn-main" style="margin-top:1rem;"><i class="fa-solid fa-check"></i> Terminé</button>`;
+            footerHtml += `<button type="submit" class="btn btn-main">Soumettre le devoir</button>`;
+        } else { // Fiche de révision ou autre
+            html = `<div class="revision-content">${c.content.replace(/\n/g, '<br>')}</div>`;
+            footerHtml = `<button type="button" id="finish-exercise-btn" class="btn btn-main"><i class="fa-solid fa-check"></i> Marquer comme lu</button>`;
         }
 
         p.innerHTML = `<button id="back-to-student" class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> Retour</button>
@@ -935,30 +954,25 @@ document.addEventListener('DOMContentLoaded', () => {
                             <h2>${c.title}</h2>
                             <form id="content-form">
                                 <div>${html}</div>
-                                <div style="display: flex; gap: 1rem; justify-content: flex-end;">${footerHtml}</div>
+                                <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 2rem;">${footerHtml}</div>
                             </form>
                          </div>`;
 
         p.querySelector('#back-to-student').addEventListener('click', renderStudentDashboard);
         const form = p.querySelector('#content-form');
 
-        if (isQuiz) {
+        if (c.type === 'quiz') {
             form.addEventListener('submit', e => { e.preventDefault(); handleSubmitQuiz(c); });
             form.querySelectorAll('.btn-help').forEach(b => b.addEventListener('click', handleHelpRequest));
+        } else if (isInteractiveHomework) {
+            form.addEventListener('submit', e => { e.preventDefault(); handleSubmitNonQuiz(c); });
         } else {
             const finishBtn = p.querySelector('#finish-exercise-btn');
             if (finishBtn) {
                 finishBtn.addEventListener('click', async () => {
                     await apiRequest('/student/submit-quiz', 'POST', { 
-                        studentEmail: currentUser.email, 
-                        classId: c.classId, 
-                        contentId: c.id, 
-                        title: c.title, 
-                        score: 0, 
-                        totalQuestions: 0, 
-                        answers: [],
-                        helpUsed: false,
-                        teacherEmail: c.teacherEmail
+                        studentEmail: currentUser.email, classId: c.classId, contentId: c.id, 
+                        title: c.title, score: 0, totalQuestions: 0, answers: [], helpUsed: false, teacherEmail: c.teacherEmail
                     });
                     renderStudentDashboard();
                 });
@@ -984,16 +998,26 @@ document.addEventListener('DOMContentLoaded', () => {
         const answers = c.questions.map((q, i) => { const sel = document.querySelector(`input[name=q${i}]:checked`); return sel ? parseInt(sel.value) : -1; }); 
         const score = answers.reduce((acc, ans, i) => acc + (ans == c.questions[i].correct_answer_index ? 1 : 0), 0); 
         await apiRequest('/student/submit-quiz', 'POST', { 
-            studentEmail: currentUser.email, 
-            classId: c.classId, 
-            contentId: c.id, 
-            title: c.title, 
-            score, 
-            totalQuestions: c.questions.length, 
-            answers,
-            helpUsed: helpUsedInQuiz,
-            teacherEmail: c.teacherEmail
+            studentEmail: currentUser.email, classId: c.classId, contentId: c.id, title: c.title, 
+            score, totalQuestions: c.questions.length, answers, helpUsed: helpUsedInQuiz, teacherEmail: c.teacherEmail
         }); 
+        renderStudentDashboard();
+    }
+    
+    async function handleSubmitNonQuiz(c) {
+        const answerTextareas = document.querySelectorAll('#content-form .reponse-eleve');
+        const answers = Array.from(answerTextareas).map(textarea => textarea.value);
+
+        if (answers.every(answer => answer.trim() === '')) {
+            alert("Veuillez répondre à au moins un exercice avant de soumettre.");
+            return;
+        }
+
+        await apiRequest('/student/submit-quiz', 'POST', {
+            studentEmail: currentUser.email, classId: c.classId, contentId: c.id, title: c.title,
+            score: 0, totalQuestions: c.content.length, answers: answers, helpUsed: false,
+            teacherEmail: c.teacherEmail
+        });
         renderStudentDashboard();
     }
     
@@ -1138,13 +1162,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const d = programmes[cy.value][n.value]?.[m.value]?.[no.value];
             if (!d) return;
 
-            // Handle structure with 'sous_notions' (e.g., Français)
             if (d.sous_notions) {
                 Object.values(d.sous_notions).forEach(sn => {
                     (sn.competences || []).forEach(c => co.add(new Option(c, c)));
                 });
             }
-            // Handle structure with direct 'competences' (e.g., Anglais, Arabe)
             else if (d.competences && Array.isArray(d.competences)) {
                 d.competences.forEach(c => co.add(new Option(c, c)));
             }

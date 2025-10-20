@@ -307,3 +307,49 @@ body.dark-mode .appreciation-option label { border-color: #444; }
     width: auto;
 }
 
+.exercice-block {
+    margin-bottom: 2rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid #eee;
+}
+body.dark-mode .exercice-block {
+    border-bottom-color: #333;
+}
+.exercice-block .enonce {
+    margin-bottom: 1rem;
+}
+.reponse-eleve {
+    width: 100%;
+    min-height: 150px;
+    padding: 1rem;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+    font-family: 'Inter', sans-serif;
+    font-size: 1rem;
+    background-color: var(--input-bg-color);
+    color: var(--text-color);
+}
+body.dark-mode .reponse-eleve {
+    border-color: #444;
+}
+
+.student-answer-box {
+    background-color: var(--background-color);
+    border: 1px solid #eee;
+    border-radius: 8px;
+    padding: 1rem;
+    margin-top: 0.5rem;
+}
+body.dark-mode .student-answer-box {
+    border-color: #333;
+}
+
+.feedback-item {
+    padding: 1rem;
+    margin-bottom: 1rem;
+    border-radius: 8px;
+    border-left: 4px solid #ccc;
+}
+.feedback-item.correct { border-left-color: var(--correct-color); background-color: rgba(40, 167, 69, 0.05); }
+.feedback-item.incorrect { border-left-color: var(--incorrect-color); background-color: rgba(220, 53, 69, 0.05); }
+
