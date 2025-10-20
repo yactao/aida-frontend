@@ -233,13 +233,15 @@
                 return;
             }
             recognition = new SpeechRecognition();
-            recognition.lang = 'fr-FR';
+            
+            const selectedOption = voiceSelect.options[voiceSelect.selectedIndex];
+            recognition.lang = selectedOption ? selectedOption.dataset.lang : 'fr-FR';
             recognition.interimResults = false;
 
             recognition.onresult = (event) => {
                 const transcript = event.results[0][0].transcript;
                 userInput.value = transcript;
-                sendMessage(); // Envoyer le message automatiquement
+                sendMessage();
             };
             recognition.onstart = () => micBtn.classList.add('recording');
             recognition.onend = () => micBtn.classList.remove('recording');
@@ -257,7 +259,6 @@
         }
 
         async function togglePlayback(text, buttonEl) {
-            // Si on clique sur le bouton qui est déjà en train de jouer, on l'arrête
             if (currentListenBtn === buttonEl) {
                 if(currentAudio) currentAudio.pause();
                 buttonEl.innerHTML = '<i class="fa-solid fa-volume-high"></i>';
@@ -267,14 +268,12 @@
                 return;
             }
 
-            // Si un autre son est en cours, on l'arrête et on réinitialise son bouton
             if (currentAudio) {
                 currentAudio.pause();
                 currentListenBtn.innerHTML = '<i class="fa-solid fa-volume-high"></i>';
                 currentListenBtn.classList.remove('active-speaker');
             }
 
-            // On met à jour le bouton actuel et on affiche un spinner
             currentListenBtn = buttonEl;
             buttonEl.innerHTML = `<div class="spinner-dots" style="transform: scale(0.6);"><span></span><span></span><span></span></div>`;
 
@@ -319,11 +318,13 @@
 
         // --- Fonctions de la modale de paramètres ---
         function populateVoiceList() {
-            const googleVoices = [
-                { name: 'Français (France, Femme, Neutre)', value: 'fr-FR-Wavenet-E' },
-                { name: 'Français (France, Homme, Neutre)', value: 'fr-FR-Wavenet-D' },
-                { name: 'Français (Canada, Femme, Neutre)', value: 'fr-CA-Wavenet-A' },
-                { name: 'Français (Canada, Homme, Neutre)', value: 'fr-CA-Wavenet-B' },
+             const googleVoices = [
+                { name: 'Français (France, Femme)', value: 'fr-FR-Wavenet-E', lang: 'fr-FR' },
+                { name: 'Français (France, Homme)', value: 'fr-FR-Wavenet-D', lang: 'fr-FR' },
+                { name: 'Anglais (US, Femme)', value: 'en-US-Wavenet-F', lang: 'en-US' },
+                { name: 'Anglais (US, Homme)', value: 'en-US-Wavenet-D', lang: 'en-US' },
+                { name: 'Arabe (Femme)', value: 'ar-XA-Wavenet-A', lang: 'ar-SA' },
+                { name: 'Arabe (Homme)', value: 'ar-XA-Wavenet-B', lang: 'ar-SA' },
             ];
             
             voiceSelect.innerHTML = '';
@@ -331,6 +332,7 @@
                 const option = document.createElement('option');
                 option.textContent = voice.name;
                 option.value = voice.value;
+                option.dataset.lang = voice.lang;
                 voiceSelect.appendChild(option);
             });
 
@@ -400,7 +402,15 @@
             localStorage.setItem('aida-pitch', pitchSlider.value);
         });
         voiceSelect.addEventListener('change', () => {
-            localStorage.setItem('aida-voice-name', voiceSelect.value);
+            const selectedOption = voiceSelect.options[voiceSelect.selectedIndex];
+            const voiceName = selectedOption.value;
+            localStorage.setItem('aida-voice-name', voiceName);
+
+            if (recognition) {
+                const lang = selectedOption.dataset.lang;
+                recognition.lang = lang;
+                console.log(`Langue de reconnaissance vocale changée en : ${lang}`);
+            }
         });
 
         // --- Initialisation ---
@@ -422,4 +432,5 @@
     </script>
 </body>
 </html>
+
 
