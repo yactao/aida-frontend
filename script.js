@@ -1,0 +1,1340 @@
+document.addEventListener('DOMContentLoaded', () => {
+    const backendUrl = 'https://aida-backend-bqd0fnd2a3c7dadf.francecentral-01.azurewebsites.net';
+    let currentUser = null;
+    let teacherClasses = [];
+    let generatedContent = null;
+    let currentClassData = null;
+    let programmes = {};
+    let selectedCompetenceInfo = null;
+    let studentDashboardData = null;
+    let helpUsedInQuiz = false;
+    
+    const spinnerHtml = `<div class="spinner"><div class="dot1"></div><div class="dot2"></div><div class="dot3"></div></div>`;
+    
+    const main = document.querySelector('main');
+    const modalContainer = document.getElementById('modal-container');
+    const loginNavBtn = document.getElementById('login-nav-btn');
+    const homeLink = document.getElementById('home-link');
+    const workspaceLink = document.getElementById('workspace-link');
+    const libraryLink = document.getElementById('library-link');
+    const userMenuContainer = document.querySelector('.user-menu-container');
+    const userNameDisplay = document.getElementById('user-name-display');
+    const userAvatarDisplay = document.getElementById('user-avatar-display');
+    const userInfoClickable = document.getElementById('user-info-clickable');
+    const userDropdown = document.querySelector('.user-dropdown');
+    const logoutBtn = document.getElementById('logout-btn');
+    const themeToggleHeaderBtn = document.getElementById('theme-toggle-header-btn');
+    const themeToggleDropdownBtn = document.getElementById('theme-toggle-dropdown-btn');
+    const startAppBtn = document.getElementById('start-app-btn');
+    const adminModuleLink = document.getElementById('admin-module-link');
+
+    async function loadProgrammes() {
+        try {
+            const fetchProgram = async (fileName) => {
+                const response = await fetch(`${backendUrl}/${fileName}`);
+                if (!response.ok) { throw new Error(`Le fichier ${fileName} est introuvable ou illisible (statut: ${response.status}).`); }
+                return response.json();
+            };
+            const [p, c, l] = await Promise.all([ fetchProgram('programmes-primaire.json'), fetchProgram('programmes-college.json'), fetchProgram('programmes-lycee.json') ]);
+            programmes = { Primaire: p, Collège: c, Lycée: l };
+            console.log("Programmes chargés avec succès.");
+        } catch (e) {
+            console.error("Erreur critique lors du chargement des programmes:", e);
+            alert("Erreur critique : Impossible de charger les programmes scolaires. Détails : " + e.message);
+            programmes = {}; 
+        }
+    }
+    
+    async function apiRequest(endpoint, method = 'GET', body = null) { try { const opts = { method, headers: { 'Content-Type': 'application/json' } }; if (body) opts.body = JSON.stringify(body); const res = await fetch(`${backendUrl}/api${endpoint}`, opts); if (!res.ok) { const errText = await res.text(); try { const err = JSON.parse(errText); throw new Error(err.error || 'Une erreur est survenue'); } catch (e) { throw new Error(errText); } } return res.status === 204 ? null : res.json(); } catch (e) { console.error(`API Error:`, e); throw e; } }
+    function changePage(id) { main.querySelectorAll('.page').forEach(p=>p.classList.remove('active')); document.getElementById(id).classList.add('active'); }
+    function renderModal(template) { modalContainer.innerHTML = template; modalContainer.querySelector('.close-modal')?.addEventListener('click', () => modalContainer.innerHTML = ''); }
+    function getModalTemplate(id, title, html) { return `<div class="modal-overlay" id="${id}"><div class="modal-content"><button class="close-modal">&times;</button><h3>${title}</h3>${html}</div></div>`; }
+    
+    function getSubjectInfo(title) {
+        if (!title) return { name: 'Autre', cssClass: 'tag-autre' };
+        const lowerTitle = title.toLowerCase();
+        const subjects = {
+            'Mathématiques': { cssClass: 'tag-maths', keywords: ['math', 'addition', 'soustraction', 'multiplication', 'division', 'calcul', 'géométrie', 'nombre', 'tables', 'problème', 'fraction'] },
+            'Français': { cssClass: 'tag-francais', keywords: ['français', 'lecture', 'grammaire', 'conjugaison', 'orthographe', 'verbe', 'phrase', 'dictée', 'vocabulaire', 'rédaction', 'littérature'] },
+            'Histoire-Géo': { cssClass: 'tag-histoire-géo', keywords: ['histoire', 'géographie', 'antiquité', 'moyen âge', 'révolution', 'guerre', 'empire', 'pays', 'capitale', 'continent'] },
+            'Sciences': { cssClass: 'tag-sciences', keywords: ['science', 'svt', 'physique', 'chimie', 'vivant', 'atome', 'univers', 'biologie', 'technologie', 'corps humain', 'plante', 'animal'] },
+        };
+        for (const subjectName in subjects) { if (subjects[subjectName].keywords.some(keyword => lowerTitle.includes(keyword))) return { name: subjectName, cssClass: subjects[subjectName].cssClass }; }
+        return { name: 'Autre', cssClass: 'tag-autre' };
+    }
+
+    function applyTheme(theme) {
+        document.body.classList.toggle('dark-mode', theme === 'dark');
+        const icon = theme === 'dark' ? '<i class="fa-solid fa-sun"></i>' : '<i class="fa-solid fa-moon"></i>';
+        themeToggleHeaderBtn.innerHTML = icon;
+        themeToggleDropdownBtn.innerHTML = icon;
+    }
+
+    function toggleTheme() {
+        const newTheme = document.body.classList.contains('dark-mode') ? 'light' : 'dark';
+        localStorage.setItem('theme', newTheme);
+        applyTheme(newTheme);
+    }
+
+    function updateUI() {
+        const loggedIn = !!currentUser;
+        loginNavBtn.classList.toggle('hidden', loggedIn);
+        themeToggleHeaderBtn.classList.toggle('hidden', loggedIn);
+        userMenuContainer.classList.toggle('hidden', !loggedIn);
+        workspaceLink.classList.toggle('hidden', !loggedIn || currentUser.role !== 'student');
+        libraryLink.classList.toggle('hidden', !loggedIn || currentUser.role !== 'teacher');
+        
+        if (loggedIn) {
+            userNameDisplay.textContent = currentUser.firstName;
+            userAvatarDisplay.src = `${backendUrl}/avatars/${currentUser.avatar}`;
+            adminModuleLink.classList.toggle('hidden', currentUser.role !== 'teacher');
+            if (currentUser.role === 'teacher') renderTeacherDashboard();
+            else renderStudentDashboard();
+        } else {
+            changePage('home-page');
+        }
+    }
+    
+    function renderAuthPage() {
+        const t = `<div class="card" style="max-width:400px;margin:2rem auto"><div id="login-form-container"><h3>Connexion</h3><form id="login-form"><div class=form-group><label for=login-email>Email</label><input type=email id=login-email required></div><div class=form-group><label for=login-password>Mot de passe</label><input type=password id=login-password required></div><button type=submit class="btn btn-main">Se connecter</button><p class=error-message id=login-error></p></form><p>Pas de compte ? <a href=# id=show-signup>Inscrivez-vous</a></p></div><div id=signup-form-container class=hidden><h3>Inscription</h3><form id=signup-form><div class=form-group><label for=signup-email>Email</label><input type=email id=signup-email required></div><div class=form-group><label for=signup-password>Mot de passe</label><input type=password id=signup-password required></div><div class=form-group><label for=signup-role>Je suis un(e)</label><select id=signup-role><option value=student>Élève</option><option value=teacher>Enseignant</option></select></div><button type=submit class="btn btn-main">S'inscrire</button><p class=error-message id=signup-error></p></form><p>Déjà un compte ? <a href=# id=show-login>Connectez-vous</a></p></div></div>`;
+        document.getElementById('auth-page').innerHTML = t;
+        document.getElementById('login-form').addEventListener('submit', handleLogin);
+        document.getElementById('signup-form').addEventListener('submit', handleSignup);
+        document.getElementById('show-signup').addEventListener('click', toggleAuthForms);
+        document.getElementById('show-login').addEventListener('click', toggleAuthForms);
+        changePage('auth-page');
+    }
+
+    async function handleLogin(e) { e.preventDefault(); try { const data = await apiRequest('/auth/login', 'POST', { email: document.getElementById('login-email').value, password: document.getElementById('login-password').value }); currentUser = data.user; localStorage.setItem('currentUser', JSON.stringify(currentUser)); updateUI(); } catch (err) { document.getElementById('login-error').textContent = err.message; } }
+    async function handleSignup(e) { e.preventDefault(); try { const data = await apiRequest('/auth/signup', 'POST', { email: document.getElementById('signup-email').value, password: document.getElementById('signup-password').value, role: document.getElementById('signup-role').value }); currentUser = data.user; localStorage.setItem('currentUser', JSON.stringify(currentUser)); updateUI(); } catch (err) { document.getElementById('signup-error').textContent = err.message; } }
+    function toggleAuthForms(e) { e.preventDefault(); document.getElementById('login-form-container').classList.toggle('hidden'); document.getElementById('signup-form-container').classList.toggle('hidden'); }
+    
+    function calculateCompletionRate(cls) {
+        const studentCount = (cls.students || []).length;
+        const contentCount = (cls.content || []).length;
+        if (studentCount === 0 || contentCount === 0) return 0;
+        const totalPossibleSubmissions = studentCount * contentCount;
+        const submissionMap = new Map();
+        (cls.results || []).forEach(result => {
+            const key = `${result.studentEmail}-${result.contentId}`;
+            submissionMap.set(key, true);
+        });
+        const actualSubmissions = submissionMap.size;
+        return Math.round((actualSubmissions / totalPossibleSubmissions) * 100);
+    }
+
+    async function renderTeacherDashboard() {
+        const p = document.getElementById('teacher-dashboard-page');
+        p.innerHTML = `
+            <div class="page-header">
+                <h2>Bonjour ${currentUser.firstName}!</h2>
+                <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                    <button class="btn btn-secondary" id="open-planner-btn"><i class="fa-solid fa-calendar-days"></i> Planificateur de Cours</button>
+                    <button class="btn btn-main" id="open-gen-modal"><i class="fa-solid fa-plus"></i> Nouveau Contenu</button> 
+                    <button class="btn btn-secondary" id="open-class-modal"><i class="fa-solid fa-users"></i> Nouvelle Classe</button>
+                </div>
+            </div>
+            <div id="class-grid" class="dashboard-grid">${spinnerHtml}</div>`;
+        changePage('teacher-dashboard-page');
+        p.querySelector('#open-class-modal').addEventListener('click', showCreateClassModal);
+        p.querySelector('#open-gen-modal').addEventListener('click', showGenerationModal);
+        p.querySelector('#open-planner-btn').addEventListener('click', renderPlannerPage);
+
+        teacherClasses = await apiRequest(`/teacher/classes?teacherEmail=${currentUser.email}`);
+        
+        if (currentUser.classOrder && Array.isArray(currentUser.classOrder)) {
+            teacherClasses.sort((a, b) => {
+                const indexA = currentUser.classOrder.indexOf(a.id);
+                const indexB = currentUser.classOrder.indexOf(b.id);
+                if (indexA === -1) return 1;
+                if (indexB === -1) return -1;
+                return indexA - indexB;
+            });
+        }
+        
+        const grid = p.querySelector('#class-grid');
+        grid.innerHTML = teacherClasses.length === 0 ? "<p>Aucune classe pour le moment. Créez-en une pour commencer !</p>" : "";
+        
+        const classCardsHtml = teacherClasses.map(c => {
+            const completionRate = calculateCompletionRate(c);
+            return `
+            <div class="dashboard-card" data-class-id="${c.id}">
+                <h4>${c.className}</h4>
+                <p style="margin-top: 1rem;"><i class="fa-solid fa-users" style="margin-right: 8px; width: 20px;"></i> ${c.students.length} élève(s)</p>
+                <p><i class="fa-solid fa-book-open" style="margin-right: 8px; width: 20px;"></i> ${(c.content || []).length} contenu(s) assigné(s)</p>
+                <div style="margin-top: 1rem;">
+                    <p style="font-size: 0.9rem; margin-bottom: 0.25rem;"><i class="fa-solid fa-check-double" style="margin-right: 8px; width: 20px;"></i> Taux de complétion</p>
+                    <div class="progress-bar">
+                        <div class="progress-bar-fill" style="width: ${completionRate}%;"></div>
+                    </div>
+                    <span style="font-weight: 600; font-size: 0.9rem;">${completionRate}%</span>
+                </div>
+            </div>`;
+        }).join('');
+        grid.innerHTML = classCardsHtml;
+
+        grid.addEventListener('click', (e) => {
+            const card = e.target.closest('.dashboard-card');
+            if (card && card.dataset.classId) {
+                if (e.target.closest('button')) return;
+                renderClassDetailsPage(card.dataset.classId);
+            }
+        });
+
+        new Sortable(grid, {
+            animation: 150,
+            onEnd: async function (evt) {
+                const orderedIds = Array.from(grid.children).map(card => card.dataset.classId);
+                this.option('disabled', true);
+                try {
+                    const data = await apiRequest('/teacher/classes/reorder', 'POST', {
+                        teacherEmail: currentUser.email,
+                        classOrder: orderedIds
+                    });
+                    currentUser.classOrder = data.classOrder;
+                } catch (error) {
+                    alert("Erreur lors de la sauvegarde de l'ordre des classes.");
+                    renderTeacherDashboard();
+                } finally {
+                    this.option('disabled', false);
+                }
+            }
+        });
+    }
+    
+    async function renderClassDetailsPage(id) {
+        const page = document.getElementById('class-details-page');
+        page.innerHTML = `<button id="back-to-teacher" class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> Retour</button>${spinnerHtml}`;
+        page.querySelector('#back-to-teacher').addEventListener('click', renderTeacherDashboard);
+        changePage('class-details-page');
+        currentClassData = await apiRequest(`/teacher/classes/${id}?teacherEmail=${currentUser.email}`);
+        
+        page.innerHTML = `
+            <button id="back-to-teacher" class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> Retour</button>
+            <h2>${currentClassData.className}</h2>
+            <div class="tabs">
+                <button class="tab-button active" data-tab="students-panel">Élèves</button>
+                <button class="tab-button" data-tab="contents-panel">Contenus</button>
+                <button class="tab-button" data-tab="competencies-panel">Analyse par Compétence</button>
+                <button class="tab-button" data-tab="corrections-panel">Corrections en attente <span id="pending-count" class="new-tag hidden"></span></button>
+            </div>
+            <div id="students-panel" class="tab-panel active">
+                <div class="page-header" style="margin-bottom: 1.5rem;">
+                    <h3>Élèves inscrits</h3>
+                    <button id="open-add-student-modal-btn" class="btn btn-secondary"><i class="fa-solid fa-user-plus"></i> Ajouter un élève</button>
+                </div>
+                <div id="student-list" class="dashboard-grid"></div>
+            </div>
+            <div id="contents-panel" class="tab-panel"></div>
+            <div id="competencies-panel" class="tab-panel">
+                ${spinnerHtml}
+            </div>
+            <div id="corrections-panel" class="tab-panel"></div>`;
+        
+        renderStudentListPanel();
+        renderContentListPanel();
+        renderCorrectionsPanel();
+
+        const pendingCorrections = (currentClassData.results || []).filter(r => r.status === 'pending_validation');
+        const pendingCountSpan = page.querySelector('#pending-count');
+        if (pendingCorrections.length > 0) {
+            pendingCountSpan.textContent = pendingCorrections.length;
+            pendingCountSpan.classList.remove('hidden');
+        }
+        
+        page.querySelector('#back-to-teacher').addEventListener('click', renderTeacherDashboard);
+        page.querySelector('#open-add-student-modal-btn').addEventListener('click', () => {
+            renderModal(getModalTemplate('add-student-modal', 'Ajouter un élève', `
+                <form id="add-student-form">
+                    <div class="form-group">
+                        <label for="student-email-input">Email de l'élève</label>
+                        <input type="email" id="student-email-input" required>
+                    </div>
+                    <button type="submit" class="btn btn-main">Ajouter</button>
+                    <p class="error-message" id="add-student-error"></p>
+                </form>
+            `));
+            document.getElementById('add-student-form').addEventListener('submit', handleAddStudent);
+        });
+
+        page.querySelectorAll('.tab-button').forEach(button => {
+            button.addEventListener('click', (e) => {
+                page.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+                page.querySelectorAll('.tab-panel').forEach(panel => panel.classList.remove('active'));
+                e.target.classList.add('active');
+                const panelId = e.target.dataset.tab;
+                document.getElementById(panelId).classList.add('active');
+
+                if (panelId === 'competencies-panel') {
+                    renderCompetencyReport(id);
+                }
+            });
+        });
+    }
+    
+    function renderContentListPanel() {
+        const panel = document.getElementById('contents-panel');
+        const contents = currentClassData.content || [];
+        if (contents.length === 0) {
+            panel.innerHTML = '<p>Aucun contenu assigné à cette classe pour le moment.</p>';
+            return;
+        }
+
+        let html = '<div class="dashboard-grid">';
+        contents.forEach(content => {
+            const assignedDate = new Date(content.assignedAt).toLocaleDateString('fr-FR');
+            html += `
+                <div class="dashboard-card">
+                    <div class="dashboard-card-title">
+                         <h4>${content.title}</h4>
+                         <div style="display: flex; gap: 0.5rem;">
+                            <button class="btn-icon share-content-btn" data-content-id="${content.id}" title="Partager dans la bibliothèque"><i class="fa-solid fa-share-nodes"></i></button>
+                            <button class="btn-icon delete-content-btn" data-content-id="${content.id}" title="Supprimer le contenu"><i class="fa-solid fa-trash-alt"></i></button>
+                         </div>
+                    </div>
+                    <p>Type: ${content.type}</p>
+                    <p>Assigné le: ${assignedDate}</p>
+                </div>
+            `;
+        });
+        html += '</div>';
+        panel.innerHTML = html;
+
+        panel.querySelectorAll('.delete-content-btn').forEach(button => {
+            button.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const contentId = button.dataset.contentId;
+                const content = contents.find(c => c.id === contentId);
+                renderModal(getModalTemplate('delete-content-confirm', 'Confirmer la suppression', `
+                    <p>Êtes-vous sûr de vouloir supprimer le contenu "<strong>${content.title}</strong>" ?</p>
+                    <p>Cette action est irréversible et supprimera également tous les résultats des élèves pour ce devoir.</p>
+                    <div style="display:flex; justify-content: flex-end; gap: 1rem; margin-top: 2rem;">
+                        <button class="btn btn-secondary" id="cancel-delete">Annuler</button>
+                        <button class="btn" style="background: var(--incorrect-color); color: white;" id="confirm-delete">Confirmer</button>
+                    </div>
+                `));
+                document.getElementById('cancel-delete').addEventListener('click', () => modalContainer.innerHTML = '');
+                document.getElementById('confirm-delete').addEventListener('click', () => handleDeleteContent(contentId));
+            });
+        });
+        
+        panel.querySelectorAll('.share-content-btn').forEach(button => {
+            button.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const contentId = button.dataset.contentId;
+                handlePublishContent(contentId);
+            });
+        });
+    }
+    
+    async function handlePublishContent(contentId) {
+        const content = currentClassData.content.find(c => c.id === contentId);
+        if (!content) return;
+
+        const subjectInfo = getSubjectInfo(content.title);
+        
+        renderModal(getModalTemplate('publish-confirm', 'Publier dans la bibliothèque', `
+            <p>Vous êtes sur le point de partager "<strong>${content.title}</strong>" avec d'autres enseignants.</p>
+            <p>Il sera publié dans la catégorie : <strong>${subjectInfo.name}</strong></p>
+            <div style="display:flex; justify-content: flex-end; gap: 1rem; margin-top: 2rem;">
+                <button class="btn btn-secondary" id="cancel-publish">Annuler</button>
+                <button class="btn btn-main" id="confirm-publish">Confirmer et Publier</button>
+            </div>
+        `));
+        
+        document.getElementById('cancel-publish').addEventListener('click', () => modalContainer.innerHTML = '');
+        document.getElementById('confirm-publish').addEventListener('click', async () => {
+            try {
+                await apiRequest('/library/publish', 'POST', {
+                    contentData: content,
+                    teacherName: currentUser.firstName,
+                    subject: subjectInfo.name
+                });
+                modalContainer.innerHTML = '';
+                renderModal(getModalTemplate('publish-success', 'Succès', '<p>Votre contenu a été publié avec succès !</p>'));
+                setTimeout(() => modalContainer.innerHTML = '', 2000);
+            } catch (error) {
+                alert(`Erreur de publication: ${error.message}`);
+            }
+        });
+    }
+
+    async function handleDeleteContent(contentId) {
+         try {
+            await apiRequest(`/teacher/classes/${currentClassData.id}/content/${contentId}?teacherEmail=${currentUser.email}`, 'DELETE');
+            modalContainer.innerHTML = '';
+            renderClassDetailsPage(currentClassData.id); 
+        } catch (error) {
+            alert(`Erreur lors de la suppression du contenu: ${error.message}`);
+        }
+    }
+
+
+    function renderCorrectionsPanel() {
+        const panel = document.getElementById('corrections-panel');
+        const pendingCorrections = (currentClassData.results || []).filter(r => r.status === 'pending_validation');
+
+        if (pendingCorrections.length === 0) {
+            panel.innerHTML = '<p>Aucun devoir à corriger pour le moment. Bravo !</p>';
+            return;
+        }
+
+        let html = '<div class="dashboard-grid">';
+        pendingCorrections.forEach(result => {
+            const student = (currentClassData.studentsWithDetails || []).find(s => s.email === result.studentEmail);
+            const studentName = student ? student.firstName : result.studentEmail;
+            const submittedDate = new Date(result.submittedAt).toLocaleDateString('fr-FR');
+            const resultString = JSON.stringify(result).replace(/"/g, '&quot;');
+            html += `
+                <div class="dashboard-card" data-result="${resultString}">
+                    <h4>${result.title}</h4>
+                    <p><strong>Élève :</strong> ${studentName}</p>
+                    <p><strong>Soumis le :</strong> ${submittedDate}</p>
+                    <div style="text-align: right; margin-top: 1rem;">
+                        <button class="btn btn-secondary view-copy-btn">Voir la copie</button>
+                    </div>
+                </div>
+            `;
+        });
+        html += '</div>';
+        panel.innerHTML = html;
+        
+        panel.querySelectorAll('.view-copy-btn').forEach(button => {
+            button.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const card = e.target.closest('.dashboard-card');
+                const resultData = JSON.parse(card.dataset.result);
+                const content = (currentClassData.content || []).find(c => c.id === resultData.contentId);
+                if(resultData && content) {
+                    showValidationModal(resultData, content);
+                }
+            });
+        });
+    }
+    
+    function renderStudentListPanel() {
+        let studentCardsHtml = (currentClassData.studentsWithDetails || []).map(student => {
+            const studentResults = (currentClassData.results || []).filter(r => r.studentEmail === student.email);
+            const assignedContentCount = (currentClassData.content || []).length;
+            const completionRate = assignedContentCount > 0 ? (studentResults.length / assignedContentCount) * 100 : 0;
+            return `<div class="dashboard-card" data-student-email="${student.email}">
+                        <div class="dashboard-card-title">
+                            <h4><img src="${backendUrl}/avatars/${student.avatar}" class="avatar"> ${student.firstName}</h4>
+                            <button class="btn-icon delete-student-btn" data-student-email="${student.email}" title="Supprimer l'élève"><i class="fa-solid fa-trash-alt"></i></button>
+                        </div>
+                        <p>Taux de complétion: ${Math.round(completionRate)}%</p>
+                        <p>${studentResults.length} / ${assignedContentCount} exercice(s) fait(s)</p>
+                    </div>`;
+        }).join('');
+        
+        const studentListContainer = document.getElementById('student-list');
+        studentListContainer.innerHTML = (currentClassData.studentsWithDetails || []).length > 0 ? studentCardsHtml : "<p>Aucun élève dans cette classe pour le moment.</p>";
+        
+        studentListContainer.querySelectorAll('.dashboard-card').forEach(card => {
+            card.style.cursor = 'pointer';
+            card.addEventListener('click', (e) => {
+                if (e.target.closest('.delete-student-btn')) return;
+                renderStudentDetailsPage(card.dataset.studentEmail);
+            });
+        });
+        
+        studentListContainer.querySelectorAll('.delete-student-btn').forEach(button => {
+            button.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const studentEmail = button.dataset.studentEmail;
+                const student = currentClassData.studentsWithDetails.find(s => s.email === studentEmail);
+                renderModal(getModalTemplate('delete-student-confirm', 'Confirmer la suppression', `
+                    <p>Êtes-vous sûr de vouloir supprimer <strong>${student.firstName} (${student.email})</strong> de cette classe ?</p>
+                    <p>Cette action est irréversible et supprimera également tous ses résultats associés à cette classe.</p>
+                    <div style="display:flex; justify-content: flex-end; gap: 1rem; margin-top: 2rem;">
+                        <button class="btn btn-secondary" id="cancel-delete">Annuler</button>
+                        <button class="btn" style="background: var(--incorrect-color); color: white;" id="confirm-delete">Confirmer la suppression</button>
+                    </div>
+                `));
+                document.getElementById('cancel-delete').addEventListener('click', () => modalContainer.innerHTML = '');
+                document.getElementById('confirm-delete').addEventListener('click', () => handleRemoveStudent(studentEmail));
+            });
+        });
+    }
+
+    async function handleRemoveStudent(studentEmail) {
+        try {
+            await apiRequest(`/teacher/classes/${currentClassData.id}/remove-student`, 'POST', { studentEmail, teacherEmail: currentUser.email });
+            modalContainer.innerHTML = '';
+            renderClassDetailsPage(currentClassData.id); 
+        } catch (error) {
+            alert(`Erreur lors de la suppression de l'élève: ${error.message}`);
+        }
+    }
+    
+    async function renderCompetencyReport(classId) {
+        const panel = document.getElementById('competencies-panel');
+        panel.innerHTML = spinnerHtml;
+        try {
+            const report = await apiRequest(`/teacher/classes/${classId}/competency-report?teacherEmail=${currentUser.email}`);
+            if (report.length === 0) {
+                panel.innerHTML = '<p>Aucun résultat pour analyser les compétences. Les élèves doivent d\'abord compléter des exercices.</p>';
+                return;
+            }
+            
+            let reportHtml = '<table><thead><tr><th>Compétence</th><th>Taux de réussite moyen</th></tr></thead><tbody>';
+            report.forEach(item => {
+                reportHtml += `<tr>
+                    <td>${item.competence} <small>(${item.level})</small></td>
+                    <td>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <span>${item.averageScore}%</span>
+                            <div class="progress-bar">
+                                <div class="progress-bar-fill" style="width: ${item.averageScore}%;"></div>
+                            </div>
+                        </div>
+                    </td>
+                </tr>`;
+            });
+            reportHtml += '</tbody></table>';
+            panel.innerHTML = reportHtml;
+
+        } catch (error) {
+            panel.innerHTML = '<p class="error-message">Impossible de charger le rapport.</p>';
+        }
+    }
+
+    function renderStudentDetailsPage(studentEmail) {
+        const page = document.getElementById('student-details-page');
+        const student = currentClassData.studentsWithDetails.find(s => s.email === studentEmail);
+        const studentResults = (currentClassData.results || []).filter(r => r.studentEmail === studentEmail);
+        
+        let resultsHtml = '';
+        if (studentResults.length > 0) {
+            const groupedResults = studentResults.reduce((acc, result) => {
+                const content = (currentClassData.content || []).find(c => c.id === result.contentId);
+                if (content) {
+                    const subject = getSubjectInfo(content.title).name;
+                    if (!acc[subject]) {
+                        acc[subject] = [];
+                    }
+                    acc[subject].push(result);
+                }
+                return acc;
+            }, {});
+
+            for (const subject in groupedResults) {
+                resultsHtml += `<h4 style="margin-top:1.5rem; margin-bottom:1rem; border-bottom: 2px solid var(--primary-color); padding-bottom:0.5rem;">${subject}</h4>`;
+                resultsHtml += '<div class="dashboard-grid">';
+                groupedResults[subject]
+                    .sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt))
+                    .forEach(result => {
+                        const content = (currentClassData.content || []).find(c => c.id === result.contentId);
+                        if (content) {
+                            let scoreHtml = '';
+                            if (content.type === 'quiz') {
+                                const scorePercentage = result.totalQuestions > 0 ? (result.score / result.totalQuestions) * 100 : 0;
+                                scoreHtml = `
+                                <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem;">
+                                    <strong>Score: ${result.score}/${result.totalQuestions}</strong>
+                                    <div class="progress-bar">
+                                        <div class="progress-bar-fill" style="width: ${scorePercentage}%;"></div>
+                                    </div>
+                                </div>`;
+                            }
+                            
+                            const helpIcon = result.helpUsed ? `<i class="fa-solid fa-lightbulb" title="L'élève a demandé de l'aide pour ce devoir" style="font-size: 0.9rem; color: var(--warning-color); margin-left: 0.5rem;"></i>` : '';
+
+                            resultsHtml += `
+                                <div class="dashboard-card" style="cursor: default;">
+                                    <h4>${result.title} ${helpIcon}</h4>
+                                    <p style="margin-bottom: 1rem;">Terminé le: ${new Date(result.submittedAt).toLocaleDateString('fr-FR')}</p>
+                                    ${scoreHtml}
+                                    <button class="btn btn-secondary view-details" data-content-id="${result.contentId}">Voir les détails</button>
+                                </div>`;
+                        }
+                    });
+                resultsHtml += '</div>';
+            }
+
+        } else {
+            resultsHtml = '<p>Aucun exercice terminé pour le moment.</p>';
+        }
+
+        page.innerHTML = `
+            <button id="back-to-class-details" class="btn btn-secondary" style="margin-bottom: 2rem;"><i class="fa-solid fa-arrow-left"></i> Retour à la classe</button>
+            <div class="card">
+                <div class="page-header">
+                    <h2><img src="${backendUrl}/avatars/${student.avatar}" class="avatar"> Profil de ${student.firstName}</h2>
+                </div>
+                <h3 style="margin-top: 2rem; margin-bottom: 1rem;">Résultats des exercices terminés</h3>
+                ${resultsHtml}
+            </div>`;
+        
+        page.querySelector('#back-to-class-details').addEventListener('click', () => renderClassDetailsPage(currentClassData.id));
+        page.querySelectorAll('.view-details').forEach(button => {
+            button.addEventListener('click', (e) => {
+                const contentId = e.target.closest('button').dataset.contentId;
+                const result = studentResults.find(r => r.contentId === contentId);
+                const content = (currentClassData.content || []).find(c => c.id === contentId);
+                 if (result && content) {
+                    if (result.status === 'validated') {
+                        showValidatedResultModal(result, content);
+                    } else {
+                        showValidationModal(result, content);
+                    }
+                }
+            });
+        });
+
+        changePage('student-details-page');
+    }
+    
+    function showValidationModal(result, content) {
+        let detailsHtml = '';
+        if (content.type === 'quiz' && result.answers && Array.isArray(result.answers)) {
+            content.questions.forEach((q, index) => {
+                const studentAnswerIndex = result.answers[index];
+                const correctAnswerIndex = q.correct_answer_index;
+                const isCorrect = studentAnswerIndex === correctAnswerIndex;
+                detailsHtml += `<div class="feedback-item ${isCorrect ? 'correct' : 'incorrect'}">
+                                    <p><strong>${q.question_text}</strong></p>
+                                    <p>Réponse de l'élève : ${studentAnswerIndex > -1 ? q.options[studentAnswerIndex] : 'Aucune'}</p>
+                                    ${!isCorrect ? `<p>Bonne réponse : ${q.options[correctAnswerIndex]}</p>` : ''}
+                                </div>`;
+            });
+        } else {
+             detailsHtml = `<p>Cet exercice n'était pas un quiz interactif ou les détails des réponses ne sont pas disponibles.</p><p>Statut: Terminé le ${new Date(result.submittedAt).toLocaleDateString('fr-FR')}</p>`;
+        }
+
+        const validationHtml = `
+            <div class="validation-section">
+                <h4>Valider la copie</h4>
+                <form id="validation-form">
+                    <div class="appreciation-grid">
+                        <div class="appreciation-option">
+                            <input type="radio" id="appreciation-acquis" name="appreciation" value="acquis" required>
+                            <label for="appreciation-acquis">Acquis</label>
+                        </div>
+                        <div class="appreciation-option">
+                            <input type="radio" id="appreciation-en_cours" name="appreciation" value="en_cours" required>
+                            <label for="appreciation-en_cours">En cours d'acquisition</label>
+                        </div>
+                        <div class="appreciation-option">
+                            <input type="radio" id="appreciation-non_acquis" name="appreciation" value="non_acquis" required>
+                            <label for="appreciation-non_acquis">Non acquis</label>
+                        </div>
+                         <div class="appreciation-option">
+                            <input type="radio" id="appreciation-a_revoir" name="appreciation" value="a_revoir" required>
+                            <label for="appreciation-a_revoir">À revoir</label>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="teacher-comment">Commentaire (optionnel)</label>
+                        <textarea id="teacher-comment" rows="3"></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-main">Valider la correction</button>
+                </form>
+            </div>
+        `;
+
+        renderModal(getModalTemplate('validation-modal', `Correction pour : ${result.title}`, detailsHtml + validationHtml));
+        
+        document.getElementById('validation-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const appreciation = document.querySelector('input[name="appreciation"]:checked').value;
+            const comment = document.getElementById('teacher-comment').value;
+
+            await apiRequest('/teacher/validate-result', 'POST', {
+                classId: currentClassData.id,
+                teacherEmail: currentUser.email,
+                studentEmail: result.studentEmail,
+                contentId: result.contentId,
+                appreciation,
+                comment
+            });
+
+            modalContainer.innerHTML = '';
+            renderClassDetailsPage(currentClassData.id);
+        });
+    }
+    
+    function getAppreciationText(appreciationKey) {
+        const map = {
+            acquis: 'Acquis',
+            en_cours: "En cours d'acquisition",
+            non_acquis: 'Non acquis',
+            a_revoir: 'À revoir'
+        };
+        return map[appreciationKey] || 'Validé';
+    }
+
+    function showValidatedResultModal(result, content) {
+         let detailsHtml = '<h4>Détail des réponses</h4>';
+        if (content.type === 'quiz' && result.answers && Array.isArray(result.answers)) {
+            content.questions.forEach((q, index) => {
+                const studentAnswerIndex = result.answers[index];
+                const correctAnswerIndex = q.correct_answer_index;
+                const isCorrect = studentAnswerIndex === correctAnswerIndex;
+                detailsHtml += `<div class="feedback-item ${isCorrect ? 'correct' : 'incorrect'}">
+                                    <p><strong>${q.question_text}</strong></p>
+                                    <p>Réponse de l'élève : ${studentAnswerIndex > -1 ? q.options[studentAnswerIndex] : 'Aucune'}</p>
+                                    ${!isCorrect ? `<p>Bonne réponse : ${q.options[correctAnswerIndex]}</p>` : ''}
+                                </div>`;
+            });
+        } else {
+             detailsHtml = `<p>Les détails des réponses pour ce devoir ne sont pas disponibles.</p>`;
+        }
+
+        let feedbackHtml = `
+            <div class="validation-section">
+                <h4>Retour du professeur</h4>
+                <p><strong>Appréciation :</strong> ${getAppreciationText(result.appreciation)}</p>
+                ${result.teacherComment ? `<p><strong>Commentaire :</strong> ${result.teacherComment}</p>` : ''}
+            </div>
+        `;
+        
+        renderModal(getModalTemplate('validated-result-modal', `Résultat pour : ${result.title}`, detailsHtml + feedbackHtml));
+    }
+
+    async function handleAddStudent(e) { 
+        e.preventDefault(); 
+        const email = document.getElementById('student-email-input').value; 
+        const errP = document.getElementById('add-student-error'); 
+        try { 
+            if(errP) errP.textContent = ''; 
+            await apiRequest(`/teacher/classes/${currentClassData.id}/add-student`, 'POST', { studentEmail: email, teacherEmail: currentUser.email });
+            modalContainer.innerHTML = ''; 
+            renderClassDetailsPage(currentClassData.id); 
+        } catch (err) { 
+            if(errP) errP.textContent = err.message; 
+        } 
+    }
+    function showCreateClassModal() { renderModal(getModalTemplate('create-class-modal', 'Nouvelle Classe', `<form id=create-class-form><div class=form-group><label for=class-name-input>Nom</label><input type=text id=class-name-input required></div><button type=submit class="btn btn-main">Créer</button></form>`)); document.getElementById('create-class-form').addEventListener('submit', async e => { e.preventDefault(); await apiRequest('/teacher/classes', 'POST', { className: document.getElementById('class-name-input').value, teacherEmail: currentUser.email }); modalContainer.innerHTML = ''; renderTeacherDashboard(); }); }
+    
+    async function renderStudentDashboard() {
+        const page = document.getElementById('student-dashboard-page');
+        page.innerHTML = spinnerHtml;
+        changePage('student-dashboard-page');
+        
+        try {
+            studentDashboardData = await apiRequest(`/student/dashboard?studentEmail=${currentUser.email}`);
+            
+            let todoHtml = '<h3>À faire</h3>';
+            if (studentDashboardData.todo.length === 0) {
+                todoHtml += "<p>Bravo, tu es à jour !</p>";
+            } else {
+                todoHtml += '<div class="dashboard-grid">';
+                studentDashboardData.todo.forEach(item => {
+                    todoHtml += createStudentCard(item, 'todo');
+                });
+                todoHtml += '</div>';
+            }
+
+            let pendingHtml = '<h3 style="margin-top: 2rem;">En attente de validation</h3>';
+            if (studentDashboardData.pending.length === 0) {
+                pendingHtml += "<p>Aucun devoir en attente de correction.</p>";
+            } else {
+                pendingHtml += '<div class="dashboard-grid">';
+                studentDashboardData.pending.forEach(item => {
+                    pendingHtml += createStudentCard(item, 'pending');
+                });
+                pendingHtml += '</div>';
+            }
+
+            let completedHtml = `
+                <div class="page-header" style="margin-top: 2rem;">
+                    <h3>Archives</h3>
+                    <div id="archive-filters">
+                        <button class="btn btn-secondary active" data-filter="all">Tout</button>
+                        <button class="btn btn-secondary" data-filter="month">Ce mois-ci</button>
+                        <button class="btn btn-secondary" data-filter="week">Cette semaine</button>
+                    </div>
+                </div>
+                <div id="student-completed-list"></div>`;
+
+            page.innerHTML = `<h2>Bonjour ${currentUser.firstName}!</h2>${todoHtml}${pendingHtml}${completedHtml}`;
+            
+            renderFilteredArchives('all'); 
+            
+            page.querySelectorAll('#archive-filters').forEach(button => {
+                button.addEventListener('click', (e) => {
+                    if (e.target.tagName === 'BUTTON') {
+                        page.querySelectorAll('#archive-filters button').forEach(btn => btn.classList.remove('active'));
+                        e.target.classList.add('active');
+                        renderFilteredArchives(e.target.dataset.filter);
+                    }
+                });
+            });
+
+            page.querySelectorAll('.start-btn').forEach(button => {
+                 button.addEventListener('click', (e) => {
+                    const content = studentDashboardData.todo.find(item => item.id === e.target.dataset.contentId);
+                    if (content) renderContentViewer(content);
+                });
+            });
+
+             page.querySelectorAll('.view-correction-btn').forEach(button => {
+                 button.addEventListener('click', (e) => {
+                    const contentId = e.target.dataset.contentId;
+                    const content = studentDashboardData.completed.find(item => item.id === contentId);
+                    if(content) showValidatedResultModal(content, content);
+                });
+            });
+
+        } catch (error) {
+            page.innerHTML = `<p class="error-message">Impossible de charger le tableau de bord.</p>`;
+        }
+    }
+    
+    function renderFilteredArchives(filter) {
+        const container = document.getElementById('student-completed-list');
+        if (!studentDashboardData || !studentDashboardData.completed || studentDashboardData.completed.length === 0) {
+            container.innerHTML = "<p>Aucun devoir terminé pour le moment.</p>";
+            return;
+        }
+        
+        const now = new Date();
+        const filteredItems = studentDashboardData.completed.filter(item => {
+            const completedDate = new Date(item.completedAt);
+            if (filter === 'week') {
+                const startOfWeek = new Date(now);
+                startOfWeek.setDate(now.getDate() - now.getDay() + (now.getDay() === 0 ? -6 : 1)); 
+                startOfWeek.setHours(0,0,0,0);
+                return completedDate >= startOfWeek;
+            }
+            if (filter === 'month') {
+                return completedDate.getFullYear() === now.getFullYear() && completedDate.getMonth() === now.getMonth();
+            }
+            return true; 
+        });
+
+        if (filteredItems.length === 0) {
+            container.innerHTML = "<p>Aucun exercice terminé pour cette période.</p>";
+            return;
+        }
+
+        const groupedBySubject = filteredItems.reduce((acc, item) => {
+            const subject = getSubjectInfo(item.title).name;
+            if (!acc[subject]) acc[subject] = [];
+            acc[subject].push(item);
+            return acc;
+        }, {});
+
+        let completedHtml = '';
+        for (const subject in groupedBySubject) {
+            completedHtml += `<h4 style="margin-top:1.5rem; margin-bottom:1rem; border-bottom: 2px solid var(--primary-color); padding-bottom:0.5rem;">${subject}</h4>`;
+            completedHtml += '<div class="dashboard-grid">';
+            groupedBySubject[subject]
+                .sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt))
+                .forEach(item => {
+                    completedHtml += createStudentCard(item, 'completed');
+                });
+            completedHtml += '</div>';
+        }
+        container.innerHTML = completedHtml;
+        
+        container.querySelectorAll('.view-correction-btn').forEach(button => {
+             button.addEventListener('click', (e) => {
+                const contentId = e.target.dataset.contentId;
+                const content = studentDashboardData.completed.find(item => item.id === contentId);
+                if(content) showValidatedResultModal(content, content);
+            });
+        });
+    }
+
+
+    function createStudentCard(c, status) {
+        const subjectInfo = getSubjectInfo(c.title);
+        let dateInfoHtml = '';
+        let buttonHtml = '';
+
+        switch(status) {
+            case 'todo':
+                const dueDate = new Date(c.dueDate);
+                const today = new Date(); today.setHours(0,0,0,0);
+                const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate() + 1);
+                let statusClass = 'status-ontime';
+                let statusText = `À faire pour le ${dueDate.toLocaleDateString('fr-FR')}`;
+                if (dueDate < today) {
+                    statusClass = 'status-overdue';
+                    statusText = `En retard (pour le ${dueDate.toLocaleDateString('fr-FR')})`;
+                } else if (dueDate <= tomorrow) {
+                    statusClass = 'status-due-soon';
+                    statusText = `À rendre bientôt`;
+                }
+                dateInfoHtml = `<span class="deadline-status ${statusClass}">${statusText}</span>`;
+                buttonHtml = `<button class="btn btn-main start-btn" data-content-id="${c.id}">Commencer</button>`;
+                break;
+            case 'pending':
+                dateInfoHtml = `<span class="deadline-status status-pending">En attente de correction</span>`;
+                buttonHtml = `<button class="btn btn-secondary" disabled>En attente</button>`;
+                break;
+            case 'completed':
+                const appreciationText = c.appreciation ? getAppreciationText(c.appreciation) : 'Validé';
+                dateInfoHtml = `<span class="deadline-status status-completed">${appreciationText}</span>`;
+                buttonHtml = `<button class="btn btn-secondary view-correction-btn" data-content-id="${c.id}">Voir la correction</button>`;
+                break;
+        }
+
+        return `
+            <div class="dashboard-card-student">
+                <div class="card-header">
+                    <span class="subject-tag ${subjectInfo.cssClass}">${c.type.charAt(0).toUpperCase() + c.type.slice(1)}</span>
+                    ${dateInfoHtml}
+                </div>
+                <div class="card-content">
+                    <h4>${c.title}</h4>
+                    <p>Classe: ${c.className}</p>
+                </div>
+                <div class="card-footer">
+                    ${buttonHtml}
+                </div>
+            </div>`;
+    }
+
+    function renderContentViewer(c) {
+        const p = document.getElementById('content-viewer-page');
+        let html = '';
+        let footerHtml = '';
+        const isQuiz = c.type === 'quiz';
+        
+        helpUsedInQuiz = false;
+
+        if (isQuiz) {
+             c.questions.forEach((q, i) => {
+                html += `<div class="quiz-question">
+                            <div class="question-header">
+                                <p><strong>${q.question_text}</strong></p>
+                                <button type="button" class="btn-help" data-question="${q.question_text}"><i class="fa-solid fa-lightbulb"></i> Aide</button>
+                            </div>
+                            <div class="quiz-options-grid">${q.options.map((o, j) => `
+                                <label class="quiz-option">
+                                    <input type="radio" name="q${i}" value="${j}" required>
+                                    <div class="option-label">${o}</div>
+                                </label>`).join('')}
+                            </div>
+                        </div>`;
+            });
+            footerHtml = `<button type="submit" class="btn btn-main" style="margin-top:1rem;">Valider</button>`;
+        } else { 
+            if (c.content && Array.isArray(c.content)) { 
+                 c.content.forEach(e => {
+                    html += `<div style="margin-bottom: 1.5rem;"><h4>Exercice</h4><p>${e.enonce}</p></div>`;
+                });
+            } else if (c.content && typeof c.content === 'string') {
+                html = `<div class="revision-content">${c.content.replace(/\n/g, '<br>')}</div>`;
+            } else {
+                html = `<p>Ce contenu n'est pas interactif. Cliquez sur 'Terminé' lorsque vous avez fini de le consulter.</p>`;
+            }
+            
+            if (c.isEvaluated) {
+                 footerHtml = `<a href="playground.html?mode=coach&topic=${encodeURIComponent(c.title)}" class="btn btn-secondary" style="margin-top:1rem;"><i class="fa-solid fa-pen-ruler"></i> Obtenir de l'aide</a>`;
+            }
+            
+            footerHtml += `<button type="button" id="finish-exercise-btn" class="btn btn-main" style="margin-top:1rem;"><i class="fa-solid fa-check"></i> Terminé</button>`;
+        }
+
+        p.innerHTML = `<button id="back-to-student" class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> Retour</button>
+                         <div class="card" style="margin-top:1rem;">
+                            <h2>${c.title}</h2>
+                            <form id="content-form">
+                                <div>${html}</div>
+                                <div style="display: flex; gap: 1rem; justify-content: flex-end;">${footerHtml}</div>
+                            </form>
+                         </div>`;
+
+        p.querySelector('#back-to-student').addEventListener('click', renderStudentDashboard);
+        const form = p.querySelector('#content-form');
+
+        if (isQuiz) {
+            form.addEventListener('submit', e => { e.preventDefault(); handleSubmitQuiz(c); });
+            form.querySelectorAll('.btn-help').forEach(b => b.addEventListener('click', handleHelpRequest));
+        } else {
+            const finishBtn = p.querySelector('#finish-exercise-btn');
+            if (finishBtn) {
+                finishBtn.addEventListener('click', async () => {
+                    await apiRequest('/student/submit-quiz', 'POST', { 
+                        studentEmail: currentUser.email, 
+                        classId: c.classId, 
+                        contentId: c.id, 
+                        title: c.title, 
+                        score: 0, 
+                        totalQuestions: 0, 
+                        answers: [],
+                        helpUsed: false,
+                        teacherEmail: c.teacherEmail
+                    });
+                    renderStudentDashboard();
+                });
+            }
+        }
+        changePage('content-viewer-page');
+    }
+
+    async function handleHelpRequest(e) { 
+        e.preventDefault(); 
+        helpUsedInQuiz = true;
+        const q = e.target.closest('button').dataset.question; 
+        renderModal(getModalTemplate('help-modal', 'Indice d\'AIDA', `<p><strong>Question:</strong> ${q}</p><div id=hint-container style=margin-top:1rem>${spinnerHtml}</div>`)); 
+        try { 
+            const d = await apiRequest('/ai/get-hint', 'POST', { questionText: q }); 
+            document.getElementById('hint-container').innerHTML = `<p>${d.hint}</p>`; 
+        } catch (err) { 
+            document.getElementById('hint-container').innerHTML = `<p class=error-message>Indice indisponible.</p>`; 
+        } 
+    }
+
+    async function handleSubmitQuiz(c) { 
+        const answers = c.questions.map((q, i) => { const sel = document.querySelector(`input[name=q${i}]:checked`); return sel ? parseInt(sel.value) : -1; }); 
+        const score = answers.reduce((acc, ans, i) => acc + (ans == c.questions[i].correct_answer_index ? 1 : 0), 0); 
+        await apiRequest('/student/submit-quiz', 'POST', { 
+            studentEmail: currentUser.email, 
+            classId: c.classId, 
+            contentId: c.id, 
+            title: c.title, 
+            score, 
+            totalQuestions: c.questions.length, 
+            answers,
+            helpUsed: helpUsedInQuiz,
+            teacherEmail: c.teacherEmail
+        }); 
+        renderStudentDashboard();
+    }
+    
+    async function renderLibraryPage() {
+        const page = document.getElementById('library-page');
+        changePage('library-page');
+        page.innerHTML = `
+            <div class="page-header">
+                <h2><i class="fa-solid fa-book-bookmark"></i> Bibliothèque de Contenus</h2>
+            </div>
+            <form id="library-search-form" style="display:flex; gap:1rem; margin-bottom: 2rem;">
+                <input type="text" id="library-search-input" placeholder="Rechercher par titre...">
+                <select id="library-subject-filter">
+                    <option value="">Toutes les matières</option>
+                    <option>Mathématiques</option>
+                    <option>Français</option>
+                    <option>Histoire-Géo</option>
+                    <option>Sciences</option>
+                    <option>Autre</option>
+                </select>
+                <button type="submit" class="btn btn-main">Rechercher</button>
+            </form>
+            <div id="library-grid" class="dashboard-grid">${spinnerHtml}</div>
+        `;
+        const searchForm = document.getElementById('library-search-form');
+        searchForm.addEventListener('submit', e => {
+            e.preventDefault();
+            loadLibraryContents();
+        });
+
+        loadLibraryContents();
+    }
+    
+    async function loadLibraryContents() {
+        const grid = document.getElementById('library-grid');
+        grid.innerHTML = spinnerHtml;
+        const searchTerm = document.getElementById('library-search-input').value;
+        const subject = document.getElementById('library-subject-filter').value;
+        
+        try {
+            const results = await apiRequest(`/library?searchTerm=${searchTerm}&subject=${subject}`);
+            grid.innerHTML = '';
+            if (results.length === 0) {
+                grid.innerHTML = '<p>Aucun contenu trouvé. Essayez d\'autres mots-clés ou partagez le vôtre !</p>';
+                return;
+            }
+            results.forEach(content => {
+                const subjectInfo = getSubjectInfo(content.title);
+                const card = document.createElement('div');
+                card.className = 'dashboard-card';
+                const contentString = JSON.stringify(content).replace(/"/g, '&quot;');
+                card.innerHTML = `
+                    <div class="dashboard-card-title"><h4>${content.title}</h4></div>
+                    <p><span class="subject-tag ${subjectInfo.cssClass}">${subjectInfo.name}</span></p>
+                    <p>Type: ${content.type}</p>
+                    <p>Auteur: ${content.authorName}</p>
+                    <div style="text-align:right; margin-top: 1rem;">
+                       <button class="btn btn-secondary import-content-btn" data-content="${contentString}">Ajouter à une classe</button>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+            
+            grid.querySelectorAll('.import-content-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const contentData = JSON.parse(e.target.dataset.content);
+                    showAssignModal(contentData);
+                });
+            });
+
+        } catch(error) {
+            grid.innerHTML = '<p class="error-message">Impossible de charger la bibliothèque.</p>';
+        }
+    }
+    
+    function showGenerationModal() {
+        if (Object.keys(programmes).length === 0) {
+            alert("Les programmes scolaires n'ont pas pu être chargés. Impossible de générer du contenu.");
+            return;
+        }
+        
+        const h = `
+            <div class="tabs">
+                <button class="tab-button active" data-tab="from-program">Depuis le Programme</button>
+                <button class="tab-button" data-tab="from-text">Depuis un Texte/Document</button>
+            </div>
+            <div id="from-program" class="tab-panel active">
+                <form id="generation-form">
+                    <div class="form-group"><label>Type de contenu</label><select id="content-type-select"><option value="quiz">Quiz</option><option value="exercices">Fiche d'exercices</option><option value="revision">Fiche de révision</option><option value="dm">Devoir Maison</option></select></div>
+                    <div class="form-group" id="exercise-count-group"><label for="exercise-count" id="exercise-count-label">Nombre de questions</label><input type="number" id="exercise-count" value="3" min="1" max="15"></div>
+                    <div class="form-group"><label>Cycle</label><select id="cycle-select"><option value="">-- Choisir --</option></select></div>
+                    <div class="form-group"><label>Niveau</label><select id="niveau-select" disabled><option value="">-- Choisir --</option></select></div>
+                    <div class="form-group"><label>Matière</label><select id="matiere-select" disabled><option value="">-- Choisir --</option></select></div>
+                    <div class="form-group"><label>Notion</label><select id="notion-select" disabled><option value="">-- Choisir --</option></select></div>
+                    <div class="form-group"><label>Compétence</label><select id="competence-select" disabled><option value="">-- Choisir --</option></select></div>
+                    <button type="submit" class="btn btn-main" id="generate-btn">Générer</button>
+                </form>
+            </div>
+            <div id="from-text" class="tab-panel">
+                 <form id="generate-from-upload-form">
+                    <div class="form-group"><label for="document-upload-input">Chargez un document (PDF, DOCX, PNG, JPG)</label><input type="file" id="document-upload-input" accept=".pdf,.docx,.png,.jpg,.jpeg" required></div>
+                    <div class="form-group"><label>Type de contenu à générer</label><select id="teacher-content-type-upload"><option value="quiz">Quiz</option><option value="exercices">Fiche d'exercices</option><option value="revision">Fiche de révision</option><option value="dm">Devoir Maison</option></select></div>
+                    <div class="form-group" id="exercise-count-group-upload"><label for="exercise-count-upload" id="exercise-count-label-upload">Nombre de questions</label><input type="number" id="exercise-count-upload" value="3" min="1" max="15"></div>
+                    <button type="submit" class="btn btn-main">Analyser et Générer</button>
+                </form>
+            </div>
+            <div id="generation-spinner" class="hidden">${spinnerHtml}</div>`;
+        
+        renderModal(getModalTemplate('generation-modal', 'Générer du contenu pédagogique', h));
+        
+        const setupContentTypeListener = (typeSelectId, countGroupId, countLabelId) => {
+            const typesWithCount = ['quiz', 'exercices', 'dm'];
+            const typeSelect = document.getElementById(typeSelectId);
+            const countGroup = document.getElementById(countGroupId);
+            const countLabel = document.getElementById(countLabelId);
+            typeSelect.addEventListener('change', () => {
+                const selectedType = typeSelect.value;
+                countGroup.classList.toggle('hidden', !typesWithCount.includes(selectedType));
+                if(selectedType === 'quiz') countLabel.textContent = "Nombre de questions";
+                else if (selectedType === 'exercices' || selectedType === 'dm') countLabel.textContent = "Nombre d'exercices";
+            });
+            typeSelect.dispatchEvent(new Event('change'));
+        };
+        setupContentTypeListener('content-type-select', 'exercise-count-group', 'exercise-count-label');
+        setupContentTypeListener('teacher-content-type-upload', 'exercise-count-group-upload', 'exercise-count-label-upload');
+        const cy = document.getElementById('cycle-select'), n = document.getElementById('niveau-select'), m = document.getElementById('matiere-select'), no = document.getElementById('notion-select'), co = document.getElementById('competence-select'), gen = document.getElementById('generate-btn');
+        Object.keys(programmes).forEach(c => cy.add(new Option(c, c)));
+        cy.addEventListener('change', () => { resetSelects([n, m, no, co]); const s = cy.value; if (s) { Object.keys(programmes[s]).forEach(l => n.add(new Option(l, l))); n.disabled = false; } });
+        n.addEventListener('change', () => { resetSelects([m, no, co]); const d = programmes[cy.value][n.value]; if (d) { Object.keys(d).forEach(k => m.add(new Option(d[k].nom, k))); m.disabled = false; } });
+        m.addEventListener('change', () => { resetSelects([no, co]); const d = programmes[cy.value][n.value]?.[m.value]; if (d) { Object.keys(d).filter(k => k !== 'nom').forEach(nk => { no.add(new Option(d[nk].nom, nk)); }); no.disabled = false; } });
+        no.addEventListener('change', () => { resetSelects([co]); const d = programmes[cy.value][n.value]?.[m.value]?.[no.value]; if (d && d.sous_notions) { Object.values(d.sous_notions).forEach(sn => { (sn.competences || []).forEach(c => co.add(new Option(c, c))); }); co.disabled = false; } });
+        co.addEventListener('change', () => { gen.disabled = !co.value; });
+        document.getElementById('generation-form').addEventListener('submit', async e => {
+            e.preventDefault();
+            selectedCompetenceInfo = { level: n.value, competence: co.value };
+            const comp = co.value;
+            const contentType = document.getElementById('content-type-select').value;
+            const exerciseCount = document.getElementById('exercise-count').value;
+            
+            const matiereSelect = document.getElementById('matiere-select');
+            const selectedMatiereText = matiereSelect.options[matiereSelect.selectedIndex].text;
+            let language = null;
+            if (selectedMatiereText.includes('Anglais')) {
+                language = 'Anglais';
+            } else if (selectedMatiereText.includes('Arabe')) {
+                language = 'Arabe';
+            } else if (selectedMatiereText.includes('Espagnol')) {
+                language = 'Espagnol';
+            }
+
+
+            document.getElementById('generation-spinner').classList.remove('hidden');
+            try {
+                const d = await apiRequest('/ai/generate-content', 'POST', { competences: comp, contentType, exerciseCount, language });
+                generatedContent = d.structured_content;
+                showEditModal();
+            } catch(err) {
+                alert("Erreur: " + err.message);
+            } finally {
+                document.getElementById('generation-spinner').classList.add('hidden');
+            }
+        });
+        document.getElementById('generate-from-upload-form').addEventListener('submit', async (e) => { e.preventDefault(); const spinner = document.getElementById('generation-spinner'); spinner.classList.remove('hidden'); const formData = new FormData(); formData.append('document', document.getElementById('document-upload-input').files[0]); formData.append('contentType', document.getElementById('teacher-content-type-upload').value); formData.append('exerciseCount', document.getElementById('exercise-count-upload').value); try { const response = await fetch(`${backendUrl}/api/ai/generate-from-upload`, { method: 'POST', body: formData }); const data = await response.json(); if (!response.ok) throw new Error(data.error); generatedContent = data.structured_content; showEditModal(); } catch (err) { alert('Erreur: ' + err.message); } finally { spinner.classList.add('hidden'); } });
+        const modal = document.getElementById('generation-modal');
+        modal.querySelectorAll('.tab-button').forEach(button => { button.addEventListener('click', (e) => { modal.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active')); modal.querySelectorAll('.tab-panel').forEach(panel => panel.classList.remove('active')); e.target.classList.add('active'); document.getElementById(e.target.dataset.tab).classList.add('active'); }); });
+    }
+    function resetSelects(selects) { selects.forEach(s => { s.innerHTML = '<option value="">-- Choisir --</option>'; s.disabled = true; }); document.getElementById('generate-btn').disabled = true; }
+    
+    function showEditModal() {
+        let editHtml = `<form id="edit-form"><div class="form-group"><label>Titre</label><input type="text" id="edit-title" value="${generatedContent.title || ''}"></div>`;
+
+        if (generatedContent.type === 'quiz' && Array.isArray(generatedContent.questions)) {
+            generatedContent.questions.forEach((q, i) => {
+                editHtml += `<div class="form-group"><label>Question ${i + 1}</label><input type="text" id="edit-q-${i}" value="${q.question_text || ''}"><label style="margin-top: 0.5rem;">Options</label>`;
+                if (Array.isArray(q.options)) {
+                    editHtml += q.options.map((opt, j) => `<input type="text" id="edit-q-${i}-opt-${j}" value="${opt || ''}" style="margin-bottom: 0.5rem;">`).join('');
+                }
+                editHtml += `</div>`;
+            });
+        } else if ((generatedContent.type === 'exercices' || generatedContent.type === 'dm') && Array.isArray(generatedContent.content)) {
+            generatedContent.content.forEach((ex, i) => {
+                editHtml += `<div class="form-group"><label>Exercice ${i + 1}</label><textarea id="edit-ex-${i}" rows="3">${ex.enonce || ''}</textarea></div>`;
+            });
+        } else if (generatedContent.type === 'revision' && typeof generatedContent.content === 'string') {
+            editHtml += `<div class="form-group"><label>Contenu de la fiche</label><textarea id="edit-revision-content" rows="10">${generatedContent.content || ''}</textarea></div>`;
+        } else {
+            editHtml += `<p class="error-message">Le contenu généré par l'IA a une structure inattendue. Vous pouvez le modifier manuellement ci-dessous.</p>`;
+            editHtml += `<div class="form-group"><label>Contenu brut (JSON)</label><textarea rows="10" id="raw-json-edit">${JSON.stringify(generatedContent, null, 2)}</textarea></div>`;
+        }
+        editHtml += `<button type="submit" class="btn btn-main">Valider et Assigner</button></form>`;
+
+        renderModal(getModalTemplate('edit-modal', 'Modifier et Valider le Contenu', editHtml));
+
+        document.getElementById('edit-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            try {
+                const rawJsonTextarea = document.getElementById('raw-json-edit');
+                if (rawJsonTextarea) {
+                    generatedContent = JSON.parse(rawJsonTextarea.value);
+                } else {
+                    generatedContent.title = document.getElementById('edit-title').value;
+                    if (generatedContent.type === 'quiz' && Array.isArray(generatedContent.questions)) {
+                        generatedContent.questions.forEach((q, i) => {
+                            q.question_text = document.getElementById(`edit-q-${i}`).value;
+                            if (Array.isArray(q.options)) {
+                                q.options.forEach((opt, j) => { q.options[j] = document.getElementById(`edit-q-${i}-opt-${j}`).value; });
+                            }
+                        });
+                    } else if ((generatedContent.type === 'exercices' || generatedContent.type === 'dm') && Array.isArray(generatedContent.content)) {
+                        generatedContent.content.forEach((ex, i) => {
+                            ex.enonce = document.getElementById(`edit-ex-${i}`).value;
+                        });
+                    } else if (generatedContent.type === 'revision') {
+                        generatedContent.content = document.getElementById('edit-revision-content').value;
+                    }
+                }
+                showAssignModal();
+            } catch (err) {
+                alert("Le JSON modifié n'est pas valide. Veuillez le corriger avant de continuer.");
+            }
+        });
+    }
+
+    function showAssignModal(contentToAssign) { 
+        const content = contentToAssign || generatedContent; 
+        const defaultDueDate = new Date(); 
+        defaultDueDate.setDate(defaultDueDate.getDate() + 7); 
+        const formattedDefaultDate = defaultDueDate.toISOString().split('T')[0]; 
+        const modalHtml = `<form id="assign-form">
+            <div class="form-group"><label for="assign-class-select">Assigner à la classe</label><select id="assign-class-select" required></select></div>
+            <div class="form-group"><label for="due-date-input">À faire pour le</label><input type="date" id="due-date-input" value="${formattedDefaultDate}" required></div>
+            <div class="form-group checkbox-group"><input type="checkbox" id="is-evaluated-checkbox"><label for="is-evaluated-checkbox">Ce contenu est un devoir évalué</label></div>
+            <button type="submit" class="btn btn-main">Assigner</button>
+        </form>`; 
+        renderModal(getModalTemplate('assign-modal', `Assigner "${content.title}"`, modalHtml)); 
+        const select = document.getElementById('assign-class-select'); 
+        teacherClasses.forEach(c => select.add(new Option(c.className, c.id))); 
+        document.getElementById('assign-form').addEventListener('submit', async e => { 
+            e.preventDefault(); 
+            const classId = select.value; 
+            const dueDate = document.getElementById('due-date-input').value; 
+            const isEvaluated = document.getElementById('is-evaluated-checkbox').checked;
+            if (!classId || !content || !dueDate) return; 
+            try { 
+                await apiRequest('/teacher/assign-content', 'POST', { 
+                    classId, 
+                    teacherEmail: currentUser.email,
+                    contentData: { ...content, dueDate, isEvaluated, competence: content.competence || selectedCompetenceInfo } 
+                }); 
+                modalContainer.innerHTML = ''; 
+                renderModal(getModalTemplate('assign-confirm', 'Succès', '<p>Le contenu a bien été assigné !</p>')); 
+                setTimeout(() => { modalContainer.innerHTML = ''; renderTeacherDashboard(); }, 2000); 
+            } catch (error) { 
+                alert("Erreur lors de l'assignation du contenu."); 
+            } 
+        }); 
+    }
+    
+    async function renderPlannerPage() {
+        const page = document.getElementById('planner-page');
+        changePage('planner-page');
+        page.innerHTML = `
+            <div class="page-header">
+                <h2><i class="fa-solid fa-calendar-days"></i> Planificateur de Cours</h2>
+                <button id="back-to-teacher-dash" class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> Retour</button>
+            </div>
+            <div class="card">
+                <form id="planner-form">
+                    <div class="form-group"><label for="planner-theme">Thème de la séquence</label><input type="text" id="planner-theme" placeholder="Ex: L'Empire romain, Les fractions..." required></div>
+                    <div class="form-group"><label for="planner-level">Niveau de la classe</label><input type="text" id="planner-level" placeholder="Ex: 6ème, CE2, Seconde..." required></div>
+                    <div class="form-group"><label for="planner-sessions">Nombre de séances</label><input type="number" id="planner-sessions" value="3" min="1" max="10" required></div>
+                    <button type="submit" class="btn btn-main">Générer la séquence</button>
+                </form>
+            </div>
+            <div id="planner-output" class="hidden">${spinnerHtml}</div>`;
+        const outputContainer = document.getElementById('planner-output');
+        page.querySelector('#back-to-teacher-dash').addEventListener('click', renderTeacherDashboard);
+        page.querySelector('#planner-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            outputContainer.classList.remove('hidden');
+            outputContainer.innerHTML = spinnerHtml;
+            const theme = document.getElementById('planner-theme').value;
+            const level = document.getElementById('planner-level').value;
+            const numSessions = document.getElementById('planner-sessions').value;
+            try {
+                const data = await apiRequest('/ai/generate-lesson-plan', 'POST', { theme, level, numSessions });
+                const plan = data.structured_plan;
+                let outputHtml = `<h3>${plan.planTitle} (Niveau ${plan.level})</h3>`;
+                plan.sessions.forEach(session => {
+                    outputHtml += `<div class="session-card"><div class="session-header"><div class="session-number">${session.sessionNumber}</div><h4>${session.title}</h4></div><p><strong>Objectif :</strong> ${session.objective}</p><p><strong>Activités :</strong></p><ul>${session.activities.map(act => `<li>${act}</li>`).join('')}</ul><p><strong>Ressources AIDA :</strong></p><ul>${session.resources.map(res => `<li>${res}</li>`).join('')}</ul></div>`;
+                });
+                outputContainer.innerHTML = outputHtml;
+            } catch (error) { outputContainer.innerHTML = `<p class="error-message">Erreur lors de la génération du plan : ${error.message}</p>`; }
+        });
+    }
+
+    async function init() {
+        const savedUser = localStorage.getItem('currentUser');
+        if (savedUser) {
+            currentUser = JSON.parse(savedUser);
+        }
+
+        if (window.location.hash === '#login' && !currentUser) {
+            renderAuthPage();
+            return;
+        }
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        applyTheme(savedTheme);
+        await loadProgrammes();
+        updateUI();
+    }
+    
+    loginNavBtn.addEventListener('click', renderAuthPage);
+    startAppBtn.addEventListener('click', renderAuthPage);
+    homeLink.addEventListener('click', () => { if(currentUser) { currentUser.role === 'teacher' ? renderTeacherDashboard() : renderStudentDashboard() } else { changePage('home-page'); } });
+    libraryLink.addEventListener('click', (e) => { e.preventDefault(); renderLibraryPage(); });
+    logoutBtn.addEventListener('click', () => { 
+        currentUser = null; 
+        localStorage.removeItem('currentUser');
+        updateUI(); 
+    });
+    userInfoClickable.addEventListener('click', () => userDropdown.classList.toggle('hidden'));
+    window.addEventListener('click', (e) => {
+        if (userMenuContainer && !userMenuContainer.contains(e.target)) {
+            userDropdown.classList.add('hidden');
+        }
+    });
+    
+    themeToggleHeaderBtn.addEventListener('click', toggleTheme);
+    themeToggleDropdownBtn.addEventListener('click', toggleTheme);
+
+
+    const wrapper = document.querySelector('#intro-animation-wrapper');
+    const finalWrapper = document.querySelector('#aida-final-text');
+    if (wrapper && finalWrapper) {
+        setTimeout(() => {
+            wrapper.style.display = 'none';
+            finalWrapper.style.display = 'flex';
+        }, 10000); 
+    }
+    
+    init();
+});
+
