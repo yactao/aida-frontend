@@ -137,7 +137,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <div id="class-grid" class="dashboard-grid">${spinnerHtml}</div>`;
         changePage('teacher-dashboard-page');
         p.querySelector('#open-class-modal').addEventListener('click', showCreateClassModal);
-        p.querySelector('#open-gen-modal').addEventListener('click', showGenerationModal);
+        p.querySelector('#open-gen-modal').addEventListener('click', () => showGenerationModal());
         p.querySelector('#open-planner-btn').addEventListener('click', renderPlannerPage);
 
         teacherClasses = await apiRequest(`/teacher/classes?teacherEmail=${currentUser.email}`);
@@ -1093,7 +1093,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     
-    function showGenerationModal() {
+    function showGenerationModal(prefillData = null) {
         if (Object.keys(programmes).length === 0) {
             alert("Les programmes scolaires n'ont pas pu être chargés. Impossible de générer du contenu.");
             return;
@@ -1206,6 +1206,62 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('generate-from-upload-form').addEventListener('submit', async (e) => { e.preventDefault(); const spinner = document.getElementById('generation-spinner'); spinner.classList.remove('hidden'); const formData = new FormData(); formData.append('document', document.getElementById('document-upload-input').files[0]); formData.append('contentType', document.getElementById('teacher-content-type-upload').value); formData.append('exerciseCount', document.getElementById('exercise-count-upload').value); try { const response = await fetch(`${backendUrl}/api/ai/generate-from-upload`, { method: 'POST', body: formData }); const data = await response.json(); if (!response.ok) throw new Error(data.error); generatedContent = data.structured_content; showEditModal(); } catch (err) { alert('Erreur: ' + err.message); } finally { spinner.classList.add('hidden'); } });
         const modal = document.getElementById('generation-modal');
         modal.querySelectorAll('.tab-button').forEach(button => { button.addEventListener('click', (e) => { modal.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active')); modal.querySelectorAll('.tab-panel').forEach(panel => panel.classList.remove('active')); e.target.classList.add('active'); document.getElementById(e.target.dataset.tab).classList.add('active'); }); });
+
+        if (prefillData) {
+            document.getElementById('content-type-select').value = prefillData.type;
+            document.getElementById('content-type-select').dispatchEvent(new Event('change'));
+
+            let found = false;
+            for (const cycleKey in programmes) {
+                for (const niveauKey in programmes[cycleKey]) {
+                    const normalizedNiveauKey = niveauKey.trim().toLowerCase();
+                    const normalizedPrefillLevel = prefillData.level.trim().toLowerCase();
+                    if (normalizedNiveauKey.includes(normalizedPrefillLevel) || normalizedPrefillLevel.includes(normalizedNiveauKey)) {
+                         for (const matiereKey in programmes[cycleKey][niveauKey]) {
+                            const matiere = programmes[cycleKey][niveauKey][matiereKey];
+                            for (const notionKey in matiere) {
+                                if (notionKey === 'nom') continue;
+                                const notion = matiere[notionKey];
+                                
+                                let competences = [];
+                                if (notion.sous_notions) {
+                                    Object.values(notion.sous_notions).forEach(sn => {
+                                        if(sn.competences) competences.push(...sn.competences);
+                                    });
+                                } else if (notion.competences) {
+                                    competences.push(...notion.competences);
+                                }
+
+                                if (competences.includes(prefillData.competence)) {
+                                    setTimeout(() => {
+                                        cy.value = cycleKey; cy.dispatchEvent(new Event('change'));
+                                        setTimeout(() => {
+                                            n.value = niveauKey; n.dispatchEvent(new Event('change'));
+                                            setTimeout(() => {
+                                                m.value = matiereKey; m.dispatchEvent(new Event('change'));
+                                                setTimeout(() => {
+                                                    no.value = notionKey; no.dispatchEvent(new Event('change'));
+                                                    setTimeout(() => {
+                                                        co.value = prefillData.competence; co.dispatchEvent(new Event('change'));
+                                                    }, 50);
+                                                }, 50);
+                                            }, 50);
+                                        }, 50);
+                                    }, 0);
+                                    found = true; break;
+                                }
+                            }
+                            if (found) break;
+                        }
+                    }
+                    if (found) break;
+                }
+                if (found) break;
+            }
+             if (!found) {
+                console.warn("Impossible de pré-remplir le formulaire. Compétence non trouvée:", prefillData);
+            }
+        }
     }
     function resetSelects(selects) { selects.forEach(s => { s.innerHTML = '<option value="">-- Choisir --</option>'; s.disabled = true; }); document.getElementById('generate-btn').disabled = true; }
     
@@ -1330,9 +1386,33 @@ document.addEventListener('DOMContentLoaded', () => {
                 const plan = data.structured_plan;
                 let outputHtml = `<h3>${plan.planTitle} (Niveau ${plan.level})</h3>`;
                 plan.sessions.forEach(session => {
-                    outputHtml += `<div class="session-card"><div class="session-header"><div class="session-number">${session.sessionNumber}</div><h4>${session.title}</h4></div><p><strong>Objectif :</strong> ${session.objective}</p><p><strong>Activités :</strong></p><ul>${session.activities.map(act => `<li>${act}</li>`).join('')}</ul><p><strong>Ressources AIDA :</strong></p><ul>${session.resources.map(res => `<li>${res}</li>`).join('')}</ul></div>`;
+                    outputHtml += `<div class="session-card">
+                        <div class="session-header"><div class="session-number">${session.sessionNumber}</div><h4>${session.title}</h4></div>
+                        <p><strong>Objectif :</strong> ${session.objective}</p>
+                        <p><strong>Activités :</strong></p><ul>${session.activities.map(act => `<li>${act}</li>`).join('')}</ul>
+                        <p><strong>Ressources AIDA :</strong></p><ul>`;
+                    (session.resources || []).forEach(res => {
+                         const resourceData = JSON.stringify(res).replace(/"/g, '&quot;');
+                         outputHtml += `<li>
+                                           <span>${res.type.charAt(0).toUpperCase() + res.type.slice(1)} : ${res.sujet}</span>
+                                           <button class="btn btn-generate-planner" data-resource='${resourceData}' data-level="${plan.level}">
+                                               <i class="fa-solid fa-wand-magic-sparkles"></i> Générer
+                                           </button>
+                                       </li>`;
+                    });
+                    outputHtml += `</ul></div>`;
                 });
                 outputContainer.innerHTML = outputHtml;
+                outputContainer.querySelectorAll('.btn-generate-planner').forEach(button => {
+                    button.addEventListener('click', (e) => {
+                        const resourceString = e.currentTarget.dataset.resource;
+                        if(resourceString) {
+                            const prefillData = JSON.parse(resourceString);
+                            prefillData.level = e.currentTarget.dataset.level; 
+                            showGenerationModal(prefillData);
+                        }
+                    });
+                });
             } catch (error) { outputContainer.innerHTML = `<p class="error-message">Erreur lors de la génération du plan : ${error.message}</p>`; }
         });
     }
