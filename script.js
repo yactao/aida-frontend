@@ -1112,7 +1112,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div class="form-group"><label>Niveau</label><select id="niveau-select" disabled><option value="">-- Choisir --</option></select></div>
                     <div class="form-group"><label>Matière</label><select id="matiere-select" disabled><option value="">-- Choisir --</option></select></div>
                     <div class="form-group"><label>Notion</label><select id="notion-select" disabled><option value="">-- Choisir --</option></select></div>
-                    <div class="form-group"><label>Compétence</label><select id="competence-select" disabled><option value="">-- Choisir --</option></select></div>
+                    <div class="form-group"><label>Compétence</label>
+                        <select id="competence-select" disabled><option value="">-- Choisir --</option></select>
+                        <input type="text" id="competence-input" class="hidden" placeholder="Sujet ou compétence libre...">
+                    </div>
                     <button type="submit" class="btn btn-main" id="generate-btn">Générer</button>
                 </form>
             </div>
@@ -1144,6 +1147,8 @@ document.addEventListener('DOMContentLoaded', () => {
         setupContentTypeListener('content-type-select', 'exercise-count-group', 'exercise-count-label');
         setupContentTypeListener('teacher-content-type-upload', 'exercise-count-group-upload', 'exercise-count-label-upload');
         const cy = document.getElementById('cycle-select'), n = document.getElementById('niveau-select'), m = document.getElementById('matiere-select'), no = document.getElementById('notion-select'), co = document.getElementById('competence-select'), gen = document.getElementById('generate-btn');
+        const competenceInput = document.getElementById('competence-input');
+
         Object.keys(programmes).forEach(c => cy.add(new Option(c, c)));
         cy.addEventListener('change', () => { resetSelects([n, m, no, co]); const s = cy.value; if (s) { Object.keys(programmes[s]).forEach(l => n.add(new Option(l, l))); n.disabled = false; } });
         n.addEventListener('change', () => { resetSelects([m, no, co]); const d = programmes[cy.value][n.value]; if (d) { Object.keys(d).forEach(k => m.add(new Option(d[k].nom, k))); m.disabled = false; } });
@@ -1173,10 +1178,24 @@ document.addEventListener('DOMContentLoaded', () => {
             co.disabled = co.options.length <= 1;
         });
         co.addEventListener('change', () => { gen.disabled = !co.value; });
+        competenceInput.addEventListener('input', () => { gen.disabled = !competenceInput.value; });
+
         document.getElementById('generation-form').addEventListener('submit', async e => {
             e.preventDefault();
-            selectedCompetenceInfo = { level: n.value, competence: co.value };
-            const comp = co.value;
+            const form = e.currentTarget;
+            let comp = '';
+            let levelForInfo = '';
+
+            if (form.dataset.prefill) {
+                const prefill = JSON.parse(form.dataset.prefill);
+                comp = competenceInput.value;
+                levelForInfo = prefill.level;
+            } else {
+                comp = co.value;
+                levelForInfo = n.value;
+            }
+
+            selectedCompetenceInfo = { level: levelForInfo, competence: comp };
             const contentType = document.getElementById('content-type-select').value;
             const exerciseCount = document.getElementById('exercise-count').value;
             
@@ -1190,7 +1209,6 @@ document.addEventListener('DOMContentLoaded', () => {
             } else if (selectedMatiereText.includes('Espagnol')) {
                 language = 'Espagnol';
             }
-
 
             document.getElementById('generation-spinner').classList.remove('hidden');
             try {
@@ -1238,7 +1256,6 @@ document.addEventListener('DOMContentLoaded', () => {
                                     m.value = matiereKey; m.dispatchEvent(new Event('change'));
                                     no.value = notionKey; no.dispatchEvent(new Event('change'));
                                     co.value = prefillData.competence; co.dispatchEvent(new Event('change'));
-                                    
                                     found = true; break;
                                 }
                             }
@@ -1250,11 +1267,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (found) break;
             }
              if (!found) {
-                console.warn("Impossible de pré-remplir le formulaire. Compétence non trouvée:", prefillData);
-                // Fallback: fill what we can
-                co.innerHTML = `<option>${prefillData.competence}</option>`;
-                co.disabled = false;
+                console.warn("Compétence non trouvée dans les programmes, passage en mode de saisie libre.", prefillData);
+                
+                cy.parentElement.classList.add('hidden');
+                n.parentElement.classList.add('hidden');
+                m.parentElement.classList.add('hidden');
+                no.parentElement.classList.add('hidden');
+                co.classList.add('hidden');
+                
+                competenceInput.classList.remove('hidden');
+                competenceInput.value = prefillData.competence;
+                
                 gen.disabled = false;
+                
+                document.getElementById('generation-form').dataset.prefill = JSON.stringify(prefillData);
             }
         }
     }
@@ -1380,17 +1406,21 @@ document.addEventListener('DOMContentLoaded', () => {
                 const data = await apiRequest('/ai/generate-lesson-plan', 'POST', { theme, level, numSessions });
                 const plan = data.structured_plan;
                 let outputHtml = `<h3>${plan.planTitle} (Niveau ${plan.level})</h3>`;
-                plan.sessions.forEach(session => {
+
+                plan.sessions.forEach((session, sessionIndex) => {
+                    session.resources = session.resources || [];
                     outputHtml += `<div class="session-card">
                         <div class="session-header"><div class="session-number">${session.sessionNumber}</div><h4>${session.title}</h4></div>
                         <p><strong>Objectif :</strong> ${session.objective}</p>
                         <p><strong>Activités :</strong></p><ul>${session.activities.map(act => `<li>${act}</li>`).join('')}</ul>
                         <p><strong>Ressources AIDA :</strong></p><ul>`;
-                    (session.resources || []).forEach(res => {
+                    
+                    session.resources.forEach((res, resIndex) => {
+                         const resourceId = `res-${sessionIndex}-${resIndex}`;
                          const resourceData = JSON.stringify(res).replace(/'/g, '&#39;');
                          outputHtml += `<li>
                                            <span>${res.type.charAt(0).toUpperCase() + res.type.slice(1)} : ${res.sujet}</span>
-                                           <button class="btn btn-generate-planner" data-resource='${resourceData}' data-level="${plan.level}">
+                                           <button class="btn btn-generate-planner" data-resource-id="${resourceId}" data-level="${plan.level}" data-resource='${resourceData}'>
                                                <i class="fa-solid fa-wand-magic-sparkles"></i> Générer
                                            </button>
                                        </li>`;
@@ -1398,13 +1428,20 @@ document.addEventListener('DOMContentLoaded', () => {
                     outputHtml += `</ul></div>`;
                 });
                 outputContainer.innerHTML = outputHtml;
+
+                // Attach event listeners after content is in the DOM
                 outputContainer.querySelectorAll('.btn-generate-planner').forEach(button => {
                     button.addEventListener('click', (e) => {
                         const resourceString = e.currentTarget.dataset.resource;
                         if(resourceString) {
-                            const prefillData = JSON.parse(resourceString);
-                            prefillData.level = e.currentTarget.dataset.level; 
-                            showGenerationModal(prefillData);
+                            try {
+                                const prefillData = JSON.parse(resourceString.replace(/&#39;/g, "'"));
+                                prefillData.level = e.currentTarget.dataset.level;
+                                showGenerationModal(prefillData);
+                            } catch (err) {
+                                console.error("Erreur lors de l'analyse des données de la ressource :", err);
+                                alert("Une erreur est survenue en essayant de lire les informations du contenu à générer.");
+                            }
                         }
                     });
                 });
