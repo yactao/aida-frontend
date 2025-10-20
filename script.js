@@ -910,6 +910,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function renderContentViewer(c) {
         const p = document.getElementById('content-viewer-page');
+        if (c.isEvaluated) {
+            sessionStorage.setItem('isEvaluatedSession', 'true');
+        } else {
+            sessionStorage.removeItem('isEvaluatedSession');
+        }
+
         let html = '';
         let footerHtml = '';
         const isInteractiveHomework = c.type === 'exercices' || c.type === 'dm';
@@ -941,7 +947,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 `;
             });
             if (c.isEvaluated) {
-                 footerHtml += `<a href="playground.html?mode=coach&topic=${encodeURIComponent(c.title)}" class="btn btn-secondary"><i class="fa-solid fa-pen-ruler"></i> Obtenir de l'aide</a>`;
+                 footerHtml += `<a href="playground.html" class="btn btn-secondary" target="_blank"><i class="fa-solid fa-pen-ruler"></i> Obtenir de l'aide</a>`;
             }
             footerHtml += `<button type="submit" class="btn btn-main">Soumettre le devoir</button>`;
         } else { // Fiche de révision ou autre
@@ -957,8 +963,13 @@ document.addEventListener('DOMContentLoaded', () => {
                                 <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 2rem;">${footerHtml}</div>
                             </form>
                          </div>`;
+        
+        const backBtn = p.querySelector('#back-to-student');
+        backBtn.addEventListener('click', () => {
+            sessionStorage.removeItem('isEvaluatedSession');
+            renderStudentDashboard();
+        });
 
-        p.querySelector('#back-to-student').addEventListener('click', renderStudentDashboard);
         const form = p.querySelector('#content-form');
 
         if (c.type === 'quiz') {
@@ -970,6 +981,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const finishBtn = p.querySelector('#finish-exercise-btn');
             if (finishBtn) {
                 finishBtn.addEventListener('click', async () => {
+                    sessionStorage.removeItem('isEvaluatedSession');
                     await apiRequest('/student/submit-quiz', 'POST', { 
                         studentEmail: currentUser.email, classId: c.classId, contentId: c.id, 
                         title: c.title, score: 0, totalQuestions: 0, answers: [], helpUsed: false, teacherEmail: c.teacherEmail
@@ -995,6 +1007,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function handleSubmitQuiz(c) { 
+        sessionStorage.removeItem('isEvaluatedSession');
         const answers = c.questions.map((q, i) => { const sel = document.querySelector(`input[name=q${i}]:checked`); return sel ? parseInt(sel.value) : -1; }); 
         const score = answers.reduce((acc, ans, i) => acc + (ans == c.questions[i].correct_answer_index ? 1 : 0), 0); 
         await apiRequest('/student/submit-quiz', 'POST', { 
@@ -1005,6 +1018,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     async function handleSubmitNonQuiz(c) {
+        sessionStorage.removeItem('isEvaluatedSession');
         const answerTextareas = document.querySelectorAll('#content-form .reponse-eleve');
         const answers = Array.from(answerTextareas).map(textarea => textarea.value);
 
@@ -1108,13 +1122,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 <form id="generation-form">
                     <div class="form-group"><label>Type de contenu</label><select id="content-type-select"><option value="quiz">Quiz</option><option value="exercices">Fiche d'exercices</option><option value="revision">Fiche de révision</option><option value="dm">Devoir Maison</option></select></div>
                     <div class="form-group" id="exercise-count-group"><label for="exercise-count" id="exercise-count-label">Nombre de questions</label><input type="number" id="exercise-count" value="3" min="1" max="15"></div>
-                    <div class="form-group"><label>Cycle</label><select id="cycle-select"><option value="">-- Choisir --</option></select></div>
-                    <div class="form-group"><label>Niveau</label><select id="niveau-select" disabled><option value="">-- Choisir --</option></select></div>
-                    <div class="form-group"><label>Matière</label><select id="matiere-select" disabled><option value="">-- Choisir --</option></select></div>
-                    <div class="form-group"><label>Notion</label><select id="notion-select" disabled><option value="">-- Choisir --</option></select></div>
-                    <div class="form-group"><label>Compétence</label>
-                        <select id="competence-select" disabled><option value="">-- Choisir --</option></select>
-                        <input type="text" id="competence-input" class="hidden" placeholder="Sujet ou compétence libre...">
+                    <div id="program-fields">
+                        <div class="form-group"><label>Cycle</label><select id="cycle-select"><option value="">-- Choisir --</option></select></div>
+                        <div class="form-group"><label>Niveau</label><select id="niveau-select" disabled><option value="">-- Choisir --</option></select></div>
+                        <div class="form-group"><label>Matière</label><select id="matiere-select" disabled><option value="">-- Choisir --</option></select></div>
+                        <div class="form-group"><label>Notion</label><select id="notion-select" disabled><option value="">-- Choisir --</option></select></div>
+                        <div class="form-group"><label>Compétence</label><select id="competence-select" disabled><option value="">-- Choisir --</option></select></div>
+                    </div>
+                    <div id="free-competence-field" class="form-group hidden">
+                        <label>Compétence Suggérée</label>
+                        <input type="text" id="competence-input" placeholder="Sujet ou compétence libre...">
                     </div>
                     <button type="submit" class="btn btn-main" id="generate-btn">Générer</button>
                 </form>
@@ -1186,10 +1203,10 @@ document.addEventListener('DOMContentLoaded', () => {
             let comp = '';
             let levelForInfo = '';
 
-            if (form.dataset.prefill) {
-                const prefill = JSON.parse(form.dataset.prefill);
+            const isFreeMode = !document.getElementById('free-competence-field').classList.contains('hidden');
+            if (isFreeMode) {
                 comp = competenceInput.value;
-                levelForInfo = prefill.level;
+                levelForInfo = form.dataset.level || '';
             } else {
                 comp = co.value;
                 levelForInfo = n.value;
@@ -1200,7 +1217,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const exerciseCount = document.getElementById('exercise-count').value;
             
             const matiereSelect = document.getElementById('matiere-select');
-            const selectedMatiereText = matiereSelect.options[matiereSelect.selectedIndex].text;
+            const selectedMatiereText = isFreeMode ? '' : matiereSelect.options[matiereSelect.selectedIndex].text;
             let language = null;
             if (selectedMatiereText.includes('Anglais')) {
                 language = 'Anglais';
@@ -1268,19 +1285,12 @@ document.addEventListener('DOMContentLoaded', () => {
             }
              if (!found) {
                 console.warn("Compétence non trouvée dans les programmes, passage en mode de saisie libre.", prefillData);
-                
-                cy.parentElement.classList.add('hidden');
-                n.parentElement.classList.add('hidden');
-                m.parentElement.classList.add('hidden');
-                no.parentElement.classList.add('hidden');
-                co.classList.add('hidden');
-                
-                competenceInput.classList.remove('hidden');
+                document.getElementById('program-fields').classList.add('hidden');
+                const freeField = document.getElementById('free-competence-field');
+                freeField.classList.remove('hidden');
                 competenceInput.value = prefillData.competence;
-                
                 gen.disabled = false;
-                
-                document.getElementById('generation-form').dataset.prefill = JSON.stringify(prefillData);
+                document.getElementById('generation-form').dataset.level = prefillData.level;
             }
         }
     }
@@ -1416,12 +1426,11 @@ document.addEventListener('DOMContentLoaded', () => {
                         <p><strong>Ressources AIDA :</strong></p><ul>`;
                     
                     session.resources.forEach((res, resIndex) => {
-                         const resourceId = `res-${sessionIndex}-${resIndex}`;
                          const resourceData = JSON.stringify(res).replace(/'/g, '&#39;');
                          outputHtml += `<li>
                                            <span>${res.type.charAt(0).toUpperCase() + res.type.slice(1)} : ${res.sujet}</span>
-                                           <button class="btn btn-generate-planner" data-resource-id="${resourceId}" data-level="${plan.level}" data-resource='${resourceData}'>
-                                               <i class="fa-solid fa-wand-magic-sparkles"></i> Générer
+                                           <button class="btn btn-generate-planner" data-resource='${resourceData}' data-level="${plan.level}">
+                                               <i class="fa-solid fa-wand-sparkles"></i> Générer
                                            </button>
                                        </li>`;
                     });
@@ -1429,7 +1438,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
                 outputContainer.innerHTML = outputHtml;
 
-                // Attach event listeners after content is in the DOM
                 outputContainer.querySelectorAll('.btn-generate-planner').forEach(button => {
                     button.addEventListener('click', (e) => {
                         const resourceString = e.currentTarget.dataset.resource;
@@ -1439,7 +1447,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 prefillData.level = e.currentTarget.dataset.level;
                                 showGenerationModal(prefillData);
                             } catch (err) {
-                                console.error("Erreur lors de l'analyse des données de la ressource :", err);
+                                console.error("Erreur lors de l'analyse des données de la ressource :", err, "String:", resourceString);
                                 alert("Une erreur est survenue en essayant de lire les informations du contenu à générer.");
                             }
                         }
