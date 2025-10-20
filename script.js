@@ -1233,21 +1233,12 @@ document.addEventListener('DOMContentLoaded', () => {
                                 }
 
                                 if (competences.includes(prefillData.competence)) {
-                                    setTimeout(() => {
-                                        cy.value = cycleKey; cy.dispatchEvent(new Event('change'));
-                                        setTimeout(() => {
-                                            n.value = niveauKey; n.dispatchEvent(new Event('change'));
-                                            setTimeout(() => {
-                                                m.value = matiereKey; m.dispatchEvent(new Event('change'));
-                                                setTimeout(() => {
-                                                    no.value = notionKey; no.dispatchEvent(new Event('change'));
-                                                    setTimeout(() => {
-                                                        co.value = prefillData.competence; co.dispatchEvent(new Event('change'));
-                                                    }, 50);
-                                                }, 50);
-                                            }, 50);
-                                        }, 50);
-                                    }, 0);
+                                    cy.value = cycleKey; cy.dispatchEvent(new Event('change'));
+                                    n.value = niveauKey; n.dispatchEvent(new Event('change'));
+                                    m.value = matiereKey; m.dispatchEvent(new Event('change'));
+                                    no.value = notionKey; no.dispatchEvent(new Event('change'));
+                                    co.value = prefillData.competence; co.dispatchEvent(new Event('change'));
+                                    
                                     found = true; break;
                                 }
                             }
@@ -1260,6 +1251,10 @@ document.addEventListener('DOMContentLoaded', () => {
             }
              if (!found) {
                 console.warn("Impossible de pré-remplir le formulaire. Compétence non trouvée:", prefillData);
+                // Fallback: fill what we can
+                co.innerHTML = `<option>${prefillData.competence}</option>`;
+                co.disabled = false;
+                gen.disabled = false;
             }
         }
     }
