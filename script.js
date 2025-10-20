@@ -1387,7 +1387,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <p><strong>Activités :</strong></p><ul>${session.activities.map(act => `<li>${act}</li>`).join('')}</ul>
                         <p><strong>Ressources AIDA :</strong></p><ul>`;
                     (session.resources || []).forEach(res => {
-                         const resourceData = JSON.stringify(res).replace(/"/g, '&quot;');
+                         const resourceData = JSON.stringify(res).replace(/'/g, '&#39;');
                          outputHtml += `<li>
                                            <span>${res.type.charAt(0).toUpperCase() + res.type.slice(1)} : ${res.sujet}</span>
                                            <button class="btn btn-generate-planner" data-resource='${resourceData}' data-level="${plan.level}">
