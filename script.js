@@ -8,6 +8,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let selectedCompetenceInfo = null;
     let studentDashboardData = null;
     let helpUsedInQuiz = false;
+    let helpUsedInHomework = false; 
     
     const spinnerHtml = `<div class="spinner"><div class="dot1"></div><div class="dot2"></div><div class="dot3"></div></div>`;
     
@@ -907,6 +908,78 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
             </div>`;
     }
+    
+    // Fonction générique pour afficher la modal d'aide d'AIDA
+    async function showAidaHelpModal(prompt) {
+        renderModal(getModalTemplate('aida-help-modal', 'Aide d\'AIDA', `
+            <div id="aida-chat-container">
+                <div class="chat-message aida-message">
+                    <p>Bonjour ! Pose-moi ta question ou donne-moi le sujet de l'exercice pour obtenir de l'aide sans la réponse.</p>
+                </div>
+                <div id="chat-history"></div>
+                <form id="aida-chat-form" style="margin-top: 1rem;">
+                    <textarea id="aida-chat-input" placeholder="Tape ta question ici..." rows="2" required>${prompt ? prompt : ''}</textarea>
+                    <button type="submit" class="btn btn-main"><i class="fa-solid fa-paper-plane"></i> Envoyer</button>
+                </form>
+                <div id="aida-error" class="error-message"></div>
+                <div id="aida-spinner" class="hidden" style="text-align: right; margin-top: 0.5rem;">${spinnerHtml}</div>
+            </div>
+        `));
+
+        const chatForm = document.getElementById('aida-chat-form');
+        const chatInput = document.getElementById('aida-chat-input');
+        const chatHistory = document.getElementById('chat-history');
+        const spinner = document.getElementById('aida-spinner');
+        const errorDiv = document.getElementById('aida-error');
+        
+        const history = [];
+
+        const appendMessage = (sender, text) => {
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `chat-message ${sender}-message`;
+            msgDiv.innerHTML = `<p>${text.replace(/\n/g, '<br>')}</p>`;
+            chatHistory.appendChild(msgDiv);
+            chatHistory.scrollTop = chatHistory.scrollHeight;
+        };
+        
+        const sendMessage = async (e) => {
+            e.preventDefault();
+            const message = chatInput.value.trim();
+            if (!message) return;
+
+            appendMessage('user', message);
+            chatInput.value = '';
+            spinner.classList.remove('hidden');
+            errorDiv.textContent = '';
+            
+            history.push({ role: 'user', content: message });
+
+            try {
+                // Envoyer l'historique de la conversation au backend
+                const response = await apiRequest('/ai/get-aida-help', 'POST', {
+                    history: history
+                });
+                
+                const aidaResponse = response.response;
+                appendMessage('aida', aidaResponse);
+                history.push({ role: 'assistant', content: aidaResponse });
+
+            } catch (err) {
+                errorDiv.textContent = 'Erreur: Aide indisponible.';
+                history.pop(); // Retirer le dernier message utilisateur de l'historique
+            } finally {
+                spinner.classList.add('hidden');
+            }
+        };
+
+        chatForm.addEventListener('submit', sendMessage);
+        
+        // Exécuter immédiatement si un prompt initial est fourni
+        if (prompt) {
+            chatForm.dispatchEvent(new Event('submit'));
+        }
+    }
+
 
     function renderContentViewer(c) {
         const p = document.getElementById('content-viewer-page');
@@ -915,6 +988,10 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             sessionStorage.removeItem('isEvaluatedSession');
         }
+        
+        // Réinitialiser les indicateurs d'aide pour le nouvel exercice
+        helpUsedInQuiz = false;
+        helpUsedInHomework = false;
 
         let html = '';
         let footerHtml = '';
@@ -946,8 +1023,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>
                 `;
             });
+            // Modification: Remplacer le lien playground par un bouton modal d'aide
             if (c.isEvaluated) {
-                 footerHtml += `<a href="playground.html" class="btn btn-secondary" target="_blank"><i class="fa-solid fa-pen-ruler"></i> Obtenir de l'aide</a>`;
+                 footerHtml += `<button type="button" id="open-aida-help-btn" class="btn btn-secondary"><i class="fa-solid fa-lightbulb"></i> Obtenir de l'aide</button>`;
             }
             footerHtml += `<button type="submit" class="btn btn-main">Soumettre le devoir</button>`;
         } else { // Fiche de révision ou autre
@@ -977,6 +1055,14 @@ document.addEventListener('DOMContentLoaded', () => {
             form.querySelectorAll('.btn-help').forEach(b => b.addEventListener('click', handleHelpRequest));
         } else if (isInteractiveHomework) {
             form.addEventListener('submit', e => { e.preventDefault(); handleSubmitNonQuiz(c); });
+            // Gestionnaire pour le nouveau bouton d'aide DM/Exercice
+            const aidaHelpBtn = p.querySelector('#open-aida-help-btn');
+            if (aidaHelpBtn) {
+                aidaHelpBtn.addEventListener('click', () => {
+                    helpUsedInHomework = true;
+                    showAidaHelpModal(`Aide pour le devoir : ${c.title}`);
+                });
+            }
         } else {
             const finishBtn = p.querySelector('#finish-exercise-btn');
             if (finishBtn) {
@@ -997,13 +1083,9 @@ document.addEventListener('DOMContentLoaded', () => {
         e.preventDefault(); 
         helpUsedInQuiz = true;
         const q = e.target.closest('button').dataset.question; 
-        renderModal(getModalTemplate('help-modal', 'Indice d\'AIDA', `<p><strong>Question:</strong> ${q}</p><div id=hint-container style=margin-top:1rem>${spinnerHtml}</div>`)); 
-        try { 
-            const d = await apiRequest('/ai/get-hint', 'POST', { questionText: q }); 
-            document.getElementById('hint-container').innerHTML = `<p>${d.hint}</p>`; 
-        } catch (err) { 
-            document.getElementById('hint-container').innerHTML = `<p class=error-message>Indice indisponible.</p>`; 
-        } 
+        
+        // Utilisation de la nouvelle modal d'aide générale
+        showAidaHelpModal(q);
     }
 
     async function handleSubmitQuiz(c) { 
@@ -1029,7 +1111,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         await apiRequest('/student/submit-quiz', 'POST', {
             studentEmail: currentUser.email, classId: c.classId, contentId: c.id, title: c.title,
-            score: 0, totalQuestions: c.content.length, answers: answers, helpUsed: false,
+            score: 0, totalQuestions: c.content.length, answers: answers, 
+            helpUsed: helpUsedInHomework, // Ajout du statut d'aide pour DM/Exercices
             teacherEmail: c.teacherEmail
         });
         renderStudentDashboard();
@@ -1504,4 +1587,3 @@ document.addEventListener('DOMContentLoaded', () => {
     
     init();
 });
-
