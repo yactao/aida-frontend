@@ -60,16 +60,14 @@ document.addEventListener('DOMContentLoaded', () => {
     // Fonctions essentielles globales pour tous les modules
     window.changePage = (id) => { main.querySelectorAll('.page').forEach(p=>p.classList.remove('active')); document.getElementById(id).classList.add('active'); };
     
-    // CORRECTION APIREQUEST: Retire le préfixe /api du chemin et corrige la double insertion
+    // CORRECTION APIREQUEST: Revert pour éviter la double insertion /api/api
     window.apiRequest = async (endpoint, method = 'GET', body = null) => { 
         try { 
             const opts = { method, headers: { 'Content-Type': 'application/json' } }; 
             if (body) opts.body = JSON.stringify(body); 
 
-            // IMPORTANT: Assure que l'endpoint NE contient PAS /api/ au début 
-            // et qu'il n'y a qu'une seule barre oblique au début du chemin
-            const cleanEndpoint = endpoint.startsWith('/api/') ? endpoint.substring(4) : endpoint;
-            const url = `${backendUrl}/api${cleanEndpoint.startsWith('/') ? cleanEndpoint : '/' + cleanEndpoint}`;
+            // IMPORTANT: Utiliser l'endpoint tel quel (il doit commencer par /)
+            const url = `${backendUrl}/api${endpoint.startsWith('/') ? endpoint : '/' + endpoint}`;
 
             const res = await fetch(url, opts); 
 
@@ -147,26 +145,29 @@ document.addEventListener('DOMContentLoaded', () => {
         themeToggleHeaderBtn.classList.toggle('hidden', loggedIn);
         userMenuContainer.classList.toggle('hidden', !loggedIn);
         
-        // CORRECTION CLOISONNEMENT: Cacher l'espace Académie si l'utilisateur a choisi Etablissement (et vice-versa)
+        // Détection de l'univers actif
         const currentPath = document.querySelector('.page.active')?.id;
-        
-        // Si l'élève est connecté
-        if (currentUser && currentUser.role === 'student') {
-            const isAcademieActive = currentPath === 'academie-mre-page';
-            const isEtablissementActive = currentPath === 'student-dashboard-page' || currentPath === 'content-viewer-page' || currentPath === 'auth-page';
-            
-            // Masquer Académie MRE si l'élève est dans l'établissement
-            academieMRELink.classList.toggle('hidden', isEtablissementActive);
-            // Masquer Espace de travail si l'élève est dans l'académie
-            workspaceLink.classList.toggle('hidden', isAcademieActive);
-            // Masquer Bibliothèque (réservé prof)
-            libraryLink.classList.add('hidden');
+        const isAcademieActive = currentPath === 'academie-mre-page';
+        const isEtablissementActive = !isAcademieActive && (currentPath === 'student-dashboard-page' || currentPath === 'content-viewer-page' || currentPath === 'auth-page');
 
-        } else if (currentUser && currentUser.role === 'teacher') {
-            // Afficher tous les outils prof
-            workspaceLink.classList.add('hidden');
-            academieMRELink.classList.add('hidden');
-            libraryLink.classList.remove('hidden');
+        // Styles de navigation et visibilité
+        if (currentUser) {
+            
+            // Logique Élève
+            if (currentUser.role === 'student') {
+                // Cloisonnement : masquer le lien Académie si dans l'espace Etablissement, et vice-versa
+                academieMRELink.classList.toggle('hidden', !loggedIn || isEtablissementActive);
+                workspaceLink.classList.toggle('hidden', !loggedIn || isAcademieActive);
+                libraryLink.classList.add('hidden'); // Bibliothèque toujours cachée pour l'élève
+            }
+            
+            // Logique Professeur
+            if (currentUser.role === 'teacher') {
+                academieMRELink.classList.add('hidden');
+                workspaceLink.classList.add('hidden');
+                libraryLink.classList.remove('hidden');
+            }
+
         } else {
              // Non connecté: masquer tous les liens élèves/profs
             workspaceLink.classList.add('hidden');
@@ -186,10 +187,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 const preferredUniverse = localStorage.getItem('preferredUniverse');
                 localStorage.removeItem('preferredUniverse'); // Nettoyer après utilisation
                 
-                if (preferredUniverse === 'academie') {
+                if (preferredUniverse === 'academie' && !isAcademieActive) {
                     loadAcademieMREModule();
-                } else if (preferredUniverse === 'etablissement' || document.querySelector('.page.active').id === 'auth-page') {
+                } else if (preferredUniverse === 'etablissement' && !isEtablissementActive) {
                     // Pour les élèves, l'univers Établissement est le dashboard
+                    renderStudentDashboard();
+                } else if (currentPath === 'auth-page') {
+                    // Si on vient de l'auth page sans choix, on va au dashboard (par défaut établissement)
                     renderStudentDashboard();
                 }
             }
@@ -1663,7 +1667,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 script.onload = () => {
                     page.dataset.loaded = 'true';
                     if (window.initAcademieMRE) {
-                        window.initAcademieMRE(); // Appel de la fonction d'initialisation du nouveau module
+                        // Lorsque le module est chargé, on appelle son initialisation puis on met à jour l'UI pour le cloisonnement
+                        window.initAcademieMRE(); 
+                        updateUI(); 
                         resolve();
                     } else {
                         reject(new Error("initAcademieMRE non défini."));
