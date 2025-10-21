@@ -66,7 +66,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const opts = { method, headers: { 'Content-Type': 'application/json' } }; 
             if (body) opts.body = JSON.stringify(body); 
 
-            // Assure que l'endpoint commence sans /api/ et qu'il y a un seul /
+            // IMPORTANT: Assure que l'endpoint NE contient PAS /api/ au début 
+            // et qu'il n'y a qu'une seule barre oblique au début du chemin
             const cleanEndpoint = endpoint.startsWith('/api/') ? endpoint.substring(4) : endpoint;
             const url = `${backendUrl}/api${cleanEndpoint.startsWith('/') ? cleanEndpoint : '/' + cleanEndpoint}`;
 
@@ -79,9 +80,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     throw new Error(err.error || 'Une erreur est survenue'); 
                 } catch (e) { 
                     // Gérer l'erreur 404 renvoyée par le serveur backend (Cannot POST/GET /api/...)
-                    if (errText.includes('Cannot POST') || errText.includes('<title>Error</title>')) {
-                        console.error("Erreur de routage API détectée:", errText);
-                        throw new Error("Erreur de routage API. Le serveur ne trouve pas l'endpoint spécifié (404).");
+                    if (errText.includes('Cannot POST') || errText.includes('<title>Error</title>') || errText.includes('Cannot GET')) {
+                        console.error("Erreur de routage API détectée:", url, errText);
+                        throw new Error("Erreur de routage API. Le serveur ne trouve pas l'endpoint spécifié (404/500).");
                     }
                     throw new Error(errText); 
                 } 
@@ -97,7 +98,7 @@ document.addEventListener('DOMContentLoaded', () => {
     window.getModalTemplate = (id, title, html) => { return `<div class="modal-overlay" id="${id}"><div class="modal-content"><button class="close-modal">&times;</button><h3>${title}</h3>${html}</div></div>`; };
     window.spinnerHtml = spinnerHtml;
 
-    // Fonctions de dashboard exposées
+    // Fonctions de dashboard exposées (Déclarées plus tard mais rendues globales ici)
     window.renderTeacherDashboard = renderTeacherDashboard;
     window.renderPlannerPage = renderPlannerPage;
     window.showGenerationModal = showGenerationModal;
@@ -145,12 +146,34 @@ document.addEventListener('DOMContentLoaded', () => {
         loginNavBtn.classList.toggle('hidden', loggedIn);
         themeToggleHeaderBtn.classList.toggle('hidden', loggedIn);
         userMenuContainer.classList.toggle('hidden', !loggedIn);
-        workspaceLink.classList.toggle('hidden', !loggedIn || currentUser.role !== 'student');
-        libraryLink.classList.toggle('hidden', !loggedIn || currentUser.role !== 'teacher');
         
-        // Afficher le lien dans le menu de navigation pour les élèves
-        academieMRELink.classList.toggle('hidden', !loggedIn || currentUser.role !== 'student'); 
+        // CORRECTION CLOISONNEMENT: Cacher l'espace Académie si l'utilisateur a choisi Etablissement (et vice-versa)
+        const currentPath = document.querySelector('.page.active')?.id;
         
+        // Si l'élève est connecté
+        if (currentUser && currentUser.role === 'student') {
+            const isAcademieActive = currentPath === 'academie-mre-page';
+            const isEtablissementActive = currentPath === 'student-dashboard-page' || currentPath === 'content-viewer-page' || currentPath === 'auth-page';
+            
+            // Masquer Académie MRE si l'élève est dans l'établissement
+            academieMRELink.classList.toggle('hidden', isEtablissementActive);
+            // Masquer Espace de travail si l'élève est dans l'académie
+            workspaceLink.classList.toggle('hidden', isAcademieActive);
+            // Masquer Bibliothèque (réservé prof)
+            libraryLink.classList.add('hidden');
+
+        } else if (currentUser && currentUser.role === 'teacher') {
+            // Afficher tous les outils prof
+            workspaceLink.classList.add('hidden');
+            academieMRELink.classList.add('hidden');
+            libraryLink.classList.remove('hidden');
+        } else {
+             // Non connecté: masquer tous les liens élèves/profs
+            workspaceLink.classList.add('hidden');
+            academieMRELink.classList.add('hidden');
+            libraryLink.classList.add('hidden');
+        }
+
         if (loggedIn) {
             userNameDisplay.textContent = currentUser.firstName;
             userAvatarDisplay.src = `${backendUrl}/avatars/${currentUser.avatar}`;
@@ -165,11 +188,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 if (preferredUniverse === 'academie') {
                     loadAcademieMREModule();
-                } else if (preferredUniverse === 'etablissement' || document.querySelector('.page.active').id !== 'academie-mre-page') {
+                } else if (preferredUniverse === 'etablissement' || document.querySelector('.page.active').id === 'auth-page') {
                     // Pour les élèves, l'univers Établissement est le dashboard
                     renderStudentDashboard();
                 }
-                // Si aucune préférence n'est définie et qu'on est sur l'accueil, on y reste.
             }
         } else {
             changePage('home-page');
@@ -850,7 +872,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
                 <div id="student-completed-list"></div>`;
 
-            page.innerHTML = `<h2>Bonjour ${currentUser.firstName}!</h2>${todoHtml}${pendingHtml}${completedHtml}`;
+            // AJOUT DU LIEN PLAYGROUND/ESPACE DE TRAVAIL
+            const workspaceCard = `<div class="dashboard-card" style="cursor: pointer; border-top: 4px solid var(--secondary-color);" onclick="window.open('playground.html', '_blank')">
+                                        <h4><i class="fa-solid fa-chalkboard-user"></i> Espace de Travail Libre</h4>
+                                        <p>Accède à AIDA pour des discussions, des brainstormings ou l'analyse de documents.</p>
+                                        <p style="text-align: right; margin-top: 1rem;"><button class="btn btn-secondary">Ouvrir</button></p>
+                                    </div>`;
+
+            page.innerHTML = `<h2>Bonjour ${currentUser.firstName}!</h2>
+                            <h3 style="margin-bottom: 1rem;">Ton Espace</h3>
+                            <div class="dashboard-grid" style="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); margin-bottom: 2rem;">
+                                ${workspaceCard}
+                            </div>
+                            ${todoHtml}${pendingHtml}${completedHtml}`;
             
             renderFilteredArchives('all'); 
             
@@ -991,7 +1025,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     // Fonction générique pour afficher la modal d'aide d'AIDA (disponible globalement)
-    window.showAidaHelpModal = async (prompt, apiEndpoint = '/api/ai/get-aida-help') => {
+    window.showAidaHelpModal = async (prompt, apiEndpoint = '/ai/get-aida-help') => { // NOTE: endpoint SANS /api/
         renderModal(getModalTemplate('aida-help-modal', 'Aide d\'AIDA', `
             <div id="aida-chat-container">
                 <div class="chat-message aida-message">
@@ -1036,7 +1070,7 @@ document.addEventListener('DOMContentLoaded', () => {
             history.push({ role: 'user', content: message });
 
             try {
-                // Utilisation de l'endpoint dynamique (soit /api/ai/get-aida-help, soit /api/academie-mre/aida-chat)
+                // Utilisation de l'endpoint dynamique (soit /ai/get-aida-help, soit /academie-mre/aida-chat)
                 const response = await apiRequest(apiEndpoint, 'POST', { history: history });
                 
                 const aidaResponse = response.response;
