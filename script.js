@@ -8,24 +8,19 @@ document.addEventListener('DOMContentLoaded', () => {
     let selectedCompetenceInfo = null;
     let studentDashboardData = null;
     let helpUsedInQuiz = false;
-    let helpUsedInHomework = false; // Ajouté pour le suivi DM/Exercices
+    let helpUsedInHomework = false; 
     
     const spinnerHtml = `<div class="spinner"><div class="dot1"></div><div class="dot2"></div><div class="dot3"></div></div>`;
     
     const main = document.querySelector('main');
     const modalContainer = document.getElementById('modal-container');
     const loginNavBtn = document.getElementById('login-nav-btn');
-    // homeLink est utilisé pour le logo
-    const homeLink = document.getElementById('home-link'); 
-    
-    // workspaceLink n'est plus dans la navigation principale de index.html, mais le garder ici
-    const workspaceLink = document.getElementById('workspace-link'); 
+    const homeLink = document.getElementById('home-link');
+    const workspaceLink = document.getElementById('workspace-link');
     const libraryLink = document.getElementById('library-link');
     
-    // AJOUT DES CONSTANTES ACADEMIE MRE
+    // AJOUT DE LA CONSTANTE ACADEMIE MRE
     const academieMRELink = document.getElementById('academie-mre-link'); 
-    const startEtablissementBtn = document.getElementById('start-etablissement-btn');
-    const startAcademieBtn = document.getElementById('start-academie-btn');
     
     const userMenuContainer = document.querySelector('.user-menu-container');
     const userNameDisplay = document.getElementById('user-name-display');
@@ -35,9 +30,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const logoutBtn = document.getElementById('logout-btn');
     const themeToggleHeaderBtn = document.getElementById('theme-toggle-header-btn');
     const themeToggleDropdownBtn = document.getElementById('theme-toggle-dropdown-btn');
+    const startAppBtn = document.getElementById('start-app-btn');
     const adminModuleLink = document.getElementById('admin-module-link');
-    
-
 
     async function loadProgrammes() {
         try {
@@ -62,44 +56,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Fonctions essentielles globales pour tous les modules
     window.changePage = (id) => { main.querySelectorAll('.page').forEach(p=>p.classList.remove('active')); document.getElementById(id).classList.add('active'); };
-    
-    // CORRECTION APIREQUEST: Revert vers l'implémentation la plus simple pour éviter le double /api/
-    window.apiRequest = async (endpoint, method = 'GET', body = null) => { 
-        try { 
-            const opts = { method, headers: { 'Content-Type': 'application/json' } }; 
-            if (body) opts.body = JSON.stringify(body); 
-
-            // Construction de l'URL propre: backendUrl + /api + endpoint (qui doit commencer par /)
-            const url = `${backendUrl}/api${endpoint.startsWith('/') ? endpoint : '/' + endpoint}`;
-
-            const res = await fetch(url, opts); 
-
-            if (!res.ok) { 
-                const errText = await res.text(); 
-                try { 
-                    const err = JSON.parse(errText); 
-                    throw new Error(err.error || 'Une erreur est survenue'); 
-                } catch (e) { 
-                    // Gérer l'erreur 404 renvoyée par le serveur backend (Cannot POST/GET /api/...)
-                    if (errText.includes('Cannot POST') || errText.includes('<title>Error</title>') || errText.includes('Cannot GET')) {
-                        console.error("Erreur de routage API détectée:", url, errText);
-                        throw new Error("Erreur de routage API. Le serveur ne trouve pas l'endpoint spécifié (404/500).");
-                    }
-                    throw new Error(errText); 
-                } 
-            } 
-            return res.status === 204 ? null : res.json(); 
-        } catch (e) { 
-            console.error(`API Error:`, e); 
-            throw e; 
-        } 
-    };
-
+    window.apiRequest = async (endpoint, method = 'GET', body = null) => { try { const opts = { method, headers: { 'Content-Type': 'application/json' } }; if (body) opts.body = JSON.stringify(body); const res = await fetch(`${backendUrl}/api${endpoint}`, opts); if (!res.ok) { const errText = await res.text(); try { const err = JSON.parse(errText); throw new Error(err.error || 'Une erreur est survenue'); } catch (e) { throw new Error(errText); } } return res.status === 204 ? null : res.json(); } catch (e) { console.error(`API Error:`, e); throw e; } };
     window.renderModal = (template) => { modalContainer.innerHTML = template; modalContainer.querySelector('.close-modal')?.addEventListener('click', () => modalContainer.innerHTML = ''); };
     window.getModalTemplate = (id, title, html) => { return `<div class="modal-overlay" id="${id}"><div class="modal-content"><button class="close-modal">&times;</button><h3>${title}</h3>${html}</div></div>`; };
     window.spinnerHtml = spinnerHtml;
 
-    // Fonctions de dashboard exposées (Déclarées plus tard mais rendues globales ici)
+    // Fonctions de dashboard exposées
     window.renderTeacherDashboard = renderTeacherDashboard;
     window.renderPlannerPage = renderPlannerPage;
     window.showGenerationModal = showGenerationModal;
@@ -132,8 +94,8 @@ document.addEventListener('DOMContentLoaded', () => {
     function applyTheme(theme) {
         document.body.classList.toggle('dark-mode', theme === 'dark');
         const icon = theme === 'dark' ? '<i class="fa-solid fa-sun"></i>' : '<i class="fa-solid fa-moon"></i>';
-        if (themeToggleHeaderBtn) themeToggleHeaderBtn.innerHTML = icon;
-        if (themeToggleDropdownBtn) themeToggleDropdownBtn.innerHTML = icon;
+        themeToggleHeaderBtn.innerHTML = icon;
+        themeToggleDropdownBtn.innerHTML = icon;
     }
 
     function toggleTheme() {
@@ -144,66 +106,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function updateUI() {
         const loggedIn = !!currentUser;
-        if (loginNavBtn) loginNavBtn.classList.toggle('hidden', loggedIn);
-        if (themeToggleHeaderBtn) themeToggleHeaderBtn.classList.toggle('hidden', loggedIn);
-        if (userMenuContainer) userMenuContainer.classList.toggle('hidden', !loggedIn);
+        loginNavBtn.classList.toggle('hidden', loggedIn);
+        themeToggleHeaderBtn.classList.toggle('hidden', loggedIn);
+        userMenuContainer.classList.toggle('hidden', !loggedIn);
+        workspaceLink.classList.toggle('hidden', !loggedIn || currentUser.role !== 'student');
+        libraryLink.classList.toggle('hidden', !loggedIn || currentUser.role !== 'teacher');
         
-        // Détection de l'univers actif
-        const currentPath = document.querySelector('.page.active')?.id;
-        const isAcademieActive = currentPath === 'academie-mre-page';
-        // L'établissement est actif si on est sur le dashboard élève ou pages liées
-        const isEtablissementActive = currentPath === 'student-dashboard-page' || currentPath === 'content-viewer-page' || currentPath === 'auth-page';
-
-        // Styles de navigation et visibilité
-        if (currentUser) {
-            
-            // Logique Élève
-            if (currentUser.role === 'student') {
-                // Cloisonnement : Masquer le lien Académie si dans l'espace Etablissement, et vice-versa
-                if (academieMRELink) academieMRELink.classList.toggle('hidden', !loggedIn || isEtablissementActive);
-                if (workspaceLink) workspaceLink.classList.toggle('hidden', !loggedIn || isAcademieActive);
-                if (libraryLink) libraryLink.classList.add('hidden'); // Bibliothèque toujours cachée pour l'élève
-            }
-            
-            // Logique Professeur
-            if (currentUser.role === 'teacher') {
-                if (academieMRELink) academieMRELink.classList.add('hidden');
-                if (workspaceLink) workspaceLink.classList.add('hidden');
-                if (libraryLink) libraryLink.classList.remove('hidden');
-            }
-
-        } else {
-             // Non connecté: masquer tous les liens élèves/profs
-            if (workspaceLink) workspaceLink.classList.add('hidden');
-            if (academieMRELink) academieMRELink.classList.add('hidden');
-            if (libraryLink) libraryLink.classList.add('hidden');
-        }
-
-        // Déplacer Admin Module dans le dropdown (géré par index.html)
-        if (adminModuleLink) adminModuleLink.classList.toggle('hidden', currentUser?.role !== 'teacher');
-
-
+        // NOUVELLE LIGNE : Afficher le lien Académie MRE uniquement pour les élèves
+        academieMRELink.classList.toggle('hidden', !loggedIn || currentUser.role !== 'student'); 
+        
         if (loggedIn) {
-            if (userNameDisplay) userNameDisplay.textContent = currentUser.firstName;
-            if (userAvatarDisplay) userAvatarDisplay.src = `${backendUrl}/avatars/${currentUser.avatar}`;
-            
-            // Logique de redirection après connexion ou rechargement
-            if (currentUser.role === 'teacher') {
-                renderTeacherDashboard();
-            } else {
-                const preferredUniverse = localStorage.getItem('preferredUniverse');
-                localStorage.removeItem('preferredUniverse'); // Nettoyer après utilisation
-                
-                if (preferredUniverse === 'academie' && !isAcademieActive) {
-                    loadAcademieMREModule();
-                } else if (preferredUniverse === 'etablissement' && !isEtablissementActive) {
-                    // Pour les élèves, l'univers Établissement est le dashboard
-                    renderStudentDashboard();
-                } else if (currentPath === 'auth-page') {
-                    // Si on vient de l'auth page sans choix, on va au dashboard (par défaut établissement)
-                    renderStudentDashboard();
-                }
-            }
+            userNameDisplay.textContent = currentUser.firstName;
+            userAvatarDisplay.src = `${backendUrl}/avatars/${currentUser.avatar}`;
+            adminModuleLink.classList.toggle('hidden', currentUser.role !== 'teacher');
+            if (currentUser.role === 'teacher') renderTeacherDashboard();
+            else renderStudentDashboard();
         } else {
             changePage('home-page');
         }
@@ -358,7 +275,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         page.querySelector('#back-to-teacher').addEventListener('click', renderTeacherDashboard);
-        p.querySelector('#open-add-student-modal-btn').addEventListener('click', () => {
+        page.querySelector('#open-add-student-modal-btn').addEventListener('click', () => {
             renderModal(getModalTemplate('add-student-modal', 'Ajouter un élève', `
                 <form id="add-student-form">
                     <div class="form-group">
@@ -639,7 +556,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 groupedResults[subject]
                     .sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt))
                     .forEach(result => {
-                        const content = (currentClassData.content || []).find(c => c.id === contentId);
+                        const content = (currentClassData.content || []).find(c => c.id === result.contentId);
                         if (content) {
                             let scoreHtml = '';
                             if (content.type === 'quiz') {
@@ -742,7 +659,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         </div>
                         <div class="appreciation-option">
                             <input type="radio" id="appreciation-non_acquis" name="appreciation" value="non_acquis" required>
-                            <label for="appreciation-non-acquis">Non acquis</label>
+                            <label for="appreciation-non_acquis">Non acquis</label>
                         </div>
                          <div class="appreciation-option">
                             <input type="radio" id="appreciation-a_revoir" name="appreciation" value="a_revoir" required>
@@ -837,7 +754,7 @@ document.addEventListener('DOMContentLoaded', () => {
             modalContainer.innerHTML = ''; 
             renderClassDetailsPage(currentClassData.id); 
         } catch (err) { 
-            if(errP) err.textContent = err.message; 
+            if(errP) errP.textContent = err.message; 
         } 
     }
     function showCreateClassModal() { renderModal(getModalTemplate('create-class-modal', 'Nouvelle Classe', `<form id=create-class-form><div class=form-group><label for=class-name-input>Nom</label><input type=text id=class-name-input required></div><button type=submit class="btn btn-main">Créer</button></form>`)); document.getElementById('create-class-form').addEventListener('submit', async e => { e.preventDefault(); await apiRequest('/teacher/classes', 'POST', { className: document.getElementById('class-name-input').value, teacherEmail: currentUser.email }); modalContainer.innerHTML = ''; renderTeacherDashboard(); }); }
@@ -883,19 +800,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
                 <div id="student-completed-list"></div>`;
 
-            // AJOUT DU LIEN PLAYGROUND/ESPACE DE TRAVAIL (Intégré au dashboard élève)
-            const workspaceCard = `<div class="dashboard-card" style="cursor: pointer; border-top: 4px solid var(--secondary-color);" onclick="window.open('playground.html', '_blank')">
-                                        <h4><i class="fa-solid fa-chalkboard-user"></i> Espace de Travail Libre</h4>
-                                        <p>Accède à AIDA pour des discussions, des brainstormings ou l'analyse de documents.</p>
-                                        <p style="text-align: right; margin-top: 1rem;"><button class="btn btn-secondary">Ouvrir</button></p>
-                                    </div>`;
-
-            page.innerHTML = `<h2>Bonjour ${currentUser.firstName}!</h2>
-                            <h3 style="margin-bottom: 1rem;">Ton Espace</h3>
-                            <div class="dashboard-grid" style="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); margin-bottom: 2rem;">
-                                ${workspaceCard}
-                            </div>
-                            ${todoHtml}${pendingHtml}${completedHtml}`;
+            page.innerHTML = `<h2>Bonjour ${currentUser.firstName}!</h2>${todoHtml}${pendingHtml}${completedHtml}`;
             
             renderFilteredArchives('all'); 
             
@@ -1036,7 +941,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     // Fonction générique pour afficher la modal d'aide d'AIDA (disponible globalement)
-    window.showAidaHelpModal = async (prompt, apiEndpoint = '/ai/get-aida-help') => { // NOTE: endpoint SANS /api/
+    window.showAidaHelpModal = async (prompt, apiEndpoint = '/api/ai/get-aida-help') => {
         renderModal(getModalTemplate('aida-help-modal', 'Aide d\'AIDA', `
             <div id="aida-chat-container">
                 <div class="chat-message aida-message">
@@ -1081,7 +986,7 @@ document.addEventListener('DOMContentLoaded', () => {
             history.push({ role: 'user', content: message });
 
             try {
-                // Utilisation de l'endpoint dynamique (soit /ai/get-aida-help, soit /academie-mre/aida-chat)
+                // Utilisation de l'endpoint dynamique (soit /api/ai/get-aida-help, soit /api/academie-mre/aida-chat)
                 const response = await apiRequest(apiEndpoint, 'POST', { history: history });
                 
                 const aidaResponse = response.response;
@@ -1264,9 +1169,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 script.onload = () => {
                     page.dataset.loaded = 'true';
                     if (window.initAcademieMRE) {
-                        // Lorsque le module est chargé, on appelle son initialisation puis on met à jour l'UI pour le cloisonnement
-                        window.initAcademieMRE(); 
-                        updateUI(); 
+                        window.initAcademieMRE(); // Appel de la fonction d'initialisation du nouveau module
                         resolve();
                     } else {
                         reject(new Error("initAcademieMRE non défini."));
@@ -1300,6 +1203,417 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
     
+    // Fonctions de Génération et Planification (Définitions complètes pour corriger les ReferenceError)
+
+    function showGenerationModal(prefillData = null) {
+        if (Object.keys(programmes).length === 0) {
+            alert("Les programmes scolaires n'ont pas pu être chargés. Impossible de générer du contenu.");
+            return;
+        }
+        
+        const h = `
+            <div class="tabs">
+                <button class="tab-button active" data-tab="from-program">Depuis le Programme</button>
+                <button class="tab-button" data-tab="from-text">Depuis un Texte/Document</button>
+            </div>
+            <div id="from-program" class="tab-panel active">
+                <form id="generation-form">
+                    <div class="form-group"><label>Type de contenu</label><select id="content-type-select"><option value="quiz">Quiz</option><option value="exercices">Fiche d'exercices</option><option value="revision">Fiche de révision</option><option value="dm">Devoir Maison</option></select></div>
+                    <div class="form-group" id="exercise-count-group"><label for="exercise-count" id="exercise-count-label">Nombre de questions</label><input type="number" id="exercise-count" value="3" min="1" max="15"></div>
+                    <div id="program-fields">
+                        <div class="form-group"><label>Cycle</label><select id="cycle-select"><option value="">-- Choisir --</option></select></div>
+                        <div class="form-group"><label>Niveau</label><select id="niveau-select" disabled><option value="">-- Choisir --</option></select></div>
+                        <div class="form-group"><label>Matière</label><select id="matiere-select" disabled><option value="">-- Choisir --</option></select></div>
+                        <div class="form-group"><label>Notion</label><select id="notion-select" disabled><option value="">-- Choisir --</option></select></div>
+                        <div class="form-group"><label>Compétence</label><select id="competence-select" disabled><option value="">-- Choisir --</option></select></div>
+                    </div>
+                    <div id="free-competence-field" class="form-group hidden">
+                        <label>Compétence Suggérée</label>
+                        <input type="text" id="competence-input" placeholder="Sujet ou compétence libre...">
+                    </div>
+                    <button type="submit" class="btn btn-main" id="generate-btn">Générer</button>
+                </form>
+            </div>
+            <div id="from-text" class="tab-panel">
+                 <form id="generate-from-upload-form">
+                    <div class="form-group"><label for="document-upload-input">Chargez un document (PDF, DOCX, PNG, JPG)</label><input type="file" id="document-upload-input" accept=".pdf,.docx,.png,.jpg,.jpeg" required></div>
+                    <div class="form-group"><label>Type de contenu à générer</label><select id="teacher-content-type-upload"><option value="quiz">Quiz</option><option value="exercices">Fiche d'exercices</option><option value="revision">Fiche de révision</option><option value="dm">Devoir Maison</option></select></div>
+                    <div class="form-group" id="exercise-count-group-upload"><label for="exercise-count-upload" id="exercise-count-label-upload">Nombre de questions</label><input type="number" id="exercise-count-upload" value="3" min="1" max="15"></div>
+                    <button type="submit" class="btn btn-main">Analyser et Générer</button>
+                </form>
+            </div>
+            <div id="generation-spinner" class="hidden">${spinnerHtml}</div>`;
+        
+        renderModal(getModalTemplate('generation-modal', 'Générer du contenu pédagogique', h));
+        
+        const setupContentTypeListener = (typeSelectId, countGroupId, countLabelId) => {
+            const typesWithCount = ['quiz', 'exercices', 'dm'];
+            const typeSelect = document.getElementById(typeSelectId);
+            const countGroup = document.getElementById(countGroupId);
+            const countLabel = document.getElementById(countLabelId);
+            typeSelect.addEventListener('change', () => {
+                const selectedType = typeSelect.value;
+                countGroup.classList.toggle('hidden', !typesWithCount.includes(selectedType));
+                if(selectedType === 'quiz') countLabel.textContent = "Nombre de questions";
+                else if (selectedType === 'exercices' || selectedType === 'dm') countLabel.textContent = "Nombre d'exercices";
+            });
+            typeSelect.dispatchEvent(new Event('change'));
+        };
+        setupContentTypeListener('content-type-select', 'exercise-count-group', 'exercise-count-label');
+        setupContentTypeListener('teacher-content-type-upload', 'exercise-count-group-upload', 'exercise-count-label-upload');
+        const cy = document.getElementById('cycle-select'), n = document.getElementById('niveau-select'), m = document.getElementById('matiere-select'), no = document.getElementById('notion-select'), co = document.getElementById('competence-select'), gen = document.getElementById('generate-btn');
+        const competenceInput = document.getElementById('competence-input');
+
+        Object.keys(programmes).forEach(c => cy.add(new Option(c, c)));
+        cy.addEventListener('change', () => { resetSelects([n, m, no, co]); const s = cy.value; if (s) { Object.keys(programmes[s]).forEach(l => n.add(new Option(l, l))); n.disabled = false; } });
+        n.addEventListener('change', () => { resetSelects([m, no, co]); const d = programmes[cy.value][n.value]; if (d) { Object.keys(d).forEach(k => m.add(new Option(d[k].nom, k))); m.disabled = false; } });
+        m.addEventListener('change', () => { 
+            resetSelects([no, co]); 
+            const d = programmes[cy.value][n.value]?.[m.value]; 
+            if (d) { 
+                Object.keys(d).filter(k => k !== 'nom').forEach(nk => { 
+                    no.add(new Option(d[nk].nom, nk)); 
+                }); 
+                no.disabled = false; 
+            } 
+        });
+        no.addEventListener('change', () => {
+            resetSelects([co]);
+            const d = programmes[cy.value][n.value]?.[m.value]?.[no.value];
+            if (!d) return;
+
+            if (d.sous_notions) {
+                Object.values(d.sous_notions).forEach(sn => {
+                    (sn.competences || []).forEach(c => co.add(new Option(c, c)));
+                });
+            }
+            else if (d.competences && Array.isArray(d.competences)) {
+                d.competences.forEach(c => co.add(new Option(c, c)));
+            }
+            co.disabled = co.options.length <= 1;
+        });
+        co.addEventListener('change', () => { gen.disabled = !co.value; });
+        competenceInput.addEventListener('input', () => { gen.disabled = !competenceInput.value; });
+
+        document.getElementById('generation-form').addEventListener('submit', async e => {
+            e.preventDefault();
+            const form = e.currentTarget;
+            let comp = '';
+            let levelForInfo = '';
+
+            const isFreeMode = !document.getElementById('free-competence-field').classList.contains('hidden');
+            if (isFreeMode) {
+                comp = competenceInput.value;
+                levelForInfo = form.dataset.level || '';
+            } else {
+                comp = co.value;
+                levelForInfo = n.value;
+            }
+
+            selectedCompetenceInfo = { level: levelForInfo, competence: comp };
+            const contentType = document.getElementById('content-type-select').value;
+            const exerciseCount = document.getElementById('exercise-count').value;
+            
+            const matiereSelect = document.getElementById('matiere-select');
+            const selectedMatiereText = isFreeMode ? '' : matiereSelect.options[matiereSelect.selectedIndex].text;
+            let language = null;
+            if (selectedMatiereText.includes('Anglais')) {
+                language = 'Anglais';
+            } else if (selectedMatiereText.includes('Arabe')) {
+                language = 'Arabe';
+            } else if (selectedMatiereText.includes('Espagnol')) {
+                language = 'Espagnol';
+            }
+
+            document.getElementById('generation-spinner').classList.remove('hidden');
+            try {
+                const d = await apiRequest('/ai/generate-content', 'POST', { competences: comp, contentType, exerciseCount, language });
+                generatedContent = d.structured_content;
+                showEditModal();
+            } catch(err) {
+                alert("Erreur: " + err.message);
+            } finally {
+                document.getElementById('generation-spinner').classList.add('hidden');
+            }
+        });
+        document.getElementById('generate-from-upload-form').addEventListener('submit', async (e) => { e.preventDefault(); const spinner = document.getElementById('generation-spinner'); spinner.classList.remove('hidden'); const formData = new FormData(); formData.append('document', document.getElementById('document-upload-input').files[0]); formData.append('contentType', document.getElementById('teacher-content-type-upload').value); formData.append('exerciseCount', document.getElementById('exercise-count-upload').value); try { const response = await fetch(`${backendUrl}/api/ai/generate-from-upload`, { method: 'POST', body: formData }); const data = await response.json(); if (!response.ok) throw new Error(data.error); generatedContent = data.structured_content; showEditModal(); } catch (err) { alert('Erreur: ' + err.message); } finally { spinner.classList.add('hidden'); } });
+        const modal = document.getElementById('generation-modal');
+        modal.querySelectorAll('.tab-button').forEach(button => { button.addEventListener('click', (e) => { modal.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active')); modal.querySelectorAll('.tab-panel').forEach(panel => panel.classList.remove('active')); e.target.classList.add('active'); document.getElementById(e.target.dataset.tab).classList.add('active'); }); });
+
+        if (prefillData) {
+            document.getElementById('content-type-select').value = prefillData.type;
+            document.getElementById('content-type-select').dispatchEvent(new Event('change'));
+
+            let found = false;
+            for (const cycleKey in programmes) {
+                for (const niveauKey in programmes[cycleKey]) {
+                    const normalizedNiveauKey = niveauKey.trim().toLowerCase();
+                    const normalizedPrefillLevel = prefillData.level.trim().toLowerCase();
+                    if (normalizedNiveauKey.includes(normalizedPrefillLevel) || normalizedPrefillLevel.includes(normalizedNiveauKey)) {
+                         for (const matiereKey in programmes[cycleKey][niveauKey]) {
+                            const matiere = programmes[cycleKey][niveauKey][matiereKey];
+                            for (const notionKey in matiere) {
+                                if (notionKey === 'nom') continue;
+                                const notion = matiere[notionKey];
+                                
+                                let competences = [];
+                                if (notion.sous_notions) {
+                                    Object.values(notion.sous_notions).forEach(sn => {
+                                        if(sn.competences) competences.push(...sn.competences);
+                                    });
+                                } else if (notion.competences) {
+                                    competences.push(...notion.competences);
+                                }
+
+                                if (competences.includes(prefillData.competence)) {
+                                    cy.value = cycleKey; cy.dispatchEvent(new Event('change'));
+                                    n.value = niveauKey; n.dispatchEvent(new Event('change'));
+                                    m.value = matiereKey; m.dispatchEvent(new Event('change'));
+                                    no.value = notionKey; no.dispatchEvent(new Event('change'));
+                                    co.value = prefillData.competence; co.dispatchEvent(new Event('change'));
+                                    found = true; break;
+                                }
+                            }
+                            if (found) break;
+                        }
+                    }
+                    if (found) break;
+                }
+                if (found) break;
+            }
+             if (!found) {
+                console.warn("Compétence non trouvée dans les programmes, passage en mode de saisie libre.", prefillData);
+                document.getElementById('program-fields').classList.add('hidden');
+                const freeField = document.getElementById('free-competence-field');
+                freeField.classList.remove('hidden');
+                competenceInput.value = prefillData.competence;
+                gen.disabled = false;
+                document.getElementById('generation-form').dataset.level = prefillData.level;
+            }
+        }
+    }
+    function resetSelects(selects) { selects.forEach(s => { s.innerHTML = '<option value="">-- Choisir --</option>'; s.disabled = true; }); document.getElementById('generate-btn').disabled = true; }
+    
+    function showEditModal() {
+        let editHtml = `<form id="edit-form"><div class="form-group"><label>Titre</label><input type="text" id="edit-title" value="${generatedContent.title || ''}"></div>`;
+
+        if (generatedContent.type === 'quiz' && Array.isArray(generatedContent.questions)) {
+            generatedContent.questions.forEach((q, i) => {
+                editHtml += `<div class="form-group"><label>Question ${i + 1}</label><input type="text" id="edit-q-${i}" value="${q.question_text || ''}"><label style="margin-top: 0.5rem;">Options</label>`;
+                if (Array.isArray(q.options)) {
+                    editHtml += q.options.map((opt, j) => `<input type="text" id="edit-q-${i}-opt-${j}" value="${opt || ''}" style="margin-bottom: 0.5rem;">`).join('');
+                }
+                editHtml += `</div>`;
+            });
+        } else if ((generatedContent.type === 'exercices' || generatedContent.type === 'dm') && Array.isArray(generatedContent.content)) {
+            generatedContent.content.forEach((ex, i) => {
+                editHtml += `<div class="form-group"><label>Exercice ${i + 1}</label><textarea id="edit-ex-${i}" rows="3">${ex.enonce || ''}</textarea></div>`;
+            });
+        } else if (generatedContent.type === 'revision' && typeof generatedContent.content === 'string') {
+            editHtml += `<div class="form-group"><label>Contenu de la fiche</label><textarea id="edit-revision-content" rows="10">${generatedContent.content || ''}</textarea></div>`;
+        } else {
+            editHtml += `<p class="error-message">Le contenu généré par l'IA a une structure inattendue. Vous pouvez le modifier manuellement ci-dessous.</p>`;
+            editHtml += `<div class="form-group"><label>Contenu brut (JSON)</label><textarea rows="10" id="raw-json-edit">${JSON.stringify(generatedContent, null, 2)}</textarea></div>`;
+        }
+        editHtml += `<button type="submit" class="btn btn-main">Valider et Assigner</button></form>`;
+
+        renderModal(getModalTemplate('edit-modal', 'Modifier et Valider le Contenu', editHtml));
+
+        document.getElementById('edit-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            try {
+                const rawJsonTextarea = document.getElementById('raw-json-edit');
+                if (rawJsonTextarea) {
+                    generatedContent = JSON.parse(rawJsonTextarea.value);
+                } else {
+                    generatedContent.title = document.getElementById('edit-title').value;
+                    if (generatedContent.type === 'quiz' && Array.isArray(generatedContent.questions)) {
+                        generatedContent.questions.forEach((q, i) => {
+                            q.question_text = document.getElementById(`edit-q-${i}`).value;
+                            if (Array.isArray(q.options)) {
+                                q.options.forEach((opt, j) => { q.options[j] = document.getElementById(`edit-q-${i}-opt-${j}`).value; });
+                            }
+                        });
+                    } else if ((generatedContent.type === 'exercices' || generatedContent.type === 'dm') && Array.isArray(generatedContent.content)) {
+                        generatedContent.content.forEach((ex, i) => {
+                            ex.enonce = document.getElementById(`edit-ex-${i}`).value;
+                        });
+                    } else if (generatedContent.type === 'revision') {
+                        generatedContent.content = document.getElementById('edit-revision-content').value;
+                    }
+                }
+                showAssignModal();
+            } catch (err) {
+                alert("Le JSON modifié n'est pas valide. Veuillez le corriger avant de continuer.");
+            }
+        });
+    }
+
+    function showAssignModal(contentToAssign) { 
+        const content = contentToAssign || generatedContent; 
+        const defaultDueDate = new Date(); 
+        defaultDueDate.setDate(defaultDueDate.getDate() + 7); 
+        const formattedDefaultDate = defaultDueDate.toISOString().split('T')[0]; 
+        const modalHtml = `<form id="assign-form">
+            <div class="form-group"><label for="assign-class-select">Assigner à la classe</label><select id="assign-class-select" required></select></div>
+            <div class="form-group"><label for="due-date-input">À faire pour le</label><input type="date" id="due-date-input" value="${formattedDefaultDate}" required></div>
+            <div class="form-group checkbox-group"><input type="checkbox" id="is-evaluated-checkbox"><label for="is-evaluated-checkbox">Ce contenu est un devoir évalué</label></div>
+            <button type="submit" class="btn btn-main">Assigner</button>
+        </form>`; 
+        renderModal(getModalTemplate('assign-modal', `Assigner "${content.title}"`, modalHtml)); 
+        const select = document.getElementById('assign-class-select'); 
+        teacherClasses.forEach(c => select.add(new Option(c.className, c.id))); 
+        document.getElementById('assign-form').addEventListener('submit', async e => { 
+            e.preventDefault(); 
+            const classId = select.value; 
+            const dueDate = document.getElementById('due-date-input').value; 
+            const isEvaluated = document.getElementById('is-evaluated-checkbox').checked;
+            if (!classId || !content || !dueDate) return; 
+            try { 
+                await apiRequest('/teacher/assign-content', 'POST', { 
+                    classId, 
+                    teacherEmail: currentUser.email,
+                    contentData: { ...content, dueDate, isEvaluated, competence: content.competence || selectedCompetenceInfo } 
+                }); 
+                modalContainer.innerHTML = ''; 
+                renderModal(getModalTemplate('assign-confirm', 'Succès', '<p>Le contenu a bien été assigné !</p>')); 
+                setTimeout(() => { modalContainer.innerHTML = ''; renderTeacherDashboard(); }, 2000); 
+            } catch (error) { 
+                alert("Erreur lors de l'assignation du contenu."); 
+            } 
+        }); 
+    }
+    
+    async function renderPlannerPage() {
+        const page = document.getElementById('planner-page');
+        changePage('planner-page');
+        page.innerHTML = `
+            <div class="page-header">
+                <h2><i class="fa-solid fa-calendar-days"></i> Planificateur de Cours</h2>
+                <button id="back-to-teacher-dash" class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> Retour</button>
+            </div>
+            <div class="card">
+                <form id="planner-form">
+                    <div class="form-group"><label for="planner-theme">Thème de la séquence</label><input type="text" id="planner-theme" placeholder="Ex: L'Empire romain, Les fractions..." required></div>
+                    <div class="form-group"><label for="planner-level">Niveau de la classe</label><input type="text" id="planner-level" placeholder="Ex: 6ème, CE2, Seconde..." required></div>
+                    <div class="form-group"><label for="planner-sessions">Nombre de séances</label><input type="number" id="planner-sessions" value="3" min="1" max="10" required></div>
+                    <button type="submit" class="btn btn-main">Générer la séquence</button>
+                </form>
+            </div>
+            <div id="planner-output" class="hidden">${spinnerHtml}</div>`;
+        const outputContainer = document.getElementById('planner-output');
+        page.querySelector('#back-to-teacher-dash').addEventListener('click', renderTeacherDashboard);
+        page.querySelector('#planner-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            outputContainer.classList.remove('hidden');
+            outputContainer.innerHTML = spinnerHtml;
+            const theme = document.getElementById('planner-theme').value;
+            const level = document.getElementById('planner-level').value;
+            const numSessions = document.getElementById('planner-sessions').value;
+            try {
+                const data = await apiRequest('/ai/generate-lesson-plan', 'POST', { theme, level, numSessions });
+                const plan = data.structured_plan;
+                let outputHtml = `<h3>${plan.planTitle} (Niveau ${plan.level})</h3>`;
+
+                plan.sessions.forEach((session, sessionIndex) => {
+                    session.resources = session.resources || [];
+                    outputHtml += `<div class="session-card">
+                        <div class="session-header"><div class="session-number">${session.sessionNumber}</div><h4>${session.title}</h4></div>
+                        <p><strong>Objectif :</strong> ${session.objective}</p>
+                        <p><strong>Activités :</strong></p><ul>${session.activities.map(act => `<li>${act}</li>`).join('')}</ul>
+                        <p><strong>Ressources AIDA :</strong></p><ul>`;
+                    
+                    session.resources.forEach((res, resIndex) => {
+                         const resourceData = JSON.stringify(res).replace(/'/g, '&#39;');
+                         outputHtml += `<li>
+                                           <span>${res.type.charAt(0).toUpperCase() + res.type.slice(1)} : ${res.sujet}</span>
+                                           <button class="btn btn-generate-planner" data-resource='${resourceData}' data-level="${plan.level}">
+                                               <i class="fa-solid fa-wand-sparkles"></i> Générer
+                                           </button>
+                                       </li>`;
+                    });
+                    outputHtml += `</ul></div>`;
+                });
+                outputContainer.innerHTML = outputHtml;
+
+                outputContainer.querySelectorAll('.btn-generate-planner').forEach(button => {
+                    button.addEventListener('click', (e) => {
+                        const resourceString = e.currentTarget.dataset.resource;
+                        if(resourceString) {
+                            try {
+                                const prefillData = JSON.parse(resourceString.replace(/&#39;/g, "'"));
+                                prefillData.level = e.currentTarget.dataset.level;
+                                showGenerationModal(prefillData);
+                            } catch (err) {
+                                console.error("Erreur lors de l'analyse des données de la ressource :", err, "String:", resourceString);
+                                alert("Une erreur est survenue en essayant de lire les informations du contenu à générer.");
+                            }
+                        }
+                    });
+                });
+            } catch (error) { outputContainer.innerHTML = `<p class="error-message">Erreur lors de la génération du plan : ${error.message}</p>`; }
+        });
+    }
+    
+    // NOUVELLE FONCTION DE CHARGEMENT DYNAMIQUE (LAZY LOADING)
+    function loadAcademieMREModule() {
+        const pageId = 'academie-mre-page';
+        const page = document.getElementById(pageId);
+        
+        // 1. Vérifie si le module est déjà chargé
+        if (page.dataset.loaded === 'true') {
+            changePage(pageId);
+            return;
+        }
+    
+        // 2. Affiche un état de chargement et change de page
+        page.innerHTML = `<div style="text-align:center; padding: 5rem;">${spinnerHtml}<p style="margin-top:1rem;">Chargement de l'Académie MRE...</p></div>`;
+        changePage(pageId);
+        
+        // 3. Charge dynamiquement le script et les styles
+        Promise.all([
+            // Charger le JS
+            new Promise((resolve, reject) => {
+                const script = document.createElement('script');
+                script.src = 'modules/academie-mre.js'; 
+                script.onload = () => {
+                    page.dataset.loaded = 'true';
+                    if (window.initAcademieMRE) {
+                        window.initAcademieMRE(); // Appel de la fonction d'initialisation du nouveau module
+                        resolve();
+                    } else {
+                        reject(new Error("initAcademieMRE non défini."));
+                    }
+                };
+                script.onerror = (e) => {
+                    console.error("Erreur de chargement du script modules/academie-mre.js:", e);
+                    reject(new Error("Le fichier modules/academie-mre.js n'a pas été trouvé (404). Vérifiez le déploiement."));
+                };
+                document.head.appendChild(script);
+            }),
+            // Charger le CSS (si non déjà chargé)
+            new Promise((resolve) => {
+                const cssPath = 'modules/academie-mre.css';
+                if (document.querySelector(`link[href="${cssPath}"]`)) {
+                    return resolve();
+                }
+                const link = document.createElement('link');
+                link.rel = 'stylesheet';
+                link.href = cssPath;
+                link.onload = resolve;
+                link.onerror = (e) => {
+                    console.warn(`Avertissement : Le fichier CSS ${cssPath} n'a pas été trouvé (404), mais l'application continue.`, e);
+                    resolve();
+                };
+                document.head.appendChild(link);
+            })
+        ]).catch(err => {
+            page.innerHTML = `<p class="error-message">Erreur critique lors du chargement du module Académie MRE: ${err.message}</p>`;
+            console.error(err);
+        });
+    }
+    
+    // ... (Reste des fonctions inchangées)
     
     async function renderLibraryPage() {
         const page = document.getElementById('library-page');
@@ -1338,7 +1652,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const subject = document.getElementById('library-subject-filter').value;
         
         try {
-            const results = await apiRequest('/library?searchTerm=${searchTerm}&subject=${subject}');
+            const results = await apiRequest(`/library?searchTerm=${searchTerm}&subject=${subject}`);
             grid.innerHTML = '';
             if (results.length === 0) {
                 grid.innerHTML = '<p>Aucun contenu trouvé. Essayez d\'autres mots-clés ou partagez le vôtre !</p>';
@@ -1389,91 +1703,33 @@ document.addEventListener('DOMContentLoaded', () => {
         updateUI();
     }
     
-    // GESTION DES ÉCOUTEURS GLOBALS (après DOMContentLoaded)
+    loginNavBtn.addEventListener('click', renderAuthPage);
+    startAppBtn.addEventListener('click', renderAuthPage);
+    homeLink.addEventListener('click', () => { if(currentUser) { currentUser.role === 'teacher' ? renderTeacherDashboard() : renderStudentDashboard() } else { changePage('home-page'); } });
+    libraryLink.addEventListener('click', (e) => { e.preventDefault(); renderLibraryPage(); });
     
-    // Le bouton de Connexion est toujours présent
-    if (loginNavBtn) loginNavBtn.addEventListener('click', renderAuthPage);
-    
-    // GESTION DES BOUTONS DE LA PAGE D'ACCUEIL (startEtablissementBtn et startAcademieBtn)
-    if (startEtablissementBtn) {
-        startEtablissementBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            if (currentUser) {
-                renderStudentDashboard(); 
-            } else {
-                localStorage.setItem('preferredUniverse', 'etablissement'); // Mémoriser le choix
-                renderAuthPage(); 
-            }
+    // ÉCOUTEUR MIS À JOUR POUR LE CHARGEMENT DYNAMIQUE
+    if(academieMRELink) {
+        academieMRELink.addEventListener('click', (e) => { 
+            e.preventDefault(); 
+            loadAcademieMREModule(); 
         });
     }
 
-    if (startAcademieBtn) {
-        startAcademieBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            if (currentUser) {
-                loadAcademieMREModule(); 
-            } else {
-                localStorage.setItem('preferredUniverse', 'academie'); // Mémoriser le choix
-                renderAuthPage();
-            }
-        });
-    }
-    
-    // CORRECTION NAVIGATION ACCUEIL: Si l'utilisateur clique sur Accueil/Logo, il va à la page de choix.
-    if (homeLink) {
-        homeLink.addEventListener('click', (e) => { 
-            e.preventDefault();
-            // L'utilisateur doit choisir son univers s'il est un élève
-            if (currentUser && currentUser.role === 'student') {
-                changePage('home-page'); 
-            } else if (currentUser && currentUser.role === 'teacher') {
-                 renderTeacherDashboard(); // Les profs reviennent à leur dashboard
-            } else {
-                 changePage('home-page');
-            }
-        }); 
-    }
-
-
-    // CORRECTION NAVIGATION ESPACE DE TRAVAIL: Renvoie vers le dashboard élève standard
-    if (workspaceLink) {
-        workspaceLink.addEventListener('click', (e) => {
-            e.preventDefault();
-            renderStudentDashboard();
-        });
-    }
-
-    // Bibliothèque et Académie MRE
-    if (libraryLink) libraryLink.addEventListener('click', (e) => { e.preventDefault(); renderLibraryPage(); });
-    if (academieMRELink) academieMRELink.addEventListener('click', (e) => { 
-        e.preventDefault(); 
-        loadAcademieMREModule(); 
-    });
-
-    // Déplacer Admin Module dans le dropdown (géré par index.html)
-    if (adminModuleLink) {
-         adminModuleLink.addEventListener('click', (e) => { 
-             e.preventDefault(); 
-             renderTeacherDashboard();
-             if (userDropdown) userDropdown.classList.add('hidden'); // Fermer le menu après action
-        });
-    }
-
-
-    if (logoutBtn) logoutBtn.addEventListener('click', () => { 
+    logoutBtn.addEventListener('click', () => { 
         currentUser = null; 
         localStorage.removeItem('currentUser');
         updateUI(); 
     });
-    if (userInfoClickable) userInfoClickable.addEventListener('click', () => userDropdown.classList.toggle('hidden'));
+    userInfoClickable.addEventListener('click', () => userDropdown.classList.toggle('hidden'));
     window.addEventListener('click', (e) => {
         if (userMenuContainer && !userMenuContainer.contains(e.target)) {
             userDropdown.classList.add('hidden');
         }
     });
     
-    if (themeToggleHeaderBtn) themeToggleHeaderBtn.addEventListener('click', toggleTheme);
-    if (themeToggleDropdownBtn) themeToggleDropdownBtn.addEventListener('click', toggleTheme);
+    themeToggleHeaderBtn.addEventListener('click', toggleTheme);
+    themeToggleDropdownBtn.addEventListener('click', toggleTheme);
 
 
     const wrapper = document.querySelector('#intro-animation-wrapper');

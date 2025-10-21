@@ -8,6 +8,7 @@ function renderAcademieMREPage() {
     const page = document.getElementById('academie-mre-page');
     
     // 1. Rendre la structure de la page
+    // NOTE : Les classes card-mre-primary/secondary sont dans academie-mre.css
     page.innerHTML = `
         <div class="page-header">
             <h2><i class="fa-solid fa-graduation-cap" style="color: var(--secondary-color);"></i> Académie MRE - Apprentissage de l'Arabe Classique</h2>
@@ -40,10 +41,9 @@ function renderAcademieMREPage() {
     page.querySelector('.start-mre-dialogue').addEventListener('click', () => {
         // La fonction showAidaHelpModal est globale (définie dans script.js)
         if (typeof showAidaHelpModal === 'function') {
-            // NOTE: Le chemin est /academie-mre/aida-chat SANS /api/
             showAidaHelpModal(
                 "Bonjour AIDA ! Je suis prêt(e) pour le dialogue du jour. J'aimerais pratiquer comment me présenter à un nouveau camarade.", 
-                '/academie-mre/aida-chat' // Endpoint spécifique MRE
+                '/api/academie-mre/aida-chat' // Endpoint spécifique MRE
             ); 
         } else {
             alert("Erreur: La fonction d'aide AIDA n'est pas disponible.");
@@ -55,10 +55,8 @@ function renderAcademieMREPage() {
         alert("Le module de Rédaction est en construction. Prochaine étape : implémenter la correction bilingue !");
     });
     
-    // 3. Afficher la page et mettre à jour l'UI
+    // 3. Afficher la page
     changePage('academie-mre-page');
-    // Mise à jour de l'UI pour le cloisonnement (masque les liens inutiles)
-    window.updateUI(); 
 }
 
 // Fonction d'initialisation globale que le Shell va appeler
