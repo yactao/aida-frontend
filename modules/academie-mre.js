@@ -41,9 +41,10 @@ function renderAcademieMREPage() {
     page.querySelector('.start-mre-dialogue').addEventListener('click', () => {
         // La fonction showAidaHelpModal est globale (définie dans script.js)
         if (typeof showAidaHelpModal === 'function') {
+            // NOTE: Le chemin est maintenant /academie-mre/aida-chat SANS /api/
             showAidaHelpModal(
-                "Bonjour AIDA ! Je suis prêt(e) pour le dialogue du jour. J'aimerais pratiquer comment me présenter à un nouveau camarade.", 
-                '/api/academie-mre/aida-chat' // Endpoint spécifique MRE
+                "Bonjour AÏDA ! Je suis prêt(e) pour le dialogue du jour. J'aimerais pratiquer comment me présenter à un nouveau camarade.", 
+                '/academie-mre/aida-chat' // Endpoint spécifique MRE
             ); 
         } else {
             alert("Erreur: La fonction d'aide AIDA n'est pas disponible.");
@@ -55,8 +56,10 @@ function renderAcademieMREPage() {
         alert("Le module de Rédaction est en construction. Prochaine étape : implémenter la correction bilingue !");
     });
     
-    // 3. Afficher la page
+    // 3. Afficher la page et mettre à jour l'UI
     changePage('academie-mre-page');
+    // Mise à jour de l'UI pour le cloisonnement (masque les liens inutiles)
+    window.updateUI(); 
 }
 
 // Fonction d'initialisation globale que le Shell va appeler

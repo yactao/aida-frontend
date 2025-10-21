@@ -15,14 +15,17 @@
             <img src="https://aida-backend-bqd0fnd2a3c7dadf.francecentral-01.azurewebsites.net/logo%20Aida11.svg" alt="Logo AÏDA" class="logo-icon">
         </div>
         <nav class="main-nav">
-            <a href="#" id="home-link" class="btn btn-secondary"><i class="fa-solid fa-home"></i> Accueil</a>
-            <a href="#" id="workspace-link" class="hidden"><i class="fa-solid fa-chalkboard-user"></i> Espace de travail</a>
+            <!-- SUPPRESSION DE homeLink de la barre de navigation (car le logo et le choix d'univers le remplacent) -->
+            <!-- <a href="#" id="home-link" class="btn btn-secondary"><i class="fa-solid fa-home"></i> Accueil</a> -->
             
-            <!-- NOUVEAU LIEN POUR L'ACADÉMIE MRE (toujours caché par défaut) -->
-            <a href="#" id="academie-mre-link" class="hidden"><i class="fa-solid fa-earth-africa"></i> Académie MRE</a>
+            <!-- ESPACE DE TRAVAIL: Supprimé de la navigation principale car intégré dans le dashboard élève -->
+            <!-- ACADÉMIE MRE: Gardé pour le cloisonnement -->
+            <a href="#" id="academie-mre-link" class="hidden btn btn-secondary"><i class="fa-solid fa-earth-africa"></i> Académie MRE</a>
             
-            <a href="#" id="library-link" class="hidden"><i class="fa-solid fa-book-bookmark"></i> Bibliothèque</a>
-            <button id="admin-module-link" class="btn btn-secondary hidden"><i class="fa-solid fa-graduation-cap"></i> Admin</button>
+            <!-- BIBLIOTHÈQUE: Reste pour les professeurs -->
+            <a href="#" id="library-link" class="hidden btn btn-secondary"><i class="fa-solid fa-book-bookmark"></i> Bibliothèque</a>
+            
+            <!-- BOUTON ADMIN DÉPLACÉ DANS LE MENU UTILISATEUR -->
             <button class="btn btn-secondary hidden" id="theme-toggle-header-btn"><i class="fa-solid fa-moon"></i></button>
 
             <button class="btn btn-main" id="login-nav-btn"><i class="fa-solid fa-right-to-bracket"></i> Connexion</button>
@@ -34,15 +37,19 @@
                     <i class="fa-solid fa-chevron-down"></i>
                 </button>
                 <div class="user-dropdown hidden">
+                    <!-- Déplacer Admin Module ici -->
                     <div class="dropdown-section">
-                        <a href="#"><i class="fa-solid fa-user-circle"></i> Mon Profil</a>
+                        <button id="admin-module-link" class="btn btn-secondary hidden" style="width: 100%; justify-content: flex-start; background: none; color: var(--text-color); padding: 0.5rem 0; border-radius: 0;"><i class="fa-solid fa-graduation-cap" style="width: 20px;"></i> Admin</button>
+                    </div>
+                    <div class="dropdown-section">
+                        <a href="#"><i class="fa-solid fa-user-circle" style="width: 20px;"></i> Mon Profil</a>
                     </div>
                     <div class="dropdown-section">
                         <span>Thème :</span>
                         <button id="theme-toggle-dropdown-btn" class="theme-toggle"><i class="fa-solid fa-moon"></i></button>
                     </div>
                     <div class="dropdown-section">
-                        <a href="#" id="logout-btn"><i class="fa-solid fa-right-from-bracket"></i> Déconnexion</a>
+                        <a href="#" id="logout-btn"><i class="fa-solid fa-right-from-bracket" style="width: 20px;"></i> Déconnexion</a>
                     </div>
                 </div>
             </div>
@@ -70,6 +77,7 @@
             <p id="home-page-subtitle" class="subtitle">Choisis ton univers de travail :</p>
             
             <div style="display: flex; gap: 2rem; justify-content: center; flex-wrap: wrap;">
+                <!-- Les boutons d'accès pointent vers la page d'authentification/redirection -->
                 <button id="start-etablissement-btn" class="btn btn-main" style="padding: 15px 30px;"><i class="fa-solid fa-school"></i> Accès Établissement</button>
                 <button id="start-academie-btn" class="btn btn-secondary" style="padding: 15px 30px; background: var(--secondary-color); color: white;"><i class="fa-solid fa-earth-africa"></i> Accès Académie MRE</button>
             </div>

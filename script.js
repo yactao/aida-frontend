@@ -15,7 +15,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const main = document.querySelector('main');
     const modalContainer = document.getElementById('modal-container');
     const loginNavBtn = document.getElementById('login-nav-btn');
-    const homeLink = document.getElementById('home-link');
+    // Suppression de homeLink de la navigation principale
+    const homeLink = document.getElementById('home-link'); 
     const workspaceLink = document.getElementById('workspace-link');
     const libraryLink = document.getElementById('library-link');
     
@@ -60,13 +61,13 @@ document.addEventListener('DOMContentLoaded', () => {
     // Fonctions essentielles globales pour tous les modules
     window.changePage = (id) => { main.querySelectorAll('.page').forEach(p=>p.classList.remove('active')); document.getElementById(id).classList.add('active'); };
     
-    // CORRECTION APIREQUEST: Revert pour éviter la double insertion /api/api
+    // CORRECTION APIREQUEST: Revert vers l'implémentation la plus stable (retrait du double /api/ et des vérifications complexes)
     window.apiRequest = async (endpoint, method = 'GET', body = null) => { 
         try { 
             const opts = { method, headers: { 'Content-Type': 'application/json' } }; 
             if (body) opts.body = JSON.stringify(body); 
 
-            // IMPORTANT: Utiliser l'endpoint tel quel (il doit commencer par /)
+            // IMPORTANT: L'endpoint doit être au format /ai/get-aida-help ou /academie-mre/aida-chat
             const url = `${backendUrl}/api${endpoint.startsWith('/') ? endpoint : '/' + endpoint}`;
 
             const res = await fetch(url, opts); 
@@ -148,6 +149,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Détection de l'univers actif
         const currentPath = document.querySelector('.page.active')?.id;
         const isAcademieActive = currentPath === 'academie-mre-page';
+        // L'établissement est actif si on n'est pas dans l'académie
         const isEtablissementActive = !isAcademieActive && (currentPath === 'student-dashboard-page' || currentPath === 'content-viewer-page' || currentPath === 'auth-page');
 
         // Styles de navigation et visibilité
@@ -735,7 +737,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         </div>
                         <div class="appreciation-option">
                             <input type="radio" id="appreciation-non_acquis" name="appreciation" value="non_acquis" required>
-                            <label for="appreciation-non_acquis">Non acquis</label>
+                            <label for="appreciation-non-acquis">Non acquis</label>
                         </div>
                          <div class="appreciation-option">
                             <input type="radio" id="appreciation-a_revoir" name="appreciation" value="a_revoir" required>
@@ -876,7 +878,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
                 <div id="student-completed-list"></div>`;
 
-            // AJOUT DU LIEN PLAYGROUND/ESPACE DE TRAVAIL
+            // AJOUT DU LIEN PLAYGROUND/ESPACE DE TRAVAIL (Intégré au dashboard élève)
             const workspaceCard = `<div class="dashboard-card" style="cursor: pointer; border-top: 4px solid var(--secondary-color);" onclick="window.open('playground.html', '_blank')">
                                         <h4><i class="fa-solid fa-chalkboard-user"></i> Espace de Travail Libre</h4>
                                         <p>Accède à AIDA pour des discussions, des brainstormings ou l'analyse de documents.</p>
@@ -1257,7 +1259,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 script.onload = () => {
                     page.dataset.loaded = 'true';
                     if (window.initAcademieMRE) {
-                        window.initAcademieMRE(); // Appel de la fonction d'initialisation du nouveau module
+                        // Lorsque le module est chargé, on appelle son initialisation puis on met à jour l'UI pour le cloisonnement
+                        window.initAcademieMRE(); 
+                        updateUI(); 
                         resolve();
                     } else {
                         reject(new Error("initAcademieMRE non défini."));
