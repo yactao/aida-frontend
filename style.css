@@ -11,7 +11,6 @@
     --correct-color: #28a745;
     --incorrect-color: #dc3545;
     --warning-color: #F5A623;
-    --aida-chat-bg: #E9F2FF; /* Nouvelle couleur pour le chat AIDA */
 }
 body.dark-mode {
     --primary-color: #58a6ff;
@@ -20,7 +19,6 @@ body.dark-mode {
     --text-color: #E0E0E0;
     --card-bg-color: #1E1E1E;
     --shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
-    --aida-chat-bg: #2a3a50; 
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -291,10 +289,6 @@ body.dark-mode .appreciation-option label { border-color: #444; }
     padding-left: 1.5rem;
     position: relative;
     margin-bottom: 0.5rem;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 1rem;
 }
 .session-card li::before {
     content: '\f00c';
@@ -359,10 +353,7 @@ body.dark-mode .student-answer-box {
 .feedback-item.correct { border-left-color: var(--correct-color); background-color: rgba(40, 167, 69, 0.05); }
 .feedback-item.incorrect { border-left-color: var(--incorrect-color); background-color: rgba(220, 53, 69, 0.05); }
 
-/* ------------------------------------------- */
-/* Nouveaux styles pour la Modal d'Aide AIDA */
-/* ------------------------------------------- */
-
+/* Styles pour le chat AIDA (à maintenir pour le shell) */
 #aida-chat-container {
     display: flex;
     flex-direction: column;
@@ -377,7 +368,7 @@ body.dark-mode .student-answer-box {
     margin-bottom: 10px;
     border-radius: 8px;
     background-color: var(--background-color);
-    display: flex; /* Permet aux messages de se positionner correctement */
+    display: flex; 
     flex-direction: column;
 }
 body.dark-mode #chat-history {
@@ -390,7 +381,7 @@ body.dark-mode #chat-history {
     border-radius: 18px;
     margin-bottom: 10px;
     line-height: 1.4;
-    word-wrap: break-word; /* Assure que le texte s'ajuste */
+    word-wrap: break-word; 
 }
 
 .aida-message {
@@ -424,42 +415,4 @@ body.dark-mode #chat-history {
     padding: 10px 15px;
     height: 50px;
     flex-shrink: 0;
-}
-/* ------------------------------------------- */
-/* Fin des nouveaux styles AIDA                */
-/* ------------------------------------------- */
-
-.btn-generate-planner {
-    padding: 6px 12px;
-    font-size: 0.85rem;
-    background: linear-gradient(45deg, var(--gradient-start-color), var(--gradient-end-color));
-    color: white;
-    border: none;
-    flex-shrink: 0;
-    border-radius: 6px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-}
-
-.btn-generate-planner:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 10px rgba(74, 144, 226, 0.3);
-}
-
-.btn-generate-planner i {
-    transition: all 0.3s ease;
-}
-
-.btn-generate-planner:hover i {
-    animation: sparkle 1.5s infinite;
-}
-
-@keyframes sparkle {
-    0%, 100% {
-        transform: scale(1);
-        text-shadow: 0 0 3px white, 0 0 5px var(--secondary-color);
-    }
-    50% {
-        transform: scale(1.2);
-        text-shadow: 0 0 8px white, 0 0 12px var(--secondary-color);
-    }
 }

@@ -33,7 +33,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const themeToggleHeaderBtn = document.getElementById('theme-toggle-header-btn');
     const themeToggleDropdownBtn = document.getElementById('theme-toggle-dropdown-btn');
     const adminModuleLink = document.getElementById('admin-module-link');
-    // startAppBtn n'existe plus dans index.html
+    
 
 
     async function loadProgrammes() {
@@ -59,7 +59,39 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Fonctions essentielles globales pour tous les modules
     window.changePage = (id) => { main.querySelectorAll('.page').forEach(p=>p.classList.remove('active')); document.getElementById(id).classList.add('active'); };
-    window.apiRequest = async (endpoint, method = 'GET', body = null) => { try { const opts = { method, headers: { 'Content-Type': 'application/json' } }; if (body) opts.body = JSON.stringify(body); const res = await fetch(`${backendUrl}/api${endpoint}`, opts); if (!res.ok) { const errText = await res.text(); try { const err = JSON.parse(errText); throw new Error(err.error || 'Une erreur est survenue'); } catch (e) { throw new Error(errText); } } return res.status === 204 ? null : res.json(); } catch (e) { console.error(`API Error:`, e); throw e; } };
+    
+    // CORRECTION APIREQUEST: S'assurer que l'URL est correcte et gérer les erreurs 404
+    window.apiRequest = async (endpoint, method = 'GET', body = null) => { 
+        try { 
+            const opts = { method, headers: { 'Content-Type': 'application/json' } }; 
+            if (body) opts.body = JSON.stringify(body); 
+
+            // Assurer qu'il n'y a qu'une seule barre oblique après backendUrl
+            const url = `${backendUrl}/api${endpoint.startsWith('/') ? endpoint : '/' + endpoint}`;
+
+            const res = await fetch(url, opts); 
+
+            if (!res.ok) { 
+                const errText = await res.text(); 
+                try { 
+                    const err = JSON.parse(errText); 
+                    throw new Error(err.error || 'Une erreur est survenue'); 
+                } catch (e) { 
+                    // Gérer l'erreur 404 renvoyée par le serveur backend (Cannot POST/GET /api/...)
+                    if (errText.includes('Cannot POST') || errText.includes('<title>Error</title>')) {
+                        console.error("Erreur de routage API détectée:", errText);
+                        throw new Error("Erreur de routage API. Le serveur ne trouve pas l'endpoint spécifié (Vérifiez votre console).");
+                    }
+                    throw new Error(errText); 
+                } 
+            } 
+            return res.status === 204 ? null : res.json(); 
+        } catch (e) { 
+            console.error(`API Error:`, e); 
+            throw e; 
+        } 
+    };
+
     window.renderModal = (template) => { modalContainer.innerHTML = template; modalContainer.querySelector('.close-modal')?.addEventListener('click', () => modalContainer.innerHTML = ''); };
     window.getModalTemplate = (id, title, html) => { return `<div class="modal-overlay" id="${id}"><div class="modal-content"><button class="close-modal">&times;</button><h3>${title}</h3>${html}</div></div>`; };
     window.spinnerHtml = spinnerHtml;
@@ -123,15 +155,16 @@ document.addEventListener('DOMContentLoaded', () => {
             userAvatarDisplay.src = `${backendUrl}/avatars/${currentUser.avatar}`;
             adminModuleLink.classList.toggle('hidden', currentUser.role !== 'teacher');
             
-            // Si c'est un professeur, on va directement à son tableau de bord
+            // Logique de redirection après connexion ou rechargement
             if (currentUser.role === 'teacher') {
                 renderTeacherDashboard();
             } else {
-                 // Si c'est un élève, on va à la page d'accueil pour le choix s'il n'est pas déjà ailleurs
-                if (document.querySelector('.page.active').id === 'home-page') {
-                    // Masquer les liens inutiles pour l'utilisateur non connecté/profilé
-                } else {
-                    // S'il est déjà connecté et arrive sur le dashboard, pas de changement
+                const preferredUniverse = localStorage.getItem('preferredUniverse');
+                localStorage.removeItem('preferredUniverse'); // Nettoyer après utilisation
+                
+                if (preferredUniverse === 'academie') {
+                    loadAcademieMREModule();
+                } else if (preferredUniverse === 'etablissement' || document.querySelector('.page.active').id !== 'academie-mre-page') {
                     renderStudentDashboard();
                 }
             }
@@ -1493,7 +1526,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 renderModal(getModalTemplate('assign-confirm', 'Succès', '<p>Le contenu a bien été assigné !</p>')); 
                 setTimeout(() => { modalContainer.innerHTML = ''; renderTeacherDashboard(); }, 2000); 
             } catch (error) { 
-                alert("Erreur lors de l'assignation du contenu."); 
+                alert(`Erreur lors de l'assignation du contenu: ${error.message}`); 
             } 
         }); 
     }
@@ -1725,6 +1758,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (currentUser) {
                 renderStudentDashboard(); 
             } else {
+                localStorage.setItem('preferredUniverse', 'etablissement'); // Mémoriser le choix
                 renderAuthPage(); 
             }
         });
@@ -1737,6 +1771,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (currentUser) {
                 loadAcademieMREModule(); 
             } else {
+                localStorage.setItem('preferredUniverse', 'academie'); // Mémoriser le choix
                 renderAuthPage();
             }
         });
@@ -1745,7 +1780,7 @@ document.addEventListener('DOMContentLoaded', () => {
     homeLink.addEventListener('click', () => { if(currentUser) { currentUser.role === 'teacher' ? renderTeacherDashboard() : renderStudentDashboard() } else { changePage('home-page'); } });
     libraryLink.addEventListener('click', (e) => { e.preventDefault(); renderLibraryPage(); });
     
-    // ÉCOUTEUR MIS À JOUR POUR LE CHARGEMENT DYNAMIQUE (Menu de navigation)
+    // ÉCOUTEUR MIS À JOUR POUR LE CHARGEMENT DYNAMIQUE
     if(academieMRELink) {
         academieMRELink.addEventListener('click', (e) => { 
             e.preventDefault(); 
