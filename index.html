@@ -17,13 +17,11 @@
         </div>
         <nav class="main-nav">
             
-            <!-- ESPACE DE TRAVAIL: Affiché uniquement dans l'univers Etablissement -->
-            <a href="#" id="workspace-link" class="hidden btn btn-secondary"><i class="fa-solid fa-chalkboard-user"></i> Espace de travail</a>
-            
+            <!-- ESPACE DE TRAVAIL: Masqué dans la navigation principale (intégré au Dashboard) -->
             <!-- ACADÉMIE MRE: Affiché uniquement dans l'univers Académie -->
             <a href="#" id="academie-mre-link" class="hidden btn btn-secondary"><i class="fa-solid fa-earth-africa"></i> Académie MRE</a>
             
-            <!-- BIBLIOTHÈQUE: Reste pour les professeurs -->
+            <!-- BIBLIOTHÈQUE: CORRECTION STYLE - Ajout de la classe btn btn-secondary -->
             <a href="#" id="library-link" class="hidden btn btn-secondary"><i class="fa-solid fa-book-bookmark"></i> Bibliothèque</a>
             
             <!-- LOGIQUE DÉPLACÉE -->
@@ -38,7 +36,7 @@
                     <i class="fa-solid fa-chevron-down"></i>
                 </button>
                 <div class="user-dropdown hidden">
-                    <!-- Déplacer Admin Module ici -->
+                    <!-- Déplacer Admin Module ici (le script gère sa visibilité) -->
                     <div class="dropdown-section">
                         <button id="admin-module-link" class="hidden" style="width: 100%; justify-content: flex-start; background: none; color: var(--text-color); padding: 0.5rem 0; border: none; cursor: pointer; text-align: left;"><i class="fa-solid fa-graduation-cap" style="margin-right: 10px; width: 20px;"></i> Admin</button>
                     </div>

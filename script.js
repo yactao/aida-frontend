@@ -15,9 +15,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const main = document.querySelector('main');
     const modalContainer = document.getElementById('modal-container');
     const loginNavBtn = document.getElementById('login-nav-btn');
-    // homeLink est maintenant le logo et n'a plus d'écouteur spécifique
+    // homeLink est utilisé pour le logo
     const homeLink = document.getElementById('home-link'); 
-    const workspaceLink = document.getElementById('workspace-link');
+    
+    // workspaceLink n'est plus dans la navigation principale de index.html, mais le garder ici
+    const workspaceLink = document.getElementById('workspace-link'); 
     const libraryLink = document.getElementById('library-link');
     
     // AJOUT DES CONSTANTES ACADEMIE MRE
@@ -130,8 +132,8 @@ document.addEventListener('DOMContentLoaded', () => {
     function applyTheme(theme) {
         document.body.classList.toggle('dark-mode', theme === 'dark');
         const icon = theme === 'dark' ? '<i class="fa-solid fa-sun"></i>' : '<i class="fa-solid fa-moon"></i>';
-        themeToggleHeaderBtn.innerHTML = icon;
-        themeToggleDropdownBtn.innerHTML = icon;
+        if (themeToggleHeaderBtn) themeToggleHeaderBtn.innerHTML = icon;
+        if (themeToggleDropdownBtn) themeToggleDropdownBtn.innerHTML = icon;
     }
 
     function toggleTheme() {
@@ -142,9 +144,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function updateUI() {
         const loggedIn = !!currentUser;
-        loginNavBtn.classList.toggle('hidden', loggedIn);
-        themeToggleHeaderBtn.classList.toggle('hidden', loggedIn);
-        userMenuContainer.classList.toggle('hidden', !loggedIn);
+        if (loginNavBtn) loginNavBtn.classList.toggle('hidden', loggedIn);
+        if (themeToggleHeaderBtn) themeToggleHeaderBtn.classList.toggle('hidden', loggedIn);
+        if (userMenuContainer) userMenuContainer.classList.toggle('hidden', !loggedIn);
         
         // Détection de l'univers actif
         const currentPath = document.querySelector('.page.active')?.id;
@@ -158,30 +160,32 @@ document.addEventListener('DOMContentLoaded', () => {
             // Logique Élève
             if (currentUser.role === 'student') {
                 // Cloisonnement : Masquer le lien Académie si dans l'espace Etablissement, et vice-versa
-                academieMRELink.classList.toggle('hidden', !loggedIn || isEtablissementActive);
-                workspaceLink.classList.toggle('hidden', !loggedIn || isAcademieActive);
-                libraryLink.classList.add('hidden'); // Bibliothèque toujours cachée pour l'élève
+                if (academieMRELink) academieMRELink.classList.toggle('hidden', !loggedIn || isEtablissementActive);
+                if (workspaceLink) workspaceLink.classList.toggle('hidden', !loggedIn || isAcademieActive);
+                if (libraryLink) libraryLink.classList.add('hidden'); // Bibliothèque toujours cachée pour l'élève
             }
             
             // Logique Professeur
             if (currentUser.role === 'teacher') {
-                academieMRELink.classList.add('hidden');
-                workspaceLink.classList.add('hidden');
-                libraryLink.classList.remove('hidden');
+                if (academieMRELink) academieMRELink.classList.add('hidden');
+                if (workspaceLink) workspaceLink.classList.add('hidden');
+                if (libraryLink) libraryLink.classList.remove('hidden');
             }
 
         } else {
              // Non connecté: masquer tous les liens élèves/profs
-            workspaceLink.classList.add('hidden');
-            academieMRELink.classList.add('hidden');
-            libraryLink.classList.add('hidden');
+            if (workspaceLink) workspaceLink.classList.add('hidden');
+            if (academieMRELink) academieMRELink.classList.add('hidden');
+            if (libraryLink) libraryLink.classList.add('hidden');
         }
 
+        // Déplacer Admin Module dans le dropdown (géré par index.html)
+        if (adminModuleLink) adminModuleLink.classList.toggle('hidden', currentUser?.role !== 'teacher');
+
+
         if (loggedIn) {
-            userNameDisplay.textContent = currentUser.firstName;
-            userAvatarDisplay.src = `${backendUrl}/avatars/${currentUser.avatar}`;
-            
-            // Déplacer Admin Module dans le dropdown (géré par index.html)
+            if (userNameDisplay) userNameDisplay.textContent = currentUser.firstName;
+            if (userAvatarDisplay) userAvatarDisplay.src = `${backendUrl}/avatars/${currentUser.avatar}`;
             
             // Logique de redirection après connexion ou rechargement
             if (currentUser.role === 'teacher') {
@@ -354,7 +358,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         page.querySelector('#back-to-teacher').addEventListener('click', renderTeacherDashboard);
-        page.querySelector('#open-add-student-modal-btn').addEventListener('click', () => {
+        p.querySelector('#open-add-student-modal-btn').addEventListener('click', () => {
             renderModal(getModalTemplate('add-student-modal', 'Ajouter un élève', `
                 <form id="add-student-form">
                     <div class="form-group">
@@ -635,7 +639,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 groupedResults[subject]
                     .sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt))
                     .forEach(result => {
-                        const content = (currentClassData.content || []).find(c => c.id === result.contentId);
+                        const content = (currentClassData.content || []).find(c => c.id === contentId);
                         if (content) {
                             let scoreHtml = '';
                             if (content.type === 'quiz') {
@@ -879,7 +883,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
                 <div id="student-completed-list"></div>`;
 
-            // AJOUT DU LIEN PLAYGROUND/ESPACE DE TRAVAIL
+            // AJOUT DU LIEN PLAYGROUND/ESPACE DE TRAVAIL (Intégré au dashboard élève)
             const workspaceCard = `<div class="dashboard-card" style="cursor: pointer; border-top: 4px solid var(--secondary-color);" onclick="window.open('playground.html', '_blank')">
                                         <h4><i class="fa-solid fa-chalkboard-user"></i> Espace de Travail Libre</h4>
                                         <p>Accède à AIDA pour des discussions, des brainstormings ou l'analyse de documents.</p>
@@ -1385,9 +1389,12 @@ document.addEventListener('DOMContentLoaded', () => {
         updateUI();
     }
     
-    loginNavBtn.addEventListener('click', renderAuthPage);
+    // GESTION DES ÉCOUTEURS GLOBALS (après DOMContentLoaded)
     
-    // GESTION DES BOUTONS DE LA PAGE D'ACCUEIL
+    // Le bouton de Connexion est toujours présent
+    if (loginNavBtn) loginNavBtn.addEventListener('click', renderAuthPage);
+    
+    // GESTION DES BOUTONS DE LA PAGE D'ACCUEIL (startEtablissementBtn et startAcademieBtn)
     if (startEtablissementBtn) {
         startEtablissementBtn.addEventListener('click', (e) => {
             e.preventDefault();
@@ -1412,9 +1419,11 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
     
-    // Le logo et le bouton Accueil pointent vers la page de choix pour les élèves
+    // CORRECTION NAVIGATION ACCUEIL: Si l'utilisateur clique sur Accueil/Logo, il va à la page de choix.
     if (homeLink) {
-        homeLink.addEventListener('click', () => { 
+        homeLink.addEventListener('click', (e) => { 
+            e.preventDefault();
+            // L'utilisateur doit choisir son univers s'il est un élève
             if (currentUser && currentUser.role === 'student') {
                 changePage('home-page'); 
             } else if (currentUser && currentUser.role === 'teacher') {
@@ -1434,30 +1443,37 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    libraryLink.addEventListener('click', (e) => { e.preventDefault(); renderLibraryPage(); });
-    
-    // ÉCOUTEUR MIS À JOUR POUR LE CHARGEMENT DYNAMIQUE
-    if(academieMRELink) {
-        academieMRELink.addEventListener('click', (e) => { 
-            e.preventDefault(); 
-            loadAcademieMREModule(); 
+    // Bibliothèque et Académie MRE
+    if (libraryLink) libraryLink.addEventListener('click', (e) => { e.preventDefault(); renderLibraryPage(); });
+    if (academieMRELink) academieMRELink.addEventListener('click', (e) => { 
+        e.preventDefault(); 
+        loadAcademieMREModule(); 
+    });
+
+    // Déplacer Admin Module dans le dropdown (géré par index.html)
+    if (adminModuleLink) {
+         adminModuleLink.addEventListener('click', (e) => { 
+             e.preventDefault(); 
+             renderTeacherDashboard();
+             if (userDropdown) userDropdown.classList.add('hidden'); // Fermer le menu après action
         });
     }
 
-    logoutBtn.addEventListener('click', () => { 
+
+    if (logoutBtn) logoutBtn.addEventListener('click', () => { 
         currentUser = null; 
         localStorage.removeItem('currentUser');
         updateUI(); 
     });
-    userInfoClickable.addEventListener('click', () => userDropdown.classList.toggle('hidden'));
+    if (userInfoClickable) userInfoClickable.addEventListener('click', () => userDropdown.classList.toggle('hidden'));
     window.addEventListener('click', (e) => {
         if (userMenuContainer && !userMenuContainer.contains(e.target)) {
             userDropdown.classList.add('hidden');
         }
     });
     
-    themeToggleHeaderBtn.addEventListener('click', toggleTheme);
-    themeToggleDropdownBtn.addEventListener('click', toggleTheme);
+    if (themeToggleHeaderBtn) themeToggleHeaderBtn.addEventListener('click', toggleTheme);
+    if (themeToggleDropdownBtn) themeToggleDropdownBtn.addEventListener('click', toggleTheme);
 
 
     const wrapper = document.querySelector('#intro-animation-wrapper');
