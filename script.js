@@ -60,14 +60,15 @@ document.addEventListener('DOMContentLoaded', () => {
     // Fonctions essentielles globales pour tous les modules
     window.changePage = (id) => { main.querySelectorAll('.page').forEach(p=>p.classList.remove('active')); document.getElementById(id).classList.add('active'); };
     
-    // CORRECTION APIREQUEST: S'assurer que l'URL est correcte et gérer les erreurs 404
+    // CORRECTION APIREQUEST: Retire le préfixe /api du chemin et corrige la double insertion
     window.apiRequest = async (endpoint, method = 'GET', body = null) => { 
         try { 
             const opts = { method, headers: { 'Content-Type': 'application/json' } }; 
             if (body) opts.body = JSON.stringify(body); 
 
-            // Assurer qu'il n'y a qu'une seule barre oblique après backendUrl
-            const url = `${backendUrl}/api${endpoint.startsWith('/') ? endpoint : '/' + endpoint}`;
+            // Assure que l'endpoint commence sans /api/ et qu'il y a un seul /
+            const cleanEndpoint = endpoint.startsWith('/api/') ? endpoint.substring(4) : endpoint;
+            const url = `${backendUrl}/api${cleanEndpoint.startsWith('/') ? cleanEndpoint : '/' + cleanEndpoint}`;
 
             const res = await fetch(url, opts); 
 
@@ -80,7 +81,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     // Gérer l'erreur 404 renvoyée par le serveur backend (Cannot POST/GET /api/...)
                     if (errText.includes('Cannot POST') || errText.includes('<title>Error</title>')) {
                         console.error("Erreur de routage API détectée:", errText);
-                        throw new Error("Erreur de routage API. Le serveur ne trouve pas l'endpoint spécifié (Vérifiez votre console).");
+                        throw new Error("Erreur de routage API. Le serveur ne trouve pas l'endpoint spécifié (404).");
                     }
                     throw new Error(errText); 
                 } 
@@ -96,7 +97,7 @@ document.addEventListener('DOMContentLoaded', () => {
     window.getModalTemplate = (id, title, html) => { return `<div class="modal-overlay" id="${id}"><div class="modal-content"><button class="close-modal">&times;</button><h3>${title}</h3>${html}</div></div>`; };
     window.spinnerHtml = spinnerHtml;
 
-    // Fonctions de dashboard exposées (Déclarées plus tard mais rendues globales ici)
+    // Fonctions de dashboard exposées
     window.renderTeacherDashboard = renderTeacherDashboard;
     window.renderPlannerPage = renderPlannerPage;
     window.showGenerationModal = showGenerationModal;
@@ -165,8 +166,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (preferredUniverse === 'academie') {
                     loadAcademieMREModule();
                 } else if (preferredUniverse === 'etablissement' || document.querySelector('.page.active').id !== 'academie-mre-page') {
+                    // Pour les élèves, l'univers Établissement est le dashboard
                     renderStudentDashboard();
                 }
+                // Si aucune préférence n'est définie et qu'on est sur l'accueil, on y reste.
             }
         } else {
             changePage('home-page');
@@ -801,7 +804,7 @@ document.addEventListener('DOMContentLoaded', () => {
             modalContainer.innerHTML = ''; 
             renderClassDetailsPage(currentClassData.id); 
         } catch (err) { 
-            if(errP) errP.textContent = err.message; 
+            if(errP) err.textContent = err.message; 
         } 
     }
     function showCreateClassModal() { renderModal(getModalTemplate('create-class-modal', 'Nouvelle Classe', `<form id=create-class-form><div class=form-group><label for=class-name-input>Nom</label><input type=text id=class-name-input required></div><button type=submit class="btn btn-main">Créer</button></form>`)); document.getElementById('create-class-form').addEventListener('submit', async e => { e.preventDefault(); await apiRequest('/teacher/classes', 'POST', { className: document.getElementById('class-name-input').value, teacherEmail: currentUser.email }); modalContainer.innerHTML = ''; renderTeacherDashboard(); }); }
@@ -1750,11 +1753,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     loginNavBtn.addEventListener('click', renderAuthPage);
-    // Remplacement du startAppBtn par les deux nouveaux boutons
+    
+    // GESTION DES BOUTONS DE LA PAGE D'ACCUEIL
     if (startEtablissementBtn) {
         startEtablissementBtn.addEventListener('click', (e) => {
             e.preventDefault();
-            // L'accès établissement va au dashboard normal (après connexion)
             if (currentUser) {
                 renderStudentDashboard(); 
             } else {
@@ -1767,7 +1770,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (startAcademieBtn) {
         startAcademieBtn.addEventListener('click', (e) => {
             e.preventDefault();
-            // L'accès Académie MRE va directement à la page Academie MRE (après connexion)
             if (currentUser) {
                 loadAcademieMREModule(); 
             } else {
@@ -1777,7 +1779,17 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
     
-    homeLink.addEventListener('click', () => { if(currentUser) { currentUser.role === 'teacher' ? renderTeacherDashboard() : renderStudentDashboard() } else { changePage('home-page'); } });
+    // CORRECTION NAVIGATION ACCUEIL: Si l'utilisateur clique sur Accueil, il va à la page de choix.
+    homeLink.addEventListener('click', () => { changePage('home-page'); }); 
+
+    // CORRECTION NAVIGATION ESPACE DE TRAVAIL: Renvoie vers le dashboard élève standard
+    if (workspaceLink) {
+        workspaceLink.addEventListener('click', (e) => {
+            e.preventDefault();
+            renderStudentDashboard();
+        });
+    }
+
     libraryLink.addEventListener('click', (e) => { e.preventDefault(); renderLibraryPage(); });
     
     // ÉCOUTEUR MIS À JOUR POUR LE CHARGEMENT DYNAMIQUE
