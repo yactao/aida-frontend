@@ -18,10 +18,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const homeLink = document.getElementById('home-link');
     const workspaceLink = document.getElementById('workspace-link');
     const libraryLink = document.getElementById('library-link');
-    
-    // AJOUT DE LA CONSTANTE ACADEMIE MRE
-    const academieMRELink = document.getElementById('academie-mre-link'); 
-    
     const userMenuContainer = document.querySelector('.user-menu-container');
     const userNameDisplay = document.getElementById('user-name-display');
     const userAvatarDisplay = document.getElementById('user-avatar-display');
@@ -50,34 +46,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     
-    // **********************************************
-    // EXPOSITION DES FONCTIONS ET UTILES (SHELL)
-    // **********************************************
-
-    // Fonctions essentielles globales pour tous les modules
-    window.changePage = (id) => { main.querySelectorAll('.page').forEach(p=>p.classList.remove('active')); document.getElementById(id).classList.add('active'); };
-    window.apiRequest = async (endpoint, method = 'GET', body = null) => { try { const opts = { method, headers: { 'Content-Type': 'application/json' } }; if (body) opts.body = JSON.stringify(body); const res = await fetch(`${backendUrl}/api${endpoint}`, opts); if (!res.ok) { const errText = await res.text(); try { const err = JSON.parse(errText); throw new Error(err.error || 'Une erreur est survenue'); } catch (e) { throw new Error(errText); } } return res.status === 204 ? null : res.json(); } catch (e) { console.error(`API Error:`, e); throw e; } };
-    window.renderModal = (template) => { modalContainer.innerHTML = template; modalContainer.querySelector('.close-modal')?.addEventListener('click', () => modalContainer.innerHTML = ''); };
-    window.getModalTemplate = (id, title, html) => { return `<div class="modal-overlay" id="${id}"><div class="modal-content"><button class="close-modal">&times;</button><h3>${title}</h3>${html}</div></div>`; };
-    window.spinnerHtml = spinnerHtml;
-
-    // Fonctions de dashboard exposées
-    window.renderTeacherDashboard = renderTeacherDashboard;
-    window.renderPlannerPage = renderPlannerPage;
-    window.showGenerationModal = showGenerationModal;
-    window.showAssignModal = showAssignModal;
-    window.showEditModal = showEditModal;
-    window.getAppreciationText = getAppreciationText;
-    window.showCreateClassModal = showCreateClassModal;
-    window.renderClassDetailsPage = renderClassDetailsPage;
-    window.showValidationModal = showValidationModal;
-    window.showValidatedResultModal = showValidatedResultModal;
+    async function apiRequest(endpoint, method = 'GET', body = null) { try { const opts = { method, headers: { 'Content-Type': 'application/json' } }; if (body) opts.body = JSON.stringify(body); const res = await fetch(`${backendUrl}/api${endpoint}`, opts); if (!res.ok) { const errText = await res.text(); try { const err = JSON.parse(errText); throw new Error(err.error || 'Une erreur est survenue'); } catch (e) { throw new Error(errText); } } return res.status === 204 ? null : res.json(); } catch (e) { console.error(`API Error:`, e); throw e; } }
+    function changePage(id) { main.querySelectorAll('.page').forEach(p=>p.classList.remove('active')); document.getElementById(id).classList.add('active'); }
+    function renderModal(template) { modalContainer.innerHTML = template; modalContainer.querySelector('.close-modal')?.addEventListener('click', () => modalContainer.innerHTML = ''); }
+    function getModalTemplate(id, title, html) { return `<div class="modal-overlay" id="${id}"><div class="modal-content"><button class="close-modal">&times;</button><h3>${title}</h3>${html}</div></div>`; }
     
-    // **********************************************
-    // FIN EXPOSITION
-    // **********************************************
-
-
     function getSubjectInfo(title) {
         if (!title) return { name: 'Autre', cssClass: 'tag-autre' };
         const lowerTitle = title.toLowerCase();
@@ -111,9 +84,6 @@ document.addEventListener('DOMContentLoaded', () => {
         userMenuContainer.classList.toggle('hidden', !loggedIn);
         workspaceLink.classList.toggle('hidden', !loggedIn || currentUser.role !== 'student');
         libraryLink.classList.toggle('hidden', !loggedIn || currentUser.role !== 'teacher');
-        
-        // NOUVELLE LIGNE : Afficher le lien Académie MRE uniquement pour les élèves
-        academieMRELink.classList.toggle('hidden', !loggedIn || currentUser.role !== 'student'); 
         
         if (loggedIn) {
             userNameDisplay.textContent = currentUser.firstName;
@@ -168,9 +138,8 @@ document.addEventListener('DOMContentLoaded', () => {
             <div id="class-grid" class="dashboard-grid">${spinnerHtml}</div>`;
         changePage('teacher-dashboard-page');
         p.querySelector('#open-class-modal').addEventListener('click', showCreateClassModal);
-        // Les fonctions sont maintenant globales et accessibles
-        p.querySelector('#open-gen-modal').addEventListener('click', () => showGenerationModal()); 
-        p.querySelector('#open-planner-btn').addEventListener('click', renderPlannerPage); 
+        p.querySelector('#open-gen-modal').addEventListener('click', () => showGenerationModal());
+        p.querySelector('#open-planner-btn').addEventListener('click', renderPlannerPage);
 
         teacherClasses = await apiRequest(`/teacher/classes?teacherEmail=${currentUser.email}`);
         
@@ -784,7 +753,7 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 pendingHtml += '<div class="dashboard-grid">';
                 studentDashboardData.pending.forEach(item => {
-                    todoHtml += createStudentCard(item, 'pending');
+                    pendingHtml += createStudentCard(item, 'pending');
                 });
                 pendingHtml += '</div>';
             }
@@ -940,8 +909,8 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>`;
     }
     
-    // Fonction générique pour afficher la modal d'aide d'AIDA (disponible globalement)
-    window.showAidaHelpModal = async (prompt, apiEndpoint = '/api/ai/get-aida-help') => {
+    // Fonction générique pour afficher la modal d'aide d'AIDA
+    async function showAidaHelpModal(prompt) {
         renderModal(getModalTemplate('aida-help-modal', 'Aide d\'AIDA', `
             <div id="aida-chat-container">
                 <div class="chat-message aida-message">
@@ -986,8 +955,10 @@ document.addEventListener('DOMContentLoaded', () => {
             history.push({ role: 'user', content: message });
 
             try {
-                // Utilisation de l'endpoint dynamique (soit /api/ai/get-aida-help, soit /api/academie-mre/aida-chat)
-                const response = await apiRequest(apiEndpoint, 'POST', { history: history });
+                // Envoyer l'historique de la conversation au backend
+                const response = await apiRequest('/ai/get-aida-help', 'POST', {
+                    history: history
+                });
                 
                 const aidaResponse = response.response;
                 appendMessage('aida', aidaResponse);
@@ -995,7 +966,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             } catch (err) {
                 errorDiv.textContent = 'Erreur: Aide indisponible.';
-                history.pop(); 
+                history.pop(); // Retirer le dernier message utilisateur de l'historique
             } finally {
                 spinner.classList.add('hidden');
             }
@@ -1003,11 +974,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
         chatForm.addEventListener('submit', sendMessage);
         
+        // Exécuter immédiatement si un prompt initial est fourni
         if (prompt) {
-            // Soumet le prompt initial sans attendre l'entrée de l'utilisateur
-            sendMessage({ preventDefault: () => {}, target: chatForm });
+            chatForm.dispatchEvent(new Event('submit'));
         }
-    };
+    }
 
 
     function renderContentViewer(c) {
@@ -1018,6 +989,7 @@ document.addEventListener('DOMContentLoaded', () => {
             sessionStorage.removeItem('isEvaluatedSession');
         }
         
+        // Réinitialiser les indicateurs d'aide pour le nouvel exercice
         helpUsedInQuiz = false;
         helpUsedInHomework = false;
 
@@ -1051,6 +1023,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>
                 `;
             });
+            // Modification: Remplacer le lien playground par un bouton modal d'aide
             if (c.isEvaluated) {
                  footerHtml += `<button type="button" id="open-aida-help-btn" class="btn btn-secondary"><i class="fa-solid fa-lightbulb"></i> Obtenir de l'aide</button>`;
             }
@@ -1082,12 +1055,12 @@ document.addEventListener('DOMContentLoaded', () => {
             form.querySelectorAll('.btn-help').forEach(b => b.addEventListener('click', handleHelpRequest));
         } else if (isInteractiveHomework) {
             form.addEventListener('submit', e => { e.preventDefault(); handleSubmitNonQuiz(c); });
+            // Gestionnaire pour le nouveau bouton d'aide DM/Exercice
             const aidaHelpBtn = p.querySelector('#open-aida-help-btn');
             if (aidaHelpBtn) {
                 aidaHelpBtn.addEventListener('click', () => {
                     helpUsedInHomework = true;
-                    // Utilise l'endpoint par défaut pour les devoirs classiques
-                    showAidaHelpModal(`Aide pour le devoir : ${c.title}`); 
+                    showAidaHelpModal(`Aide pour le devoir : ${c.title}`);
                 });
             }
         } else {
@@ -1111,7 +1084,7 @@ document.addEventListener('DOMContentLoaded', () => {
         helpUsedInQuiz = true;
         const q = e.target.closest('button').dataset.question; 
         
-        // Utilisation de la modal d'aide générale (utilise l'endpoint par défaut)
+        // Utilisation de la nouvelle modal d'aide générale
         showAidaHelpModal(q);
     }
 
@@ -1139,72 +1112,84 @@ document.addEventListener('DOMContentLoaded', () => {
         await apiRequest('/student/submit-quiz', 'POST', {
             studentEmail: currentUser.email, classId: c.classId, contentId: c.id, title: c.title,
             score: 0, totalQuestions: c.content.length, answers: answers, 
-            helpUsed: helpUsedInHomework, 
+            helpUsed: helpUsedInHomework, // Ajout du statut d'aide pour DM/Exercices
             teacherEmail: c.teacherEmail
         });
         renderStudentDashboard();
     }
     
-    // NOUVELLE FONCTION DE CHARGEMENT DYNAMIQUE (LAZY LOADING)
-    function loadAcademieMREModule() {
-        const pageId = 'academie-mre-page';
-        const page = document.getElementById(pageId);
-        
-        // 1. Vérifie si le module est déjà chargé
-        if (page.dataset.loaded === 'true') {
-            changePage(pageId);
-            return;
-        }
-    
-        // 2. Affiche un état de chargement et change de page
-        page.innerHTML = `<div style="text-align:center; padding: 5rem;">${spinnerHtml}<p style="margin-top:1rem;">Chargement de l'Académie MRE...</p></div>`;
-        changePage(pageId);
-        
-        // 3. Charge dynamiquement le script et les styles
-        Promise.all([
-            // Charger le JS
-            new Promise((resolve, reject) => {
-                const script = document.createElement('script');
-                script.src = 'modules/academie-mre.js'; 
-                script.onload = () => {
-                    page.dataset.loaded = 'true';
-                    if (window.initAcademieMRE) {
-                        window.initAcademieMRE(); // Appel de la fonction d'initialisation du nouveau module
-                        resolve();
-                    } else {
-                        reject(new Error("initAcademieMRE non défini."));
-                    }
-                };
-                script.onerror = (e) => {
-                    console.error("Erreur de chargement du script modules/academie-mre.js:", e);
-                    reject(new Error("Le fichier modules/academie-mre.js n'a pas été trouvé (404). Vérifiez le déploiement."));
-                };
-                document.head.appendChild(script);
-            }),
-            // Charger le CSS (si non déjà chargé)
-            new Promise((resolve) => {
-                const cssPath = 'modules/academie-mre.css';
-                if (document.querySelector(`link[href="${cssPath}"]`)) {
-                    return resolve();
-                }
-                const link = document.createElement('link');
-                link.rel = 'stylesheet';
-                link.href = cssPath;
-                link.onload = resolve;
-                link.onerror = (e) => {
-                    console.warn(`Avertissement : Le fichier CSS ${cssPath} n'a pas été trouvé (404), mais l'application continue.`, e);
-                    resolve();
-                };
-                document.head.appendChild(link);
-            })
-        ]).catch(err => {
-            page.innerHTML = `<p class="error-message">Erreur critique lors du chargement du module Académie MRE: ${err.message}</p>`;
-            console.error(err);
+    async function renderLibraryPage() {
+        const page = document.getElementById('library-page');
+        changePage('library-page');
+        page.innerHTML = `
+            <div class="page-header">
+                <h2><i class="fa-solid fa-book-bookmark"></i> Bibliothèque de Contenus</h2>
+            </div>
+            <form id="library-search-form" style="display:flex; gap:1rem; margin-bottom: 2rem;">
+                <input type="text" id="library-search-input" placeholder="Rechercher par titre...">
+                <select id="library-subject-filter">
+                    <option value="">Toutes les matières</option>
+                    <option>Mathématiques</option>
+                    <option>Français</option>
+                    <option>Histoire-Géo</option>
+                    <option>Sciences</option>
+                    <option>Autre</option>
+                </select>
+                <button type="submit" class="btn btn-main">Rechercher</button>
+            </form>
+            <div id="library-grid" class="dashboard-grid">${spinnerHtml}</div>
+        `;
+        const searchForm = document.getElementById('library-search-form');
+        searchForm.addEventListener('submit', e => {
+            e.preventDefault();
+            loadLibraryContents();
         });
+
+        loadLibraryContents();
     }
     
-    // Fonctions de Génération et Planification (Définitions complètes pour corriger les ReferenceError)
+    async function loadLibraryContents() {
+        const grid = document.getElementById('library-grid');
+        grid.innerHTML = spinnerHtml;
+        const searchTerm = document.getElementById('library-search-input').value;
+        const subject = document.getElementById('library-subject-filter').value;
+        
+        try {
+            const results = await apiRequest(`/library?searchTerm=${searchTerm}&subject=${subject}`);
+            grid.innerHTML = '';
+            if (results.length === 0) {
+                grid.innerHTML = '<p>Aucun contenu trouvé. Essayez d\'autres mots-clés ou partagez le vôtre !</p>';
+                return;
+            }
+            results.forEach(content => {
+                const subjectInfo = getSubjectInfo(content.title);
+                const card = document.createElement('div');
+                card.className = 'dashboard-card';
+                const contentString = JSON.stringify(content).replace(/"/g, '&quot;');
+                card.innerHTML = `
+                    <div class="dashboard-card-title"><h4>${content.title}</h4></div>
+                    <p><span class="subject-tag ${subjectInfo.cssClass}">${subjectInfo.name}</span></p>
+                    <p>Type: ${content.type}</p>
+                    <p>Auteur: ${content.authorName}</p>
+                    <div style="text-align:right; margin-top: 1rem;">
+                       <button class="btn btn-secondary import-content-btn" data-content="${contentString}">Ajouter à une classe</button>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+            
+            grid.querySelectorAll('.import-content-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const contentData = JSON.parse(e.target.dataset.content);
+                    showAssignModal(contentData);
+                });
+            });
 
+        } catch(error) {
+            grid.innerHTML = '<p class="error-message">Impossible de charger la bibliothèque.</p>';
+        }
+    }
+    
     function showGenerationModal(prefillData = null) {
         if (Object.keys(programmes).length === 0) {
             alert("Les programmes scolaires n'ont pas pu être chargés. Impossible de générer du contenu.");
@@ -1554,139 +1539,7 @@ document.addEventListener('DOMContentLoaded', () => {
             } catch (error) { outputContainer.innerHTML = `<p class="error-message">Erreur lors de la génération du plan : ${error.message}</p>`; }
         });
     }
-    
-    // NOUVELLE FONCTION DE CHARGEMENT DYNAMIQUE (LAZY LOADING)
-    function loadAcademieMREModule() {
-        const pageId = 'academie-mre-page';
-        const page = document.getElementById(pageId);
-        
-        // 1. Vérifie si le module est déjà chargé
-        if (page.dataset.loaded === 'true') {
-            changePage(pageId);
-            return;
-        }
-    
-        // 2. Affiche un état de chargement et change de page
-        page.innerHTML = `<div style="text-align:center; padding: 5rem;">${spinnerHtml}<p style="margin-top:1rem;">Chargement de l'Académie MRE...</p></div>`;
-        changePage(pageId);
-        
-        // 3. Charge dynamiquement le script et les styles
-        Promise.all([
-            // Charger le JS
-            new Promise((resolve, reject) => {
-                const script = document.createElement('script');
-                script.src = 'modules/academie-mre.js'; 
-                script.onload = () => {
-                    page.dataset.loaded = 'true';
-                    if (window.initAcademieMRE) {
-                        window.initAcademieMRE(); // Appel de la fonction d'initialisation du nouveau module
-                        resolve();
-                    } else {
-                        reject(new Error("initAcademieMRE non défini."));
-                    }
-                };
-                script.onerror = (e) => {
-                    console.error("Erreur de chargement du script modules/academie-mre.js:", e);
-                    reject(new Error("Le fichier modules/academie-mre.js n'a pas été trouvé (404). Vérifiez le déploiement."));
-                };
-                document.head.appendChild(script);
-            }),
-            // Charger le CSS (si non déjà chargé)
-            new Promise((resolve) => {
-                const cssPath = 'modules/academie-mre.css';
-                if (document.querySelector(`link[href="${cssPath}"]`)) {
-                    return resolve();
-                }
-                const link = document.createElement('link');
-                link.rel = 'stylesheet';
-                link.href = cssPath;
-                link.onload = resolve;
-                link.onerror = (e) => {
-                    console.warn(`Avertissement : Le fichier CSS ${cssPath} n'a pas été trouvé (404), mais l'application continue.`, e);
-                    resolve();
-                };
-                document.head.appendChild(link);
-            })
-        ]).catch(err => {
-            page.innerHTML = `<p class="error-message">Erreur critique lors du chargement du module Académie MRE: ${err.message}</p>`;
-            console.error(err);
-        });
-    }
-    
-    // ... (Reste des fonctions inchangées)
-    
-    async function renderLibraryPage() {
-        const page = document.getElementById('library-page');
-        changePage('library-page');
-        page.innerHTML = `
-            <div class="page-header">
-                <h2><i class="fa-solid fa-book-bookmark"></i> Bibliothèque de Contenus</h2>
-            </div>
-            <form id="library-search-form" style="display:flex; gap:1rem; margin-bottom: 2rem;">
-                <input type="text" id="library-search-input" placeholder="Rechercher par titre...">
-                <select id="library-subject-filter">
-                    <option value="">Toutes les matières</option>
-                    <option>Mathématiques</option>
-                    <option>Français</option>
-                    <option>Histoire-Géo</option>
-                    <option>Sciences</option>
-                    <option>Autre</option>
-                </select>
-                <button type="submit" class="btn btn-main">Rechercher</button>
-            </form>
-            <div id="library-grid" class="dashboard-grid">${spinnerHtml}</div>
-        `;
-        const searchForm = document.getElementById('library-search-form');
-        searchForm.addEventListener('submit', e => {
-            e.preventDefault();
-            loadLibraryContents();
-        });
 
-        loadLibraryContents();
-    }
-    
-    async function loadLibraryContents() {
-        const grid = document.getElementById('library-grid');
-        grid.innerHTML = spinnerHtml;
-        const searchTerm = document.getElementById('library-search-input').value;
-        const subject = document.getElementById('library-subject-filter').value;
-        
-        try {
-            const results = await apiRequest(`/library?searchTerm=${searchTerm}&subject=${subject}`);
-            grid.innerHTML = '';
-            if (results.length === 0) {
-                grid.innerHTML = '<p>Aucun contenu trouvé. Essayez d\'autres mots-clés ou partagez le vôtre !</p>';
-                return;
-            }
-            results.forEach(content => {
-                const subjectInfo = getSubjectInfo(content.title);
-                const card = document.createElement('div');
-                card.className = 'dashboard-card';
-                const contentString = JSON.stringify(content).replace(/"/g, '&quot;');
-                card.innerHTML = `
-                    <div class="dashboard-card-title"><h4>${content.title}</h4></div>
-                    <p><span class="subject-tag ${subjectInfo.cssClass}">${subjectInfo.name}</span></p>
-                    <p>Type: ${content.type}</p>
-                    <p>Auteur: ${content.authorName}</p>
-                    <div style="text-align:right; margin-top: 1rem;">
-                       <button class="btn btn-secondary import-content-btn" data-content="${contentString}">Ajouter à une classe</button>
-                    </div>
-                `;
-                grid.appendChild(card);
-            });
-            
-            grid.querySelectorAll('.import-content-btn').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    const contentData = JSON.parse(e.target.dataset.content);
-                    showAssignModal(contentData);
-                });
-            });
-
-        } catch(error) {
-            grid.innerHTML = '<p class="error-message">Impossible de charger la bibliothèque.</p>';
-        }
-    }
-    
     async function init() {
         const savedUser = localStorage.getItem('currentUser');
         if (savedUser) {
@@ -1707,15 +1560,6 @@ document.addEventListener('DOMContentLoaded', () => {
     startAppBtn.addEventListener('click', renderAuthPage);
     homeLink.addEventListener('click', () => { if(currentUser) { currentUser.role === 'teacher' ? renderTeacherDashboard() : renderStudentDashboard() } else { changePage('home-page'); } });
     libraryLink.addEventListener('click', (e) => { e.preventDefault(); renderLibraryPage(); });
-    
-    // ÉCOUTEUR MIS À JOUR POUR LE CHARGEMENT DYNAMIQUE
-    if(academieMRELink) {
-        academieMRELink.addEventListener('click', (e) => { 
-            e.preventDefault(); 
-            loadAcademieMREModule(); 
-        });
-    }
-
     logoutBtn.addEventListener('click', () => { 
         currentUser = null; 
         localStorage.removeItem('currentUser');

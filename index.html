@@ -3,92 +3,84 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AIDA - Assistant Intelligent Didactique Adaptatif</title>
+    <title>AÏDA - Assistant Intelligent</title>
+    <link rel="icon" href="data:,">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
     <link rel="stylesheet" href="style.css">
-    <!-- Le style spécifique à l'Académie MRE sera chargé dynamiquement par script.js -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 </head>
 <body>
     <header>
-        <div class="logo">
-            <img src="https://aida-backend-bqd0fnd2a3c7dadf.francecentral-01.azurewebsites.net/logo%20Aida11.svg" alt="Logo AÏDA" class="logo-icon">
+        <div class="logo" id="home-link">
+             <img src="https://aida-backend-bqd0fnd2a3c7dadf.francecentral-01.azurewebsites.net/logo%20Aida11.svg" alt="Logo AÏDA" class="logo-icon">
         </div>
         <nav class="main-nav">
-            <a href="#" id="home-link" class="btn btn-secondary"><i class="fa-solid fa-home"></i> Accueil</a>
-            <a href="#" id="workspace-link" class="hidden"><i class="fa-solid fa-chalkboard-user"></i> Espace de travail</a>
-            
-            <!-- NOUVEAU LIEN POUR L'ACADÉMIE MRE -->
-            <a href="#" id="academie-mre-link" class="hidden"><i class="fa-solid fa-earth-africa"></i> Académie MRE</a>
-            
-            <a href="#" id="library-link" class="hidden"><i class="fa-solid fa-book-bookmark"></i> Bibliothèque</a>
-            <button id="admin-module-link" class="btn btn-secondary hidden"><i class="fa-solid fa-graduation-cap"></i> Admin</button>
-            <button class="btn btn-secondary hidden" id="theme-toggle-header-btn"><i class="fa-solid fa-moon"></i></button>
-
-            <button class="btn btn-main" id="login-nav-btn"><i class="fa-solid fa-right-to-bracket"></i> Connexion</button>
-            
+            <a href="playground.html" class="btn btn-secondary hidden" id="workspace-link"><i class="fa-solid fa-pen-ruler"></i> Espace de Travail</a>
+            <a href="#" class="btn btn-secondary hidden" id="library-link"><i class="fa-solid fa-book-bookmark"></i> Bibliothèque</a>
+            <button class="btn theme-toggle" id="theme-toggle-header-btn"><i class="fa-solid fa-moon"></i></button>
             <div class="user-menu-container hidden">
-                <button id="user-info-clickable">
-                    <img id="user-avatar-display" src="" alt="Avatar Utilisateur" class="avatar">
-                    <span id="user-name-display"></span>
+                 <button class="btn" id="user-info-clickable">
+                    <img src="" alt="Avatar" id="user-avatar-display" class="avatar">
+                    <span id="user-name-display"></span> 
                     <i class="fa-solid fa-chevron-down"></i>
                 </button>
-                <div class="user-dropdown hidden">
+                <div class="card user-dropdown hidden" id="user-dropdown">
                     <div class="dropdown-section">
-                        <a href="#"><i class="fa-solid fa-user-circle"></i> Mon Profil</a>
+                        <a href="#"><i class="fa-solid fa-user-circle"></i> Mes infos perso</a>
                     </div>
                     <div class="dropdown-section">
-                        <span>Thème :</span>
-                        <button id="theme-toggle-dropdown-btn" class="theme-toggle"><i class="fa-solid fa-moon"></i></button>
+                        <a href="#"><i class="fa-solid fa-key"></i> Changer de mot de passe</a>
+                    </div>
+                    <div class="dropdown-section hidden" id="admin-module-link">
+                        <a href="#"><i class="fa-solid fa-user-shield"></i> Module Admin</a>
                     </div>
                     <div class="dropdown-section">
-                        <a href="#" id="logout-btn"><i class="fa-solid fa-right-from-bracket"></i> Déconnexion</a>
+                        <span>Thème</span>
+                        <button class="theme-toggle" id="theme-toggle-dropdown-btn"><i class="fa-solid fa-moon"></i></button>
+                    </div>
+                    <div class="dropdown-section">
+                         <button class="btn" id="logout-btn" style="width: 100%; justify-content: center; background-color: var(--incorrect-color); color: white;"><i class="fa-solid fa-right-from-bracket"></i> Déconnexion</button>
                     </div>
                 </div>
             </div>
+            <button class="btn btn-main" id="login-nav-btn">Connexion</button>
         </nav>
     </header>
 
     <main>
-        <!-- Page d'Accueil - Remplacer par le vrai contenu au besoin -->
-        <div id="home-page" class="page active">
-            <div id="intro-animation-wrapper" class="intro-text-wrapper">
-                AIDA : Ton assistant pour 
-                <div class="rotating-text-container">
-                    <div class="rotating-text-inner">
-                        <span class="word-1">la réussite</span>
-                        <span class="word-2">les devoirs</span>
-                        <span class="word-3">la préparation</span>
-                        <span class="word-4">l'apprentissage</span>
-                        <span class="word-5">le futur</span>
+        <div class="page active" id="home-page">
+            <div id="home-content-wrapper">
+                 <div class="intro-text-wrapper" id="intro-animation-wrapper">
+                    AÏDA c'est<span class="dots"><span>.</span><span>.</span><span>.</span></span>
+                    <div class="rotating-text-container">
+                        <div class="rotating-text-inner">
+                            <span class="word-1">Comprendre</span>
+                            <span class="word-2">Apprendre</span>
+                            <span class="word-3">Chercher</span>
+                            <span class="word-4">Découvrir</span>
+                            <span class="word-5">Progresser</span>
+                        </div>
                     </div>
                 </div>
+                <h1 class="intro-text-wrapper" id="aida-final-text">
+                    AÏDA, votre nouvelle expérience
+                </h1>
+                <p class="subtitle">La <span class="highlight-word">plateforme</span> intelligente pour enseignants, élèves et parents.</p>
+                <button class="btn btn-main" id="start-app-btn">Commencer l'aventure</button>
             </div>
-            <div id="aida-final-text" class="intro-text-wrapper" style="display: none;">
-                 AIDA : Ton assistant pour <span class="highlight-word">la réussite</span>
-            </div>
-            <p id="home-page-subtitle" class="subtitle">Des contenus pédagogiques sur mesure, générés par l'Intelligence Artificielle.</p>
-            <button id="start-app-btn" class="btn btn-main"><i class="fa-solid fa-rocket"></i> Commencer l'aventure</button>
         </div>
-
-        <!-- Pages de l'application -->
-        <div id="auth-page" class="page"></div>
-        <div id="teacher-dashboard-page" class="page"></div>
-        <div id="class-details-page" class="page"></div>
-        <div id="student-details-page" class="page"></div>
-        <div id="library-page" class="page"></div>
-        <div id="planner-page" class="page"></div>
-        <div id="student-dashboard-page" class="page"></div>
-        <div id="content-viewer-page" class="page"></div>
-        
-        <!-- NOUVELLE PAGE CONTENEUR POUR LE MODULE ACADEMIE MRE -->
-        <div id="academie-mre-page" class="page" data-loaded="false">
-            <!-- Le contenu sera chargé par academie-mre.js (lazy loading) -->
-        </div>
+        <div class="page" id="auth-page"></div>
+        <div class="page" id="teacher-dashboard-page"></div>
+        <div class="page" id="student-dashboard-page"></div>
+        <div class="page" id="class-details-page"></div>
+        <div class="page" id="student-details-page"></div>
+        <div class="page" id="content-viewer-page"></div>
+        <div class="page" id="library-page"></div>
+        <div class="page" id="planner-page"></div>
     </main>
-
     <div id="modal-container"></div>
-
+    
     <script src="script.js"></script>
 </body>
 </html>
+
