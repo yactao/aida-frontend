@@ -590,6 +590,7 @@ function renderStudentDetailsPage(studentEmail) {
     const studentResults = (currentClassData.results || []).filter(r => r.studentEmail === studentEmail);
     
     let resultsHtml = '';
+    
     if (studentResults.length > 0) {
         const groupedResults = studentResults.reduce((acc, result) => {
             const content = (currentClassData.content || []).find(c => c.id === result.contentId);
@@ -608,8 +609,10 @@ function renderStudentDetailsPage(studentEmail) {
             resultsHtml += '<div class="dashboard-grid">';
             groupedResults[subject]
                 .sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt))
-                .forEach(result => {
-                    const content = (currentClassData.content || []).find(c => c.id === contentId);
+                .forEach(result => { // Utilise "result" ici
+                    // CORRECTION: Rechercher le contenu en utilisant result.contentId
+                    const content = (currentClassData.content || []).find(c => c.id === result.contentId); 
+
                     if (content) {
                         let scoreHtml = '';
                         if (content.type === 'quiz') {
