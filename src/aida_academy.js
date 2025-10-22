@@ -2,6 +2,11 @@
 
 import { changePage, spinnerHtml, apiRequest, renderModal, getModalTemplate } from './utils.js';
 
+// --- Variables d'état vocal pour le module ---
+let recognition;
+let currentAudio = null;
+let currentListenBtn = null;
+
 // --- Scénario de Prototype MRE (Arabe/Darija) ---
 const prototypeScenario = {
     id: 'scen-1',
@@ -171,6 +176,213 @@ function renderScenarioViewer(scenario) {
     });
 }
 
+// --- Fonctions Vocales (Réutilisées du Playground) ---
+
+function setupSpeechRecognition(micBtn, userInput) {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+        micBtn.disabled = true;
+        micBtn.title = "La reconnaissance vocale n'est pas supportée par votre navigateur.";
+        return;
+    }
+    recognition = new SpeechRecognition();
+    // Nous définissons la langue sur Arabe d'Arabie Saoudite (ar-SA) car elle est généralement bien supportée pour la reconnaissance de l'Arabe.
+    recognition.lang = 'ar-SA'; 
+    recognition.interimResults = false;
+
+    recognition.onresult = (event) => {
+        const transcript = event.results[0][0].transcript;
+        userInput.value = transcript;
+        // On ne soumet pas automatiquement ici, on laisse l'utilisateur cliquer sur Envoyer
+    };
+    recognition.onstart = () => micBtn.classList.add('recording');
+    recognition.onend = () => micBtn.classList.remove('recording');
+    recognition.onerror = (event) => {
+        console.error("Erreur de reconnaissance vocale:", event.error);
+        micBtn.classList.remove('recording');
+        alert("Erreur micro. Assurez-vous que le micro est autorisé.");
+    };
+}
+
+function toggleListening(micBtn) {
+    if (!recognition) return;
+    if (micBtn.classList.contains('recording')) {
+        recognition.stop();
+    } else {
+        recognition.start();
+    }
+}
+
+async function togglePlayback(text, buttonEl) {
+    // Note: Réutilisation de la route /api/ai/synthesize-speech qui existe déjà dans server.js
+    if (currentListenBtn === buttonEl) {
+        if(currentAudio) currentAudio.pause();
+        buttonEl.innerHTML = '<i class="fa-solid fa-volume-high"></i>';
+        buttonEl.classList.remove('active-speaker');
+        currentAudio = null;
+        currentListenBtn = null;
+        return;
+    }
+
+    if (currentAudio) {
+        currentAudio.pause();
+        currentListenBtn.innerHTML = '<i class="fa-solid fa-volume-high"></i>';
+        currentListenBtn.classList.remove('active-speaker');
+    }
+
+    currentListenBtn = buttonEl;
+    buttonEl.innerHTML = `<div class="spinner-dots" style="transform: scale(0.6);"><span></span><span></span><span></span></div>`;
+
+    try {
+        // Paramètres pour une voix Arabophone si possible (Réutiliser les paramètres du Playground)
+        const voice = 'ar-XA-Wavenet-B'; // Exemple de voix Arabe Google TTS
+        const rate = 1.0;
+        const pitch = 0.0;
+
+        const response = await apiRequest('/ai/synthesize-speech', 'POST', { text, voice, rate, pitch });
+        
+        // Assurez-vous que l'API renvoie un objet avec audioContent
+        const audioBlob = await (await fetch(`data:audio/mp3;base64,${response.audioContent}`)).blob(); 
+        const audioUrl = URL.createObjectURL(audioBlob);
+        
+        currentAudio = new Audio(audioUrl);
+        currentAudio.play();
+        
+        buttonEl.innerHTML = '<i class="fa-solid fa-stop"></i>';
+        buttonEl.classList.add('active-speaker');
+
+        currentAudio.onended = () => {
+            buttonEl.innerHTML = '<i class="fa-solid fa-volume-high"></i>';
+            buttonEl.classList.remove('active-speaker');
+            currentAudio = null;
+            currentListenBtn = null;
+        };
+
+    } catch (error) {
+        console.error("Erreur lors de la lecture de l'audio neuronal:", error);
+        buttonEl.innerHTML = '<i class="fa-solid fa-volume-high"></i>';
+        currentListenBtn = null;
+        alert(`Impossible de jouer la voix du Vendeur. Le service est-il configuré?`);
+    }
+}
+
+
+// --- Fonctions de Rendu (renderScenarioViewer MIS À JOUR) ---
+
+// ... (Gardez le code getAcademySystemPrompt, renderAcademyStudentDashboard)
+
+// Vue pour le chat immersif (Intégration de la VOIX)
+function renderScenarioViewer(scenario) {
+    const p = document.getElementById('content-viewer-page');
+    changePage('content-viewer-page');
+
+    p.innerHTML = `
+        <button id="back-to-academy-dash" class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> Retour aux scénarios</button>
+        
+        <div class="card" style="margin-top:1rem;">
+            <h2>${scenario.title}</h2>
+            <p class="subtitle">${scenario.context}</p>
+            <p style="font-size: 0.9em; color: var(--primary-color); margin-bottom: 1rem;">
+                <i class="fa-solid fa-microphone-alt"></i> **Mode Vocal Activé.** Cliquez sur le haut-parleur pour écouter ou sur le micro pour parler.
+            </p>
+
+            <div id="scenario-chat-window" style="height: 400px; overflow-y: auto; padding: 10px; border: 1px solid #ccc; border-radius: 8px; margin-top: 1.5rem; background-color: var(--aida-chat-bg);">
+                </div>
+
+            <form id="scenario-chat-form" style="display: flex; gap: 0.5rem; margin-top: 1rem;">
+                <textarea id="user-scenario-input" placeholder="Parlez en Arabe ou écrivez votre réponse..." rows="2" style="flex-grow: 1; resize: none;"></textarea>
+                
+                <button type="button" id="mic-btn" class="btn-icon" title="Parler">
+                    <i class="fa-solid fa-microphone"></i>
+                </button>
+
+                <button type="submit" class="btn btn-main" style="width: 100px; flex-shrink: 0;"><i class="fa-solid fa-paper-plane"></i></button>
+            </form>
+            <div id="scenario-spinner" class="hidden" style="text-align: right; margin-top: 0.5rem;">${spinnerHtml}</div>
+            <p class="error-message" id="scenario-error"></p>
+        </div>
+    `;
+
+    const chatWindow = document.getElementById('scenario-chat-window');
+    const chatForm = document.getElementById('scenario-chat-form');
+    const userInput = document.getElementById('user-scenario-input');
+    const spinner = document.getElementById('scenario-spinner');
+    const errorDisplay = document.getElementById('scenario-error');
+    const micBtn = document.getElementById('mic-btn');
+    
+    document.getElementById('back-to-academy-dash').addEventListener('click', renderAcademyStudentDashboard);
+
+    // Initialisation des systèmes Vocaux
+    setupSpeechRecognition(micBtn, userInput);
+    micBtn.addEventListener('click', () => toggleListening(micBtn));
+
+
+    // Logique de Chat et d'Affichage
+    const history = [{ role: "system", content: getAcademySystemPrompt(scenario) }];
+
+    const appendMessage = (sender, text, canListen = false) => {
+        const msgDiv = document.createElement('div');
+        msgDiv.className = `chat-message ${sender === 'user' ? 'user' : 'aida'}`;
+        
+        const bubble = document.createElement('div');
+        bubble.className = sender === 'user' ? 'user-message' : 'aida-message';
+        bubble.innerHTML = `<p>${text.replace(/\n/g, '<br>')}</p>`;
+        msgDiv.appendChild(bubble);
+        
+        msgDiv.style.alignSelf = sender === 'user' ? 'flex-end' : 'flex-start';
+        msgDiv.style.marginLeft = sender === 'user' ? 'auto' : 'unset';
+
+        // AJOUT du bouton Écouter pour l'IA
+        if (sender === 'aida' && canListen) {
+            const controls = document.createElement('div');
+            controls.className = 'aida-controls'; // Réutilisation des styles du Playground
+            controls.style.marginTop = '5px';
+            const listenBtn = document.createElement('button');
+            listenBtn.className = 'btn-icon';
+            listenBtn.innerHTML = '<i class="fa-solid fa-volume-high"></i>';
+            listenBtn.title = 'Écouter la réponse';
+            listenBtn.onclick = () => togglePlayback(text, listenBtn);
+            controls.appendChild(listenBtn);
+            msgDiv.appendChild(controls);
+        }
+        
+        chatWindow.appendChild(msgDiv);
+        chatWindow.scrollTop = chatWindow.scrollHeight;
+    };
+
+    // Prompt Initial du Personnage IA
+    appendMessage('aida', scenario.characterIntro, true); // Le message initial est lisible
+    history.push({ role: 'assistant', content: scenario.characterIntro });
+
+
+    // Gestion de l'envoi de message
+    chatForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const message = userInput.value.trim();
+        if (!message) return;
+
+        appendMessage('user', message);
+        userInput.value = '';
+        spinner.classList.remove('hidden');
+        errorDisplay.textContent = '';
+        
+        history.push({ role: 'user', content: message });
+
+        try {
+            const response = await apiRequest('/academy/ai/chat', 'POST', { history });
+            
+            const aidaResponse = response.reply;
+            appendMessage('aida', aidaResponse, true); // Les réponses de l'IA sont lisibles
+            history.push({ role: 'assistant', content: aidaResponse });
+
+        } catch (err) {
+            errorDisplay.textContent = `Erreur: Conversation interrompue. ${err.message}`;
+            history.pop(); 
+        } finally {
+            spinner.classList.add('hidden');
+        }
+    });
+}
 
 // --- 3. Stubs des Autres Dashboards (Doivent exister pour updateUI) ---
 
