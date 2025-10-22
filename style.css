@@ -464,26 +464,41 @@ body.dark-mode #chat-history {
     }
 }
 
-/* styles.css - POUR L'IMMERSION MRE */
-
-.aida-message .arabic-text {
-    font-size: 1.2em; /* Rend l'Arabe plus lisible */
+/* styles.css - Nouveaux styles pour l'aide de l'Académie MRE */
+.aida-message .arabic-text-only {
+    font-size: 1.2em; 
     font-weight: bold;
-    margin-bottom: 5px;
-    direction: rtl; /* Force la direction de droite à gauche */
+    direction: rtl; /* Pour forcer l'alignement à droite de l'Arabe */
     text-align: right;
+    flex-grow: 1; /* Permet au texte de prendre toute la place */
 }
 
-.aida-message .phonetic-text {
+.aida-help-div {
+    background-color: var(--card-bg-darker);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 10px;
+    margin-top: 10px;
     font-size: 0.9em;
-    color: var(--text-color-secondary); /* Couleur discrète */
-    margin-bottom: 5px;
+    line-height: 1.4;
+    max-width: 90%;
+    margin-left: auto; /* Alignement avec le message AIDA */
 }
 
-.aida-message .french-translation-text {
-    font-size: 0.8em;
+.aida-help-div p {
+    margin: 0;
+    padding: 2px 0;
+}
+
+.aida-help-div .help-translation {
     font-style: italic;
-    color: var(--primary-color); /* Met la traduction en évidence sans être le focus */
-    border-top: 1px solid rgba(0, 0, 0, 0.1);
-    padding-top: 5px;
+    color: var(--primary-color);
+}
+
+.aida-help-div.hidden {
+    display: none;
+}
+
+.btn-icon.toggle-help-btn.active {
+    color: var(--warning-color); /* Met l'ampoule en jaune si l'aide est affichée */
 }
