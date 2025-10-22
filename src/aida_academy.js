@@ -8,38 +8,41 @@ let currentAudio = null;
 let currentListenBtn = null; 
 
 
-// --- 1. Scénario de Prototype MRE (Arabe/Darija) ---
+// --- 1. Scénario de Prototype MRE (Arabe Littéraire) ---
 const prototypeScenario = {
     id: 'scen-1',
+    // CHANGEMENTS POUR L'ARABE LITTÉRAIRE (AL-FUSHA)
     title: "Scénario 1 : Commander son petit-déjeuner",
-    language: "Arabe (Darija Marocain)",
+    language: "Arabe Littéraire (Al-Fusha)", 
     level: "Débutant",
-    context: "Vous entrez dans un petit 'hanout' (boutique/café) à Marrakech. Le vendeur vous sourit et vous attend.",
-    characterName: "Le Vendeur (البائع)",
-    // NOTE: Le message initial est structuré pour la première lecture
-    characterIntro: "صباح الخير، تفضل. شنو بغيتي اليوم؟ <PHONETIQUE>Sabah al-khayr, tfaddal. Chnou bghiti l-youm?</PHONETIQUE> <TRADUCTION>Bonjour, entrez. Qu'est-ce que vous voulez aujourd'hui ?</TRADUCTION>",
+    context: "Vous entrez dans un café moderne au Caire. Le serveur vous sourit et vous attend.", 
+    characterName: "Le Serveur (النادِل)", 
+    
+    // Le message est en Arabe Littéraire avec les balises d'aide
+    characterIntro: "صباح الخير، تفضل. ماذا تود أن تطلب اليوم؟ <PHONETIQUE>Sabah al-khayr, tafaddal. Mādhā tawaddu an taṭlub al-yawm?</PHONETIQUE> <TRADUCTION>Bonjour, entrez. Que souhaitez-vous commander aujourd'hui ?</TRADUCTION>",
     objectives: [
-        "Demander un thé à la menthe et un pain au chocolat.",
+        "Demander un thé et un croissant.", 
         "Comprendre le prix total.",
         "Dire 'Merci' et 'Au revoir'."
     ]
+    // SUPPRESSION DE voiceCode ici pour éviter le blocage de la connexion.
 };
 
 // Fonction pour définir la personnalité de l'IA (le "system prompt")
 function getAcademySystemPrompt(scenario) {
-    return `Tu es un tuteur expert en immersion linguistique. Ton rôle actuel est celui de "${scenario.characterName}" dans le contexte suivant : "${scenario.context}". La conversation doit se dérouler **UNIQUEMENT en Arabe Marocain (Darija)**. 
+    return `Tu es un tuteur expert en immersion linguistique. Ton rôle actuel est celui de "${scenario.characterName}" dans le contexte suivant : "${scenario.context}". La conversation doit se dérouler **UNIQUEMENT en Arabe Littéraire (Al-Fusha)**. 
     
     // NOUVELLES INSTRUCTIONS CLÉS POUR LE FORMATAGE ET LA VOIX :
-    // 1. Ton message doit commencer par la phrase en Darija.
-    // 2. À la suite de la phrase en Darija (sur la même ligne), tu dois ajouter la phonétique et la traduction, EN UTILISANT CE FORMAT STRICT:
+    // 1. Ton message doit commencer par la phrase en Arabe Littéraire.
+    // 2. À la suite de la phrase (sur la même ligne), tu dois ajouter la phonétique et la traduction, EN UTILISANT CE FORMAT STRICT:
     //    <PHONETIQUE>Ta transcription phonétique</PHONETIQUE> <TRADUCTION>Ta traduction française</TRADUCTION>
     // 3. N'utilise pas d'autres balises dans ta réponse.
     
     Tes objectifs clés sont :
     1.  **Incarnation du Personnage** : Maintiens le rôle et le décor. Ne romps jamais ton rôle.
-    2.  **Pédagogie et Soutien** : Si l'élève commet une erreur, corrige-la subtilement. Guide-le doucement par une question ou un indice.
+    2.  **Pédagogie et Soutien** : Si l'élève commet une erreur, corrige-la subtilement. Guide-le doucement par une question ou un indice. Les corrections doivent se concentrer sur la **Grammaire et Vocabulaire de l'Arabe Littéraire**.
     3.  **Suivi des Objectifs** : Les objectifs de l'élève sont : ${scenario.objectives.join(', ')}. Guide la conversation vers l'accomplissement de ces objectifs.
-    4.  **Focalisation MRE** : Concentre les interactions sur l'usage pratique du Darija.
+    4.  **Focalisation Fusha** : Concentre les interactions sur l'usage pratique de l'**Arabe Littéraire**.
     5.  **Format de Réponse** : Réponds toujours en tant que le personnage. Assure-toi que la première ligne du message est la seule chose que l'on verra sans l'aide.`;
 }
 
@@ -101,6 +104,7 @@ async function togglePlayback(text, buttonEl) {
     buttonEl.innerHTML = `<div class="spinner-dots" style="transform: scale(0.6);"><span></span><span></span><span></span></div>`;
 
     try {
+        // UTILISATION DE LA VOIX FUSHA (ARABE LITTÉRAIRE) POUR LA COHÉRENCE
         const voice = 'ar-XA-Wavenet-D'; 
         const rate = 1.0;
         const pitch = 0.0;
@@ -146,7 +150,7 @@ async function endScenarioSession(scenario, history) {
         role: 'user', 
         content: `La session est terminée. Votre dernière réponse doit être un **JSON valide** contenant le bilan de l'élève. Le JSON doit avoir la structure suivante : 
         { "summaryTitle": "Bilan de Session", "score": "N/A", "completionStatus": "Completed", "feedback": ["..."], "newVocabulary": [{"word": "...", "translation": "..."}] }
-        Le feedback doit se concentrer sur les erreurs de Darija/grammaire observées dans notre conversation. Ne donnez aucune autre réponse que le JSON.`
+        Le feedback doit se concentrer sur les erreurs de Grammaire/Vocabulaire Arabe Littéraire observées dans notre conversation. Ne donnez aucune autre réponse que le JSON.`
     };
     
     history.push(finalPrompt);
@@ -198,7 +202,7 @@ function showSessionReportModal(report) {
             <h4 style="margin-top: 1.5rem;">Points de Feedback Pédagogique :</h4>
             <ul style="list-style-type: disc; padding-left: 20px;">${feedbackHtml}</ul>
             
-            <h4 style="margin-top: 1.5rem;">Vocabulaire MRE Relevé :</h4>
+            <h4 style="margin-top: 1.5rem;">Vocabulaire Arabe Littéraire Relevé :</h4>
             <ul style="list-style-type: none; padding-left: 0;">${vocabHtml}</ul>
             
             <button class="btn btn-main" style="width: 100%; margin-top: 2rem;" onclick="window.modalContainer.innerHTML=''; window.location.reload();">
@@ -221,7 +225,7 @@ export async function renderAcademyStudentDashboard() {
 
     let html = `
         <h2>Bienvenue ${window.currentUser.firstName} sur l'Académie MRE! 🌍</h2>
-        <p class="subtitle">Pratiquez l'arabe MRE (Darija) en immersion totale.</p>
+        <p class="subtitle">Pratiquez l'Arabe Littéraire (Al-Fusha) en immersion totale.</p>
 
         <h3 style="margin-top: 2rem;">Vos Scénarios d'Immersion</h3>
         <div class="dashboard-grid">
@@ -252,7 +256,7 @@ export async function renderAcademyStudentDashboard() {
     });
 }
 
-// Fonction appendMessage (CORRIGÉE pour le formatage et l'extraction vocale)
+// Fonction appendMessage (Logique de découpage des balises)
 const appendMessage = (sender, text, canListen = false) => {
     const chatWindow = document.getElementById('scenario-chat-window');
     
@@ -265,20 +269,20 @@ const appendMessage = (sender, text, canListen = false) => {
     
     let displayedText = text.replace(/\n/g, '<br>');
     let textToRead = text; 
-    let helpContent = ''; // Contient l'aide (phonétique/traduction)
+    let helpContent = ''; 
     let isAidaMessage = sender === 'aida' && (text.includes('<PHONETIQUE>') || text.includes('<TRADUCTION>'));
 
 
     // --- 1. Détection, Extraction et Remplissage du Contenu ---
     if (isAidaMessage) {
         
-        // --- Extraction du Darija (ce qui est avant la première balise) ---
+        // --- Extraction de l'Arabe pur (ce qui est avant la première balise) ---
         const firstTagIndex = Math.min(
             text.indexOf('<PHONETIQUE>') > -1 ? text.indexOf('<PHONETIQUE>') : Infinity,
             text.indexOf('<TRADUCTION>') > -1 ? text.indexOf('<TRADUCTION>') : Infinity
         );
         const arabicPart = text.substring(0, firstTagIndex).trim();
-        textToRead = arabicPart; // Seulement le Darija pour la voix
+        textToRead = arabicPart; // Seulement l'Arabe pour la voix
 
         // --- Extraction de l'aide pour l'affichage masqué ---
         const phoneticMatch = text.match(/<PHONETIQUE>(.*?)<\/PHONETIQUE>/);
@@ -287,7 +291,7 @@ const appendMessage = (sender, text, canListen = false) => {
         if (phoneticMatch) { helpContent += `<p class="help-phonetic">Phonétique: ${phoneticMatch[1].trim()}</p>`; }
         if (traductionMatch) { helpContent += `<p class="help-translation">Traduction: ${traductionMatch[1].trim()}</p>`; }
 
-        // Le texte affiché est MAINTENANT UNIQUEMENT la partie en Darija (pour l'immersion)
+        // Le texte affiché est MAINTENANT UNIQUEMENT la partie en Arabe pur (pour l'immersion)
         displayedText = `<p class="arabic-text-only">${arabicPart}</p>`;
     } 
     
@@ -311,7 +315,7 @@ const appendMessage = (sender, text, canListen = false) => {
         const listenBtn = document.createElement('button');
         listenBtn.className = 'btn-icon';
         listenBtn.innerHTML = '<i class="fa-solid fa-volume-high"></i>';
-        listenBtn.title = 'Écouter la réponse (Darija)';
+        listenBtn.title = 'Écouter la réponse (Arabe Littéraire)';
         listenBtn.onclick = () => togglePlayback(textToRead, listenBtn); 
         bubble.appendChild(listenBtn);
 
@@ -333,18 +337,15 @@ const appendMessage = (sender, text, canListen = false) => {
             
             // Ajout du DIV d'aide masqué au MESSAGE (à la div parente)
             const helpDiv = document.createElement('div');
-            helpDiv.className = 'aida-help-div hidden'; // <- Classe CSS critique
+            helpDiv.className = 'aida-help-div hidden'; 
             helpDiv.innerHTML = helpContent;
             msgDiv.appendChild(helpDiv);
         }
     }
 
-    // 3. AJOUTER LA BUBBLE COMPLÈTE AU MESSAGE
+    // 3. ATTACHEMENT FINAL au DOM
     msgDiv.appendChild(bubble); 
-
-    // 4. AJOUTER LE MESSAGE À LA FENÊTRE DE CHAT
     chatWindow.appendChild(msgDiv);
-    
     chatWindow.scrollTop = chatWindow.scrollHeight;
 };
 
@@ -407,7 +408,7 @@ function renderScenarioViewer(scenario) {
     endSessionBtn.addEventListener('click', () => endScenarioSession(scenario, history));
 
 
-    // Prompt Initial du Personnage IA (Le message initial est structuré pour avoir l'aide)
+    // Prompt Initial du Personnage IA
     appendMessage('aida', scenario.characterIntro, true); 
     history.push({ role: 'assistant', content: scenario.characterIntro });
 
