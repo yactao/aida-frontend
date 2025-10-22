@@ -14,7 +14,7 @@ const prototypeScenario = {
     title: "Scénario 1 : Commander son petit-déjeuner",
     language: "Arabe (Darija Marocain)",
     level: "Débutant",
-    context: "Vous entrez dans une petite 'hanout' (boutique/café) à Casablanca. Le vendeur vous sourit et vous attend.",
+    context: "Vous entrez dans une petite 'hanout' (boutique/café) à Marrakech. Le vendeur vous sourit et vous attend.",
     characterName: "Le Vendeur (البائع)",
     characterIntro: "صباح الخير، تفضل. شنو بغيتي اليوم؟ (Sabah al-khayr, tfaddal. Chnou bghiti l-youm?) - Bonjour, entrez. Qu'est-ce que vous voulez aujourd'hui ?",
     objectives: [
@@ -26,15 +26,14 @@ const prototypeScenario = {
 
 // Fonction pour définir la personnalité de l'IA (le "system prompt")
 function getAcademySystemPrompt(scenario) {
-    return `You are an expert language immersion tutor. You are currently playing the role of "${scenario.characterName}" in the following context: "${scenario.context}". The conversation is conducted primarily in Moroccan Arabic (Darija), but you must understand and respond in kind to French/English as a supportive tutor, while encouraging the student to use Darija.
-Your key goals are:
-1.  **Impersonation**: Maintain the character and the setting (e.g., a seller in a shop).
-2.  **Pedagogy**: If the student makes a minor linguistic error, correct it subtly (e.g., rephrase the correct way). If the student makes a major error or struggles, gently guide them without giving the answer, or provide a brief French/Arabic tip.
-3.  **Objective Tracking**: The student's goals are: ${scenario.objectives.join(', ')}. Guide the conversation towards these goals naturally.
-4.  **Correction MRE**: When providing corrections, focus on practical Darija usage and politeness phrases.
-5.  **Output**: Respond as the character, always using the tone appropriate for the setting.`;
+    return `Tu es un tuteur expert en immersion linguistique. Ton rôle actuel est celui de "${scenario.characterName}" dans le contexte suivant : "${scenario.context}". La conversation doit se dérouler principalement en Arabe Marocain (Darija). Tu dois cependant comprendre et répondre en soutien en français ou en anglais, tout en encourageant fortement l'élève à utiliser le Darija.
+Tes objectifs clés sont :
+1.  **Incarnation du Personnage** : Maintiens le rôle et le décor (ex : un vendeur dans un magasin). Ne romps jamais ton rôle.
+2.  **Pédagogie et Soutien** : Si l'élève commet une erreur linguistique mineure, corrige-la subtilement (ex : reformule la phrase correctement). S'il a de grandes difficultés, guide-le doucement par une question ou un indice, sans jamais donner la réponse directement.
+3.  **Suivi des Objectifs** : Les objectifs de l'élève sont : ${scenario.objectives.join(', ')}. Guide la conversation de manière naturelle vers l'accomplissement de ces objectifs.
+4.  **Focalisation MRE** : Concentre les corrections et les interactions sur l'usage pratique du Darija, y compris les expressions de politesse et les coutumes locales.
+5.  **Format de Réponse** : Réponds toujours en tant que le personnage, en utilisant le ton approprié au contexte et à la situation.`;
 }
-
 
 // --- 2. Fonctions Vocales (Pour l'Immersion) ---
 
@@ -129,7 +128,93 @@ async function togglePlayback(text, buttonEl) {
 }
 
 
-// --- 3. Fonctions de Rendu ---
+// --- 3. Logique de Bilan et de Sauvegarde ---
+
+// Nouvelle fonction pour gérer la fin de session et le bilan
+async function endScenarioSession(scenario, history) {
+    const spinner = document.getElementById('scenario-spinner');
+    const errorDisplay = document.getElementById('scenario-error');
+    const chatForm = document.getElementById('scenario-chat-form');
+    
+    // Désactiver les contrôles
+    chatForm.style.pointerEvents = 'none';
+    spinner.classList.remove('hidden');
+    
+    // Message à l'IA pour générer le bilan (DOIT RETOURNER UN JSON)
+    const finalPrompt = { 
+        role: 'user', 
+        content: `La session est terminée. Votre dernière réponse doit être un **JSON valide** contenant le bilan de l'élève. Le JSON doit avoir la structure suivante : 
+        { "summaryTitle": "Bilan de Session", "score": "N/A", "completionStatus": "Completed", "feedback": ["..."], "newVocabulary": [{"word": "...", "translation": "..."}] }
+        Le feedback doit se concentrer sur les erreurs de Darija/grammaire observées dans notre conversation. Ne donnez aucune autre réponse que le JSON.`
+    };
+    
+    history.push(finalPrompt);
+
+    try {
+        // 1. Appel à l'IA pour obtenir le Bilan Structuré
+        // Assurer que le format JSON est bien demandé (nécessite que server.js le gère)
+        const response = await apiRequest('/academy/ai/chat', 'POST', { history, response_format: { type: "json_object" } });
+        
+        // Retirer la dernière réponse de l'historique avant de l'envoyer au backend
+        history.pop(); 
+        
+        let report;
+        try {
+            report = JSON.parse(response.reply); 
+        } catch(e) {
+            console.error("Erreur de parsing JSON du rapport IA:", response.reply);
+            report = { summaryTitle: "Bilan Indisponible", completionStatus: "Erreur", feedback: ["L'IA n'a pas pu générer le rapport structuré."], newVocabulary: [] };
+        }
+        
+        // 2. Sauvegarder la Session (Backend)
+        try {
+             await apiRequest('/academy/session/save', 'POST', {
+                userId: window.currentUser.id,
+                scenarioId: scenario.id,
+                report: report,
+                fullHistory: history // Sauvegarder l'historique complet pour le suivi
+            });
+        } catch (e) {
+            console.warn("Erreur lors de la sauvegarde du bilan (Vérifiez server.js):", e.message);
+        }
+
+        // 3. Afficher le Bilan à l'élève
+        showSessionReportModal(report);
+
+    } catch (err) {
+        errorDisplay.textContent = `Erreur lors de la génération du bilan: ${err.message}`;
+    } finally {
+        spinner.classList.add('hidden');
+    }
+}
+
+// Fonction pour afficher le bilan sous forme de modal
+function showSessionReportModal(report) {
+    const vocabHtml = report.newVocabulary.map(v => `<li><strong>${v.word}</strong>: ${v.translation}</li>`).join('') || '<li>Aucun nouveau vocabulaire relevé.</li>';
+    const feedbackHtml = report.feedback.map(f => `<li>${f}</li>`).join('') || '<li>Aucun point de feedback majeur.</li>';
+    
+    const html = `
+        <div style="padding: 1rem;">
+            <h3 style="color: var(--primary-color); margin-bottom: 1rem;">${report.summaryTitle}</h3>
+            <p><strong>Statut :</strong> ${report.completionStatus}</p>
+            
+            <h4 style="margin-top: 1.5rem;">Points de Feedback Pédagogique :</h4>
+            <ul style="list-style-type: disc; padding-left: 20px;">${feedbackHtml}</ul>
+            
+            <h4 style="margin-top: 1.5rem;">Vocabulaire MRE Relevé :</h4>
+            <ul style="list-style-type: none; padding-left: 0;">${vocabHtml}</ul>
+            
+            <button class="btn btn-main" style="width: 100%; margin-top: 2rem;" onclick="window.modalContainer.innerHTML=''; window.location.reload();">
+                <i class="fa-solid fa-arrow-right"></i> Retour au tableau de bord
+            </button>
+        </div>
+    `;
+
+    renderModal(getModalTemplate('session-report-modal', 'Bilan de votre Session', html));
+}
+
+
+// --- 4. Fonctions de Rendu (Mises à Jour) ---
 
 export async function renderAcademyStudentDashboard() {
     const page = document.getElementById('student-dashboard-page');
@@ -166,13 +251,12 @@ export async function renderAcademyStudentDashboard() {
     page.querySelectorAll('.start-scenario-btn, .dashboard-card').forEach(element => {
         element.addEventListener('click', (e) => {
             e.stopPropagation();
-            // On peut ajouter ici une fonction pour charger dynamiquement le scénario si nécessaire
             renderScenarioViewer(prototypeScenario);
         });
     });
 }
 
-// Vue pour le chat immersif (Intégration de la VOIX)
+// Vue pour le chat immersif (Intégration de la VOIX et Bilan)
 function renderScenarioViewer(scenario) {
     const p = document.getElementById('content-viewer-page');
     changePage('content-viewer-page');
@@ -199,6 +283,13 @@ function renderScenarioViewer(scenario) {
 
                 <button type="submit" class="btn btn-main" style="width: 100px; flex-shrink: 0;"><i class="fa-solid fa-paper-plane"></i></button>
             </form>
+            
+            <div style="display: flex; justify-content: flex-end; margin-top: 1rem;">
+                 <button type="button" id="end-session-btn" class="btn" style="background-color: var(--incorrect-color); color: white;">
+                    <i class="fa-solid fa-flag-checkered"></i> Terminer la session
+                 </button>
+            </div>
+
             <div id="scenario-spinner" class="hidden" style="text-align: right; margin-top: 0.5rem;">${spinnerHtml}</div>
             <p class="error-message" id="scenario-error"></p>
         </div>
@@ -210,6 +301,7 @@ function renderScenarioViewer(scenario) {
     const spinner = document.getElementById('scenario-spinner');
     const errorDisplay = document.getElementById('scenario-error');
     const micBtn = document.getElementById('mic-btn');
+    const endSessionBtn = document.getElementById('end-session-btn');
     
     document.getElementById('back-to-academy-dash').addEventListener('click', () => {
         // Arrêter la reconnaissance vocale et l'audio lors du retour
@@ -221,6 +313,9 @@ function renderScenarioViewer(scenario) {
     // Initialisation des systèmes Vocaux
     setupSpeechRecognition(micBtn, userInput);
     micBtn.addEventListener('click', () => toggleListening(micBtn));
+
+    // AJOUT du listener pour la fin de session
+    endSessionBtn.addEventListener('click', () => endScenarioSession(scenario, history));
 
 
     // Logique de Chat et d'Affichage
@@ -238,7 +333,7 @@ function renderScenarioViewer(scenario) {
         msgDiv.style.alignSelf = sender === 'user' ? 'flex-end' : 'flex-start';
         msgDiv.style.marginLeft = sender === 'user' ? 'auto' : 'unset';
 
-        // AJOUT du bouton Écouter pour l'IA
+        // CORRECTION CLÉ: AJOUT du bouton Écouter pour l'IA
         if (sender === 'aida' && canListen) {
             const controls = document.createElement('div');
             controls.className = 'aida-controls'; 
@@ -247,10 +342,11 @@ function renderScenarioViewer(scenario) {
             listenBtn.className = 'btn-icon';
             listenBtn.innerHTML = '<i class="fa-solid fa-volume-high"></i>';
             listenBtn.title = 'Écouter la réponse';
-            listenBtn.onclick = () => togglePlayback(text, listenBtn);
+            // CORRECTION: Ajouter la fonction togglePlayback au clic
+            listenBtn.onclick = () => togglePlayback(text, listenBtn); 
             
-            // Si le message AIDA est en Arabe, on ajoute le bouton Écouter à la bulle de discussion
-            if (text.includes('(') && text.includes('?') || text.includes('صباح')) {
+            // Si le message AIDA est en Arabe (contient des caractères arabes ou un point d'interrogation dans l'exemple), on ajoute le bouton Écouter à la bulle de discussion
+            if (text.includes('صباح') || text.includes('?') || text.includes('(')) {
                 bubble.style.display = 'flex';
                 bubble.style.alignItems = 'center';
                 bubble.style.gap = '10px';
@@ -276,7 +372,6 @@ function renderScenarioViewer(scenario) {
         const message = userInput.value.trim();
         if (!message) return;
         
-        // Arrêter la reconnaissance vocale si elle est active
         if (recognition && micBtn.classList.contains('recording')) recognition.stop();
 
         appendMessage('user', message);
@@ -303,7 +398,7 @@ function renderScenarioViewer(scenario) {
 }
 
 
-// --- 4. Stubs des Autres Dashboards ---
+// --- 5. Stubs des Autres Dashboards ---
 
 export async function renderAcademyTeacherDashboard() {
     const page = document.getElementById('teacher-dashboard-page');
