@@ -4,10 +4,12 @@
 import { renderAuthPage, renderAcademyAuthPage } from './auth.js';
 import { updateUI } from './ui_utils.js'; 
 import { renderModal, getModalTemplate, loadProgrammes } from './utils.js';
+import { renderLibraryPage } from './aida_education.js'; 
 
 
 // --- Configuration Globale (Exposée à window pour l'accessibilité inter-modules) ---
-window.backendUrl = 'https://aida-backend-bqd0fnd2a3c7dadf.francecentral-01.azurewebsites.net';
+// Définition de l'URL du backend pour être utilisée par tous les modules via window
+window.backendUrl = 'https://aida-backend-bqd0fnd2a3c7dadf.francecentral-01.azurewebsites.net'; 
 window.currentUser = null;
 window.programmes = {};
 window.modalContainer = document.getElementById('modal-container');
@@ -100,6 +102,13 @@ async function init() {
 
     themeToggleHeaderBtn.addEventListener('click', toggleTheme);
     themeToggleDropdownBtn.addEventListener('click', toggleTheme);
+    
+    // Ajout du listener de la librairie (doit être importé de aida_education.js)
+    const libraryLink = document.getElementById('library-link');
+    if (libraryLink) {
+        libraryLink.addEventListener('click', (e) => { e.preventDefault(); renderLibraryPage(); }); 
+    }
+
 
     // Redirection de la home page après connexion (la logique des rôles est dans updateUI)
     homeLink.addEventListener('click', () => { 
@@ -110,7 +119,15 @@ async function init() {
         } 
     });
     
-    // Le code d'animation de la home page (qui était dans l'ancien script.js) est omis ici pour la modularité
+    // Animation de la home page (restaurée depuis l'ancien script.js)
+    const wrapper = document.querySelector('#intro-animation-wrapper');
+    const finalWrapper = document.querySelector('#aida-final-text');
+    if (wrapper && finalWrapper) {
+        setTimeout(() => {
+            wrapper.style.display = 'none';
+            finalWrapper.style.display = 'flex';
+        }, 10000); 
+    }
 }
 
 document.addEventListener('DOMContentLoaded', init);

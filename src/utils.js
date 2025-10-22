@@ -1,8 +1,7 @@
 // src/utils.js
 
 const main = document.querySelector('main');
-// NOTE: backendUrl est maintenant défini dans main.js et accessible via window.backendUrl
-const getBackendUrl = () => window.backendUrl;
+
 export const spinnerHtml = `<div class="spinner"><div class="dot1"></div><div class="dot2"></div><div class="dot3"></div></div>`;
 
 
@@ -13,15 +12,16 @@ export async function apiRequest(endpoint, method = 'GET', body = null) {
         
         let fullEndpoint = endpoint;
 
- 
+        // 1. Assurer que l'endpoint commence par '/api'
         if (!fullEndpoint.startsWith('/api')) {
-            
              fullEndpoint = `/api${fullEndpoint}`;
         }
         
+        // 2. Nettoyage final pour éviter les doubles barres obliques
         fullEndpoint = fullEndpoint.replace('//', '/');
         
-        const res = await fetch(`${getBackendUrl()}${fullEndpoint}`, opts);
+        // CORRECTION CLÉ: Accéder à window.backendUrl (défini dans main.js)
+        const res = await fetch(`${window.backendUrl}${fullEndpoint}`, opts); 
         
         if (!res.ok) {
             const errText = await res.text();
@@ -29,7 +29,7 @@ export async function apiRequest(endpoint, method = 'GET', body = null) {
                 const err = JSON.parse(errText);
                 throw new Error(err.error || 'Une erreur est survenue');
             } catch (e) {
-                // Remonter le message d'erreur brut (souvent HTML en cas de 404)
+                // Remonter le message d'erreur brut (résout le problème 404/405)
                 throw new Error(errText);
             }
         }
@@ -58,6 +58,7 @@ export function renderModal(template) {
 export async function loadProgrammes() {
     try {
         const fetchProgram = async (fileName) => {
+            // CORRECTION CLÉ: Accéder à window.backendUrl
             const response = await fetch(`${window.backendUrl}/${fileName}`);
             if (!response.ok) { throw new Error(`Le fichier ${fileName} est introuvable ou illisible (statut: ${response.status}).`); }
             return response.json();
@@ -69,4 +70,29 @@ export async function loadProgrammes() {
         console.error("Erreur critique lors du chargement des programmes:", e);
         window.programmes = {};
     }
+}
+
+// --- AJOUT DES FONCTIONS UTILITAIRES GÉNÉRIQUES ---
+
+export function getSubjectInfo(title) {
+    if (!title) return { name: 'Autre', cssClass: 'tag-autre' };
+    const lowerTitle = title.toLowerCase();
+    const subjects = {
+        'Mathématiques': { cssClass: 'tag-maths', keywords: ['math', 'addition', 'soustraction', 'multiplication', 'division', 'calcul', 'géométrie', 'nombre', 'tables', 'problème', 'fraction'] },
+        'Français': { cssClass: 'tag-francais', keywords: ['français', 'lecture', 'grammaire', 'conjugaison', 'orthographe', 'verbe', 'phrase', 'dictée', 'vocabulaire', 'rédaction', 'littérature'] },
+        'Histoire-Géo': { cssClass: 'tag-histoire-géo', keywords: ['histoire', 'géographie', 'antiquité', 'moyen âge', 'révolution', 'guerre', 'empire', 'pays', 'capitale', 'continent'] },
+        'Sciences': { cssClass: 'tag-sciences', keywords: ['science', 'svt', 'physique', 'chimie', 'vivant', 'atome', 'univers', 'biologie', 'technologie', 'corps humain', 'plante', 'animal'] },
+    };
+    for (const subjectName in subjects) { if (subjects[subjectName].keywords.some(keyword => lowerTitle.includes(keyword))) return { name: subjectName, cssClass: subjects[subjectName].cssClass }; }
+    return { name: 'Autre', cssClass: 'tag-autre' };
+}
+
+export function getAppreciationText(appreciationKey) {
+    const map = {
+        acquis: 'Acquis',
+        en_cours: "En cours d'acquisition",
+        non_acquis: 'Non acquis',
+        a_revoir: 'À revoir'
+    };
+    return map[appreciationKey] || 'Validé';
 }
