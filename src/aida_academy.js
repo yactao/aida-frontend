@@ -321,45 +321,58 @@ function renderScenarioViewer(scenario) {
     // Logique de Chat et d'Affichage
     const history = [{ role: "system", content: getAcademySystemPrompt(scenario) }];
 
-    const appendMessage = (sender, text, canListen = false) => {
-        const msgDiv = document.createElement('div');
-        msgDiv.className = `chat-message ${sender === 'user' ? 'user' : 'aida'}`;
-        
-        const bubble = document.createElement('div');
-        bubble.className = sender === 'user' ? 'user-message' : 'aida-message';
-        bubble.innerHTML = `<p>${text.replace(/\n/g, '<br>')}</p>`;
-        msgDiv.appendChild(bubble);
-        
-        msgDiv.style.alignSelf = sender === 'user' ? 'flex-end' : 'flex-start';
-        msgDiv.style.marginLeft = sender === 'user' ? 'auto' : 'unset';
+    // --- FONCTION appendMessage (CORRIGÉE) ---
 
-        // CORRECTION CLÉ: AJOUT du bouton Écouter pour l'IA
-        if (sender === 'aida' && canListen) {
-            const controls = document.createElement('div');
-            controls.className = 'aida-controls'; 
-            controls.style.marginTop = '5px';
-            const listenBtn = document.createElement('button');
-            listenBtn.className = 'btn-icon';
-            listenBtn.innerHTML = '<i class="fa-solid fa-volume-high"></i>';
-            listenBtn.title = 'Écouter la réponse';
-            // CORRECTION: Ajouter la fonction togglePlayback au clic
-            listenBtn.onclick = () => togglePlayback(text, listenBtn); 
-            
-            // Si le message AIDA est en Arabe (contient des caractères arabes ou un point d'interrogation dans l'exemple), on ajoute le bouton Écouter à la bulle de discussion
-            if (text.includes('صباح') || text.includes('?') || text.includes('(')) {
-                bubble.style.display = 'flex';
-                bubble.style.alignItems = 'center';
-                bubble.style.gap = '10px';
-                controls.style.marginTop = '0';
-                bubble.appendChild(controls);
-            } else {
-                msgDiv.appendChild(controls);
-            }
-        }
+    const appendMessage = (sender, text, canListen = false) => {
+    const chatWindow = document.getElementById('scenario-chat-window');
+    
+    const msgDiv = document.createElement('div');
+    msgDiv.className = `chat-message ${sender === 'user' ? 'user' : 'aida'}`;
+    
+    const bubble = document.createElement('div');
+    bubble.className = sender === 'user' ? 'user-message' : 'aida-message';
+    bubble.innerHTML = `<p>${text.replace(/\n/g, '<br>')}</p>`;
+    
+    // Aligner la bulle
+    msgDiv.style.alignSelf = sender === 'user' ? 'flex-end' : 'flex-start';
+    msgDiv.style.marginLeft = sender === 'user' ? 'auto' : 'unset';
+    
+    // CORRECTION CLÉ : Ajout du bouton Écouter directement dans la bulle pour l'IA
+    if (sender === 'aida' && canListen) {
+        const controls = document.createElement('div');
+        controls.className = 'aida-controls'; 
+        controls.style.marginTop = '5px';
+        const listenBtn = document.createElement('button');
+        listenBtn.className = 'btn-icon';
+        listenBtn.innerHTML = '<i class="fa-solid fa-volume-high"></i>';
+        listenBtn.title = 'Écouter la réponse';
+        listenBtn.onclick = () => togglePlayback(text, listenBtn); 
         
-        chatWindow.appendChild(msgDiv);
-        chatWindow.scrollTop = chatWindow.scrollHeight;
-    };
+        
+        // Nouvelle Logique: Toujours ajouter le bouton écoute pour les réponses de l'IA
+        // On l'intègre directement dans la bulle de conversation (comme un flex-item)
+        
+        bubble.style.display = 'flex';
+        bubble.style.alignItems = 'center';
+        bubble.style.gap = '10px';
+        controls.style.marginTop = '0'; // Annule la marge si on l'ajoute à la bulle
+
+        // Ajouter le texte et le bouton à la bulle
+        bubble.innerHTML = `<p>${text.replace(/\n/g, '<br>')}</p>`;
+        bubble.appendChild(listenBtn);
+        
+        msgDiv.appendChild(bubble); // Ajouter la bulle (qui contient le bouton) au message
+        
+    } else {
+        // Pour l'utilisateur ou si canListen est false
+        msgDiv.appendChild(bubble);
+    }
+    
+    chatWindow.appendChild(msgDiv);
+    chatWindow.scrollTop = chatWindow.scrollHeight;
+};
+
+// ... (Le reste de la fonction renderScenarioViewer doit appeler cette version)
 
     // Prompt Initial du Personnage IA
     appendMessage('aida', scenario.characterIntro, true); 
