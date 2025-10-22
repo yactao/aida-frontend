@@ -23,6 +23,8 @@ const prototypeScenario = {
         "Comprendre le prix total.",
         "Dire 'Merci' et 'Au revoir'."
     ]
+// NOUVEAU CHAMP POUR LA VOIX
+    voiceCode: 'ar-XA-Wavenet-D' // Utilisons 'D' (homme WaveNet) par défaut pour tester
 };
 
 // Fonction pour définir la personnalité de l'IA (le "system prompt")
@@ -101,7 +103,7 @@ async function togglePlayback(text, buttonEl) {
     buttonEl.innerHTML = `<div class="spinner-dots" style="transform: scale(0.6);"><span></span><span></span><span></span></div>`;
 
     try {
-        const voice = 'ar-XA-Wavenet-B'; 
+        const voice = 'ar-XA-Wavenet-D'; 
         const rate = 1.0;
         const pitch = 0.0;
 
