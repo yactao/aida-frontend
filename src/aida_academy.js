@@ -14,9 +14,10 @@ const prototypeScenario = {
     title: "Scénario 1 : Commander son petit-déjeuner",
     language: "Arabe (Darija Marocain)",
     level: "Débutant",
-    context: "Vous entrez dans une une petite 'hanout' (boutique/café) à Marrakech. Le vendeur vous sourit et vous attend.",
+    context: "Vous entrez dans un petit 'hanout' (boutique/café) à Marrakech. Le vendeur vous sourit et vous attend.",
     characterName: "Le Vendeur (البائع)",
-    characterIntro: "صباح الخير، تفضل. شنو بغيتي اليوم؟ (Sabah al-khayr, tfaddal. Chnou bghiti l-youm?) - Bonjour, entrez. Qu'est-ce que vous voulez aujourd'hui ?",
+    // NOTE: Le message initial est structuré pour la première lecture
+    characterIntro: "صباح الخير، تفضل. شنو بغيتي اليوم؟ <PHONETIQUE>Sabah al-khayr, tfaddal. Chnou bghiti l-youm?</PHONETIQUE> <TRADUCTION>Bonjour, entrez. Qu'est-ce que vous voulez aujourd'hui ?</TRADUCTION>",
     objectives: [
         "Demander un thé à la menthe et un pain au chocolat.",
         "Comprendre le prix total.",
@@ -26,13 +27,20 @@ const prototypeScenario = {
 
 // Fonction pour définir la personnalité de l'IA (le "system prompt")
 function getAcademySystemPrompt(scenario) {
-    return `Tu es un tuteur expert en immersion linguistique. Ton rôle actuel est celui de "${scenario.characterName}" dans le contexte suivant : "${scenario.context}". La conversation doit se dérouler principalement en Arabe Marocain (Darija). Tu dois cependant comprendre et répondre en soutien en français ou en anglais, tout en encourageant fortement l'élève à utiliser le Darija.
-Tes objectifs clés sont :
-1.  **Incarnation du Personnage** : Maintiens le rôle et le décor (ex : un vendeur dans un magasin). Ne romps jamais ton rôle.
-2.  **Pédagogie et Soutien** : Si l'élève commet une erreur linguistique mineure, corrige-la subtilement (ex : reformule la phrase correctement). S'il a de grandes difficultés, guide-le doucement par une question ou un indice, sans jamais donner la réponse directement.
-3.  **Suivi des Objectifs** : Les objectifs de l'élève sont : ${scenario.objectives.join(', ')}. Guide la conversation de manière naturelle vers l'accomplissement de ces objectifs.
-4.  **Focalisation MRE** : Concentre les corrections et les interactions sur l'usage pratique du Darija, y compris les expressions de politesse et les coutumes locales.
-5.  **Format de Réponse** : Réponds toujours en tant que le personnage, en utilisant le ton approprié au contexte et à la situation.`;
+    return `Tu es un tuteur expert en immersion linguistique. Ton rôle actuel est celui de "${scenario.characterName}" dans le contexte suivant : "${scenario.context}". La conversation doit se dérouler **UNIQUEMENT en Arabe Marocain (Darija)**. 
+    
+    // NOUVELLES INSTRUCTIONS CLÉS POUR LE FORMATAGE ET LA VOIX :
+    // 1. Ton message doit commencer par la phrase en Darija.
+    // 2. À la suite de la phrase en Darija (sur la même ligne), tu dois ajouter la phonétique et la traduction, EN UTILISANT CE FORMAT STRICT:
+    //    <PHONETIQUE>Ta transcription phonétique</PHONETIQUE> <TRADUCTION>Ta traduction française</TRADUCTION>
+    // 3. N'utilise pas d'autres balises dans ta réponse.
+    
+    Tes objectifs clés sont :
+    1.  **Incarnation du Personnage** : Maintiens le rôle et le décor. Ne romps jamais ton rôle.
+    2.  **Pédagogie et Soutien** : Si l'élève commet une erreur, corrige-la subtilement. Guide-le doucement par une question ou un indice.
+    3.  **Suivi des Objectifs** : Les objectifs de l'élève sont : ${scenario.objectives.join(', ')}. Guide la conversation vers l'accomplissement de ces objectifs.
+    4.  **Focalisation MRE** : Concentre les interactions sur l'usage pratique du Darija.
+    5.  **Format de Réponse** : Réponds toujours en tant que le personnage. Assure-toi que la première ligne du message est la seule chose que l'on verra sans l'aide.`;
 }
 
 
@@ -72,7 +80,6 @@ function toggleListening(micBtn) {
 }
 
 async function togglePlayback(text, buttonEl) {
-    // Si la lecture est en cours sur ce bouton, on l'arrête
     if (currentListenBtn === buttonEl) {
         if(currentAudio) currentAudio.pause();
         buttonEl.innerHTML = '<i class="fa-solid fa-volume-high"></i>';
@@ -82,7 +89,6 @@ async function togglePlayback(text, buttonEl) {
         return;
     }
 
-    // Arrêter toute autre lecture en cours
     if (currentAudio) {
         currentAudio.pause();
         if (currentListenBtn) {
@@ -146,7 +152,6 @@ async function endScenarioSession(scenario, history) {
     history.push(finalPrompt);
 
     try {
-        // 1. Appel à l'IA pour obtenir le Bilan Structuré
         const response = await apiRequest('/academy/ai/chat', 'POST', { history, response_format: { type: "json_object" } });
         
         history.pop(); 
@@ -181,7 +186,6 @@ async function endScenarioSession(scenario, history) {
     }
 }
 
-// Fonction pour afficher le bilan sous forme de modal
 function showSessionReportModal(report) {
     const vocabHtml = report.newVocabulary.map(v => `<li><strong>${v.word}</strong>: ${v.translation}</li>`).join('') || '<li>Aucun nouveau vocabulaire relevé.</li>';
     const feedbackHtml = report.feedback.map(f => `<li>${f}</li>`).join('') || '<li>Aucun point de feedback majeur.</li>';
@@ -248,7 +252,7 @@ export async function renderAcademyStudentDashboard() {
     });
 }
 
-// Fonction appendMessage (CORRIGÉE et isolée pour la clarté)
+// Fonction appendMessage (CORRIGÉE pour le formatage et l'extraction vocale)
 const appendMessage = (sender, text, canListen = false) => {
     const chatWindow = document.getElementById('scenario-chat-window');
     
@@ -261,55 +265,84 @@ const appendMessage = (sender, text, canListen = false) => {
     
     let displayedText = text.replace(/\n/g, '<br>');
     let textToRead = text; 
+    let helpContent = ''; // Contient l'aide (phonétique/traduction)
+    let isAidaMessage = sender === 'aida' && (text.includes('<PHONETIQUE>') || text.includes('<TRADUCTION>'));
 
-    // Détection et formatage des messages de l'IA (qui contiennent la traduction entre parenthèses)
-    if (sender === 'aida' && text.includes('(') && text.includes(') - ')) {
-        const parts = text.split(') - ');
+
+    // --- 1. Détection, Extraction et Remplissage du Contenu ---
+    if (isAidaMessage) {
         
-        if (parts.length >= 2 && parts[0].includes('(')) {
-            const arabicPart = parts[0].substring(0, parts[0].indexOf('(')).trim();
-            const phoneticPart = parts[0].substring(parts[0].indexOf('(')).trim();
-            const frenchPart = parts[1].trim();
-            
-            // C'est le texte que l'on envoie à la Synthèse Vocale (TTS)
-            textToRead = arabicPart;
+        // --- Extraction du Darija (ce qui est avant la première balise) ---
+        const firstTagIndex = Math.min(
+            text.indexOf('<PHONETIQUE>') > -1 ? text.indexOf('<PHONETIQUE>') : Infinity,
+            text.indexOf('<TRADUCTION>') > -1 ? text.indexOf('<TRADUCTION>') : Infinity
+        );
+        const arabicPart = text.substring(0, firstTagIndex).trim();
+        textToRead = arabicPart; // Seulement le Darija pour la voix
 
-            // C'est le HTML que l'on AFFICHE (format structuré)
-            displayedText = `<p class="arabic-text">${arabicPart}</p>` +
-                            `<p class="phonetic-text">${phoneticPart})</p>` +
-                            `<p class="french-translation-text">${frenchPart}</p>`;
-        }
+        // --- Extraction de l'aide pour l'affichage masqué ---
+        const phoneticMatch = text.match(/<PHONETIQUE>(.*?)<\/PHONETIQUE>/);
+        const traductionMatch = text.match(/<TRADUCTION>(.*?)<\/TRADUCTION>/);
+        
+        if (phoneticMatch) { helpContent += `<p class="help-phonetic">Phonétique: ${phoneticMatch[1].trim()}</p>`; }
+        if (traductionMatch) { helpContent += `<p class="help-translation">Traduction: ${traductionMatch[1].trim()}</p>`; }
+
+        // Le texte affiché est MAINTENANT UNIQUEMENT la partie en Darija (pour l'immersion)
+        displayedText = `<p class="arabic-text-only">${arabicPart}</p>`;
     } 
     
     // Remplissage de la bulle avec le contenu structuré ou le fallback
     bubble.innerHTML = displayedText;
     
-    // Aligner la bulle
+    // Aligner le message
     msgDiv.style.alignSelf = sender === 'user' ? 'flex-end' : 'flex-start';
     msgDiv.style.marginLeft = sender === 'user' ? 'auto' : 'unset';
 
-    // AJOUT du bouton Écouter pour l'IA
+
+    // --- 2. AJOUT DES CONTRÔLES (Boutons) à la BUBBLE ---
     if (sender === 'aida' && canListen) {
         
-        const listenBtn = document.createElement('button');
-        listenBtn.className = 'btn-icon';
-        listenBtn.innerHTML = '<i class="fa-solid fa-volume-high"></i>';
-        listenBtn.title = 'Écouter la réponse';
-        
-        listenBtn.onclick = () => togglePlayback(textToRead, listenBtn); 
-        
-        // Intégrer le bouton dans la bulle pour un alignement flex
+        // 2a. Activation du FLEX pour aligner le texte et les boutons
         bubble.style.display = 'flex';
         bubble.style.alignItems = 'center';
         bubble.style.gap = '10px';
         
+        // 2b. BOUTON ÉCOUTER (Haut-parleur)
+        const listenBtn = document.createElement('button');
+        listenBtn.className = 'btn-icon';
+        listenBtn.innerHTML = '<i class="fa-solid fa-volume-high"></i>';
+        listenBtn.title = 'Écouter la réponse (Darija)';
+        listenBtn.onclick = () => togglePlayback(textToRead, listenBtn); 
         bubble.appendChild(listenBtn);
+
+
+        // 2c. BOUTON AIDE (Ampoule) et son Div Masqué
+        if (helpContent) {
+            const helpBtn = document.createElement('button');
+            helpBtn.className = 'btn-icon toggle-help-btn';
+            helpBtn.innerHTML = '<i class="fa-solid fa-lightbulb"></i>';
+            helpBtn.title = 'Afficher l\'aide (Phonétique / Traduction)';
+            
+            helpBtn.onclick = () => {
+                const helpDiv = msgDiv.querySelector('.aida-help-div');
+                helpDiv.classList.toggle('hidden');
+                helpBtn.classList.toggle('active');
+            };
+            
+            bubble.appendChild(helpBtn);
+            
+            // Ajout du DIV d'aide masqué au MESSAGE (à la div parente)
+            const helpDiv = document.createElement('div');
+            helpDiv.className = 'aida-help-div hidden'; // <- Classe CSS critique
+            helpDiv.innerHTML = helpContent;
+            msgDiv.appendChild(helpDiv);
+        }
     }
 
-    // 2. AJOUTER LA BULLE AU MESSAGE
+    // 3. AJOUTER LA BUBBLE COMPLÈTE AU MESSAGE
     msgDiv.appendChild(bubble); 
 
-    // 3. AJOUTER LE MESSAGE À LA FENÊTRE DE CHAT
+    // 4. AJOUTER LE MESSAGE À LA FENÊTRE DE CHAT
     chatWindow.appendChild(msgDiv);
     
     chatWindow.scrollTop = chatWindow.scrollHeight;
@@ -330,7 +363,7 @@ function renderScenarioViewer(scenario) {
             <h2>${scenario.title}</h2>
             <p class="subtitle">${scenario.context}</p>
             <p style="font-size: 0.9em; color: var(--primary-color); margin-bottom: 1rem;">
-                <i class="fa-solid fa-microphone-alt"></i> **Mode Vocal Activé.** Cliquez sur le haut-parleur pour écouter ou sur le micro pour parler.
+                <i class="fa-solid fa-microphone-alt"></i> **Mode Vocal Activé.** Parlez avec le micro ou utilisez le clavier.
             </p>
 
             <div id="scenario-chat-window" style="height: 400px; overflow-y: auto; padding: 10px; border: 1px solid #ccc; border-radius: 8px; margin-top: 1.5rem; background-color: var(--aida-chat-bg);">
@@ -357,11 +390,8 @@ function renderScenarioViewer(scenario) {
         </div>
     `;
 
-    const chatWindow = document.getElementById('scenario-chat-window');
     const chatForm = document.getElementById('scenario-chat-form');
     const userInput = document.getElementById('user-scenario-input');
-    const spinner = document.getElementById('scenario-spinner');
-    const errorDisplay = document.getElementById('scenario-error');
     const micBtn = document.getElementById('mic-btn');
     const endSessionBtn = document.getElementById('end-session-btn');
     
@@ -377,7 +407,7 @@ function renderScenarioViewer(scenario) {
     endSessionBtn.addEventListener('click', () => endScenarioSession(scenario, history));
 
 
-    // Prompt Initial du Personnage IA
+    // Prompt Initial du Personnage IA (Le message initial est structuré pour avoir l'aide)
     appendMessage('aida', scenario.characterIntro, true); 
     history.push({ role: 'assistant', content: scenario.characterIntro });
 
@@ -392,8 +422,8 @@ function renderScenarioViewer(scenario) {
 
         appendMessage('user', message);
         userInput.value = '';
-        spinner.classList.remove('hidden');
-        errorDisplay.textContent = '';
+        document.getElementById('scenario-spinner').classList.remove('hidden');
+        document.getElementById('scenario-error').textContent = '';
         
         history.push({ role: 'user', content: message });
 
@@ -405,10 +435,10 @@ function renderScenarioViewer(scenario) {
             history.push({ role: 'assistant', content: aidaResponse });
 
         } catch (err) {
-            errorDisplay.textContent = `Erreur: Conversation interrompue. ${err.message}`;
+            document.getElementById('scenario-error').textContent = `Erreur: Conversation interrompue. ${err.message}`;
             history.pop(); 
         } finally {
-            spinner.classList.add('hidden');
+            document.getElementById('scenario-spinner').classList.add('hidden');
         }
     });
 }
