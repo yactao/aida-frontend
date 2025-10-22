@@ -463,3 +463,27 @@ body.dark-mode #chat-history {
         text-shadow: 0 0 8px white, 0 0 12px var(--secondary-color);
     }
 }
+
+/* styles.css - POUR L'IMMERSION MRE */
+
+.aida-message .arabic-text {
+    font-size: 1.2em; /* Rend l'Arabe plus lisible */
+    font-weight: bold;
+    margin-bottom: 5px;
+    direction: rtl; /* Force la direction de droite à gauche */
+    text-align: right;
+}
+
+.aida-message .phonetic-text {
+    font-size: 0.9em;
+    color: var(--text-color-secondary); /* Couleur discrète */
+    margin-bottom: 5px;
+}
+
+.aida-message .french-translation-text {
+    font-size: 0.8em;
+    font-style: italic;
+    color: var(--primary-color); /* Met la traduction en évidence sans être le focus */
+    border-top: 1px solid rgba(0, 0, 0, 0.1);
+    padding-top: 5px;
+}

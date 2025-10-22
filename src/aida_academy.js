@@ -1,8 +1,8 @@
-// src/aida_academy.js - Logique pour l'Académie MRE (Langues)
+// src/aida_academy.js - Logique pour l'Académie MRE (Langues, Voix, Bilan)
 
 import { changePage, spinnerHtml, apiRequest, renderModal, getModalTemplate } from './utils.js';
 
-// --- Variables d'état vocal pour le module ---
+// --- Variables d'état vocal pour le module (Globales au module) ---
 let recognition;
 let currentAudio = null;
 let currentListenBtn = null; 
@@ -14,7 +14,7 @@ const prototypeScenario = {
     title: "Scénario 1 : Commander son petit-déjeuner",
     language: "Arabe (Darija Marocain)",
     level: "Débutant",
-    context: "Vous entrez dans une petite 'hanout' (boutique/café) à Marrakech. Le vendeur vous sourit et vous attend.",
+    context: "Vous entrez dans une une petite 'hanout' (boutique/café) à Marrakech. Le vendeur vous sourit et vous attend.",
     characterName: "Le Vendeur (البائع)",
     characterIntro: "صباح الخير، تفضل. شنو بغيتي اليوم؟ (Sabah al-khayr, tfaddal. Chnou bghiti l-youm?) - Bonjour, entrez. Qu'est-ce que vous voulez aujourd'hui ?",
     objectives: [
@@ -34,6 +34,7 @@ Tes objectifs clés sont :
 4.  **Focalisation MRE** : Concentre les corrections et les interactions sur l'usage pratique du Darija, y compris les expressions de politesse et les coutumes locales.
 5.  **Format de Réponse** : Réponds toujours en tant que le personnage, en utilisant le ton approprié au contexte et à la situation.`;
 }
+
 
 // --- 2. Fonctions Vocales (Pour l'Immersion) ---
 
@@ -84,7 +85,6 @@ async function togglePlayback(text, buttonEl) {
     // Arrêter toute autre lecture en cours
     if (currentAudio) {
         currentAudio.pause();
-        // Rétablir l'icône de l'ancien bouton
         if (currentListenBtn) {
             currentListenBtn.innerHTML = '<i class="fa-solid fa-volume-high"></i>';
             currentListenBtn.classList.remove('active-speaker');
@@ -99,10 +99,8 @@ async function togglePlayback(text, buttonEl) {
         const rate = 1.0;
         const pitch = 0.0;
 
-        // Appel de l'API de Synthèse vocale
         const response = await apiRequest('/ai/synthesize-speech', 'POST', { text, voice, rate, pitch });
         
-        // Création de l'objet Audio à partir du base64
         const audioBlob = await (await fetch(`data:audio/mp3;base64,${response.audioContent}`)).blob(); 
         const audioUrl = URL.createObjectURL(audioBlob);
         
@@ -130,17 +128,14 @@ async function togglePlayback(text, buttonEl) {
 
 // --- 3. Logique de Bilan et de Sauvegarde ---
 
-// Nouvelle fonction pour gérer la fin de session et le bilan
 async function endScenarioSession(scenario, history) {
     const spinner = document.getElementById('scenario-spinner');
     const errorDisplay = document.getElementById('scenario-error');
     const chatForm = document.getElementById('scenario-chat-form');
     
-    // Désactiver les contrôles
     chatForm.style.pointerEvents = 'none';
     spinner.classList.remove('hidden');
     
-    // Message à l'IA pour générer le bilan (DOIT RETOURNER UN JSON)
     const finalPrompt = { 
         role: 'user', 
         content: `La session est terminée. Votre dernière réponse doit être un **JSON valide** contenant le bilan de l'élève. Le JSON doit avoir la structure suivante : 
@@ -152,10 +147,8 @@ async function endScenarioSession(scenario, history) {
 
     try {
         // 1. Appel à l'IA pour obtenir le Bilan Structuré
-        // Assurer que le format JSON est bien demandé (nécessite que server.js le gère)
         const response = await apiRequest('/academy/ai/chat', 'POST', { history, response_format: { type: "json_object" } });
         
-        // Retirer la dernière réponse de l'historique avant de l'envoyer au backend
         history.pop(); 
         
         let report;
@@ -172,7 +165,7 @@ async function endScenarioSession(scenario, history) {
                 userId: window.currentUser.id,
                 scenarioId: scenario.id,
                 report: report,
-                fullHistory: history // Sauvegarder l'historique complet pour le suivi
+                fullHistory: history 
             });
         } catch (e) {
             console.warn("Erreur lors de la sauvegarde du bilan (Vérifiez server.js):", e.message);
@@ -247,7 +240,6 @@ export async function renderAcademyStudentDashboard() {
     html += '</div>';
     page.innerHTML = html;
 
-    // Gestion de l'événement de clic pour démarrer le scénario
     page.querySelectorAll('.start-scenario-btn, .dashboard-card').forEach(element => {
         element.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -256,11 +248,81 @@ export async function renderAcademyStudentDashboard() {
     });
 }
 
+// Fonction appendMessage (CORRIGÉE et isolée pour la clarté)
+const appendMessage = (sender, text, canListen = false) => {
+    const chatWindow = document.getElementById('scenario-chat-window');
+    
+    const msgDiv = document.createElement('div');
+    msgDiv.className = `chat-message ${sender === 'user' ? 'user' : 'aida'}`;
+    
+    const bubble = document.createElement('div');
+    bubble.className = sender === 'user' ? 'user-message' : 'aida-message';
+    
+    
+    let displayedText = text.replace(/\n/g, '<br>');
+    let textToRead = text; 
+
+    // Détection et formatage des messages de l'IA (qui contiennent la traduction entre parenthèses)
+    if (sender === 'aida' && text.includes('(') && text.includes(') - ')) {
+        const parts = text.split(') - ');
+        
+        if (parts.length >= 2 && parts[0].includes('(')) {
+            const arabicPart = parts[0].substring(0, parts[0].indexOf('(')).trim();
+            const phoneticPart = parts[0].substring(parts[0].indexOf('(')).trim();
+            const frenchPart = parts[1].trim();
+            
+            // C'est le texte que l'on envoie à la Synthèse Vocale (TTS)
+            textToRead = arabicPart;
+
+            // C'est le HTML que l'on AFFICHE (format structuré)
+            displayedText = `<p class="arabic-text">${arabicPart}</p>` +
+                            `<p class="phonetic-text">${phoneticPart})</p>` +
+                            `<p class="french-translation-text">${frenchPart}</p>`;
+        }
+    } 
+    
+    // Remplissage de la bulle avec le contenu structuré ou le fallback
+    bubble.innerHTML = displayedText;
+    
+    // Aligner la bulle
+    msgDiv.style.alignSelf = sender === 'user' ? 'flex-end' : 'flex-start';
+    msgDiv.style.marginLeft = sender === 'user' ? 'auto' : 'unset';
+
+    // AJOUT du bouton Écouter pour l'IA
+    if (sender === 'aida' && canListen) {
+        
+        const listenBtn = document.createElement('button');
+        listenBtn.className = 'btn-icon';
+        listenBtn.innerHTML = '<i class="fa-solid fa-volume-high"></i>';
+        listenBtn.title = 'Écouter la réponse';
+        
+        listenBtn.onclick = () => togglePlayback(textToRead, listenBtn); 
+        
+        // Intégrer le bouton dans la bulle pour un alignement flex
+        bubble.style.display = 'flex';
+        bubble.style.alignItems = 'center';
+        bubble.style.gap = '10px';
+        
+        bubble.appendChild(listenBtn);
+    }
+
+    // 2. AJOUTER LA BULLE AU MESSAGE
+    msgDiv.appendChild(bubble); 
+
+    // 3. AJOUTER LE MESSAGE À LA FENÊTRE DE CHAT
+    chatWindow.appendChild(msgDiv);
+    
+    chatWindow.scrollTop = chatWindow.scrollHeight;
+};
+
+
 // Vue pour le chat immersif (Intégration de la VOIX et Bilan)
 function renderScenarioViewer(scenario) {
     const p = document.getElementById('content-viewer-page');
     changePage('content-viewer-page');
 
+    const history = [{ role: "system", content: getAcademySystemPrompt(scenario) }];
+    
     p.innerHTML = `
         <button id="back-to-academy-dash" class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> Retour aux scénarios</button>
         
@@ -304,75 +366,16 @@ function renderScenarioViewer(scenario) {
     const endSessionBtn = document.getElementById('end-session-btn');
     
     document.getElementById('back-to-academy-dash').addEventListener('click', () => {
-        // Arrêter la reconnaissance vocale et l'audio lors du retour
         if (recognition && micBtn.classList.contains('recording')) recognition.stop();
         if (currentAudio) currentAudio.pause();
         renderAcademyStudentDashboard();
     });
 
-    // Initialisation des systèmes Vocaux
     setupSpeechRecognition(micBtn, userInput);
     micBtn.addEventListener('click', () => toggleListening(micBtn));
 
-    // AJOUT du listener pour la fin de session
     endSessionBtn.addEventListener('click', () => endScenarioSession(scenario, history));
 
-
-    // Logique de Chat et d'Affichage
-    const history = [{ role: "system", content: getAcademySystemPrompt(scenario) }];
-
-    // --- FONCTION appendMessage (CORRIGÉE) ---
-
-    const appendMessage = (sender, text, canListen = false) => {
-    const chatWindow = document.getElementById('scenario-chat-window');
-    
-    const msgDiv = document.createElement('div');
-    msgDiv.className = `chat-message ${sender === 'user' ? 'user' : 'aida'}`;
-    
-    const bubble = document.createElement('div');
-    bubble.className = sender === 'user' ? 'user-message' : 'aida-message';
-    bubble.innerHTML = `<p>${text.replace(/\n/g, '<br>')}</p>`;
-    
-    // Aligner la bulle
-    msgDiv.style.alignSelf = sender === 'user' ? 'flex-end' : 'flex-start';
-    msgDiv.style.marginLeft = sender === 'user' ? 'auto' : 'unset';
-    
-    // CORRECTION CLÉ : Ajout du bouton Écouter directement dans la bulle pour l'IA
-    if (sender === 'aida' && canListen) {
-        const controls = document.createElement('div');
-        controls.className = 'aida-controls'; 
-        controls.style.marginTop = '5px';
-        const listenBtn = document.createElement('button');
-        listenBtn.className = 'btn-icon';
-        listenBtn.innerHTML = '<i class="fa-solid fa-volume-high"></i>';
-        listenBtn.title = 'Écouter la réponse';
-        listenBtn.onclick = () => togglePlayback(text, listenBtn); 
-        
-        
-        // Nouvelle Logique: Toujours ajouter le bouton écoute pour les réponses de l'IA
-        // On l'intègre directement dans la bulle de conversation (comme un flex-item)
-        
-        bubble.style.display = 'flex';
-        bubble.style.alignItems = 'center';
-        bubble.style.gap = '10px';
-        controls.style.marginTop = '0'; // Annule la marge si on l'ajoute à la bulle
-
-        // Ajouter le texte et le bouton à la bulle
-        bubble.innerHTML = `<p>${text.replace(/\n/g, '<br>')}</p>`;
-        bubble.appendChild(listenBtn);
-        
-        msgDiv.appendChild(bubble); // Ajouter la bulle (qui contient le bouton) au message
-        
-    } else {
-        // Pour l'utilisateur ou si canListen est false
-        msgDiv.appendChild(bubble);
-    }
-    
-    chatWindow.appendChild(msgDiv);
-    chatWindow.scrollTop = chatWindow.scrollHeight;
-};
-
-// ... (Le reste de la fonction renderScenarioViewer doit appeler cette version)
 
     // Prompt Initial du Personnage IA
     appendMessage('aida', scenario.characterIntro, true); 
