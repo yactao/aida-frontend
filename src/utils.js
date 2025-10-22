@@ -2,8 +2,7 @@
 
 const main = document.querySelector('main');
 // NOTE: backendUrl est maintenant défini dans main.js et accessible via window.backendUrl
-const backendUrl = window.backendUrl;
-
+const getBackendUrl = () => window.backendUrl;
 export const spinnerHtml = `<div class="spinner"><div class="dot1"></div><div class="dot2"></div><div class="dot3"></div></div>`;
 
 
@@ -22,7 +21,7 @@ export async function apiRequest(endpoint, method = 'GET', body = null) {
         
         fullEndpoint = fullEndpoint.replace('//', '/');
         
-        const res = await fetch(`${backendUrl}${fullEndpoint}`, opts);
+        const res = await fetch(`${getBackendUrl()}${fullEndpoint}`, opts);
         
         if (!res.ok) {
             const errText = await res.text();
