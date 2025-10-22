@@ -23,8 +23,6 @@ const prototypeScenario = {
         "Comprendre le prix total.",
         "Dire 'Merci' et 'Au revoir'."
     ]
-// NOUVEAU CHAMP POUR LA VOIX
-    voiceCode: 'ar-XA-Wavenet-D' // Utilisons 'D' (homme WaveNet) par défaut pour tester
 };
 
 // Fonction pour définir la personnalité de l'IA (le "system prompt")
