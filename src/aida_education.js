@@ -7,12 +7,11 @@ import {
     getModalTemplate, 
     spinnerHtml, 
     getSubjectInfo, 
-    getAppreciationText,
-    loadProgrammes // Importé pour être sûr que les programmes sont chargés
+    getAppreciationText 
 } from './utils.js';
 import { updateUI } from './ui_utils.js';
 
-// --- Variables d'État Locales (Anciennement globales dans script.js) ---
+// --- Variables d'État Locales ---
 let teacherClasses = [];
 let generatedContent = null;
 let currentClassData = null;
@@ -20,8 +19,6 @@ let selectedCompetenceInfo = null;
 let studentDashboardData = null;
 let helpUsedInQuiz = false;
 let helpUsedInHomework = false;
-
-// NOTE: SortableJS est une librairie globale. Assurez-vous qu'elle est chargée dans index.html.
 
 // --- UTILS internes (Déplacées de l'ancien script.js) ---
 
@@ -41,7 +38,8 @@ function calculateCompletionRate(cls) {
 
 function resetSelects(selects) { 
     selects.forEach(s => { s.innerHTML = '<option value="">-- Choisir --</option>'; s.disabled = true; }); 
-    document.getElementById('generate-btn').disabled = true; 
+    const generateBtn = document.getElementById('generate-btn');
+    if (generateBtn) generateBtn.disabled = true; 
 }
 
 
@@ -592,8 +590,57 @@ function renderStudentDetailsPage(studentEmail) {
     const studentResults = (currentClassData.results || []).filter(r => r.studentEmail === studentEmail);
     
     let resultsHtml = '';
-    // ... (Logique d'affichage des détails de l'élève ici)
+    if (studentResults.length > 0) {
+        const groupedResults = studentResults.reduce((acc, result) => {
+            const content = (currentClassData.content || []).find(c => c.id === result.contentId);
+            if (content) {
+                const subject = getSubjectInfo(content.title).name;
+                if (!acc[subject]) {
+                    acc[subject] = [];
+                }
+                acc[subject].push(result);
+            }
+            return acc;
+        }, {});
 
+        for (const subject in groupedResults) {
+            resultsHtml += `<h4 style="margin-top:1.5rem; margin-bottom:1rem; border-bottom: 2px solid var(--primary-color); padding-bottom:0.5rem;">${subject}</h4>`;
+            resultsHtml += '<div class="dashboard-grid">';
+            groupedResults[subject]
+                .sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt))
+                .forEach(result => {
+                    const content = (currentClassData.content || []).find(c => c.id === contentId);
+                    if (content) {
+                        let scoreHtml = '';
+                        if (content.type === 'quiz') {
+                            const scorePercentage = result.totalQuestions > 0 ? (result.score / result.totalQuestions) * 100 : 0;
+                            scoreHtml = `
+                            <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem;">
+                                <strong>Score: ${result.score}/${result.totalQuestions}</strong>
+                                <div class="progress-bar">
+                                    <div class="progress-bar-fill" style="width: ${scorePercentage}%;"></div>
+                                </div>
+                            </div>`;
+                        }
+                        
+                        const helpIcon = result.helpUsed ? `<i class="fa-solid fa-lightbulb" title="L'élève a demandé de l'aide pour ce devoir" style="font-size: 0.9rem; color: var(--warning-color); margin-left: 0.5rem;"></i>` : '';
+
+                        resultsHtml += `
+                            <div class="dashboard-card" style="cursor: default;">
+                                <h4>${result.title} ${helpIcon}</h4>
+                                <p style="margin-bottom: 1rem;">Terminé le: ${new Date(result.submittedAt).toLocaleDateString('fr-FR')}</p>
+                                ${scoreHtml}
+                                <button class="btn btn-secondary view-details" data-content-id="${result.contentId}">Voir les détails</button>
+                            </div>`;
+                    }
+                });
+            resultsHtml += '</div>';
+        }
+
+    } else {
+        resultsHtml = '<p>Aucun exercice terminé pour le moment.</p>';
+    }
+    
     page.innerHTML = `
         <button id="back-to-class-details" class="btn btn-secondary" style="margin-bottom: 2rem;"><i class="fa-solid fa-arrow-left"></i> Retour à la classe</button>
         <div class="card">
@@ -604,13 +651,31 @@ function renderStudentDetailsPage(studentEmail) {
             ${resultsHtml}
         </div>`;
     
-    // ... (Ajout des listeners pour les boutons Voir les détails)
+    page.querySelector('#back-to-class-details').addEventListener('click', () => renderClassDetailsPage(currentClassData.id));
+    page.querySelectorAll('.view-details').forEach(button => {
+        button.addEventListener('click', (e) => {
+            const contentId = e.target.closest('button').dataset.contentId;
+            const result = studentResults.find(r => r.contentId === contentId);
+            const content = (currentClassData.content || []).find(c => c.id === contentId);
+             if (result && content) {
+                if (result.status === 'validated') {
+                    showValidatedResultModal(result, content);
+                } else {
+                    showValidationModal(result, content);
+                }
+            }
+        });
+    });
 
     changePage('student-details-page');
 }
 
 function showGenerationModal(prefillData = null) {
-    // ... (Logique complète de la modale de génération)
+    if (Object.keys(window.programmes).length === 0) {
+        alert("Les programmes scolaires n'ont pas pu être chargés. Impossible de générer du contenu.");
+        return;
+    }
+    
     const h = `
         <div class="tabs">
             <button class="tab-button active" data-tab="from-program">Depuis le Programme</button>
@@ -645,15 +710,305 @@ function showGenerationModal(prefillData = null) {
         <div id="generation-spinner" class="hidden">${spinnerHtml}</div>`;
     
     renderModal(getModalTemplate('generation-modal', 'Générer du contenu pédagogique', h));
-    // ... (Ajout de toute la logique de sélection des programmes et des listeners)
+    
+    const setupContentTypeListener = (typeSelectId, countGroupId, countLabelId) => {
+        const typesWithCount = ['quiz', 'exercices', 'dm'];
+        const typeSelect = document.getElementById(typeSelectId);
+        const countGroup = document.getElementById(countGroupId);
+        const countLabel = document.getElementById(countLabelId);
+        typeSelect.addEventListener('change', () => {
+            const selectedType = typeSelect.value;
+            countGroup.classList.toggle('hidden', !typesWithCount.includes(selectedType));
+            if(selectedType === 'quiz') countLabel.textContent = "Nombre de questions";
+            else if (selectedType === 'exercices' || selectedType === 'dm') countLabel.textContent = "Nombre d'exercices";
+        });
+        typeSelect.dispatchEvent(new Event('change'));
+    };
+    setupContentTypeListener('content-type-select', 'exercise-count-group', 'exercise-count-label');
+    setupContentTypeListener('teacher-content-type-upload', 'exercise-count-group-upload', 'exercise-count-label-upload');
+    const cy = document.getElementById('cycle-select'), n = document.getElementById('niveau-select'), m = document.getElementById('matiere-select'), no = document.getElementById('notion-select'), co = document.getElementById('competence-select'), gen = document.getElementById('generate-btn');
+    const competenceInput = document.getElementById('competence-input');
+
+    Object.keys(window.programmes).forEach(c => cy.add(new Option(c, c)));
+    cy.addEventListener('change', () => { resetSelects([n, m, no, co]); const s = cy.value; if (s) { Object.keys(window.programmes[s]).forEach(l => n.add(new Option(l, l))); n.disabled = false; } });
+    n.addEventListener('change', () => { resetSelects([m, no, co]); const d = window.programmes[cy.value][n.value]; if (d) { Object.keys(d).forEach(k => m.add(new Option(d[k].nom, k))); m.disabled = false; } });
+    m.addEventListener('change', () => { 
+        resetSelects([no, co]); 
+        const d = window.programmes[cy.value][n.value]?.[m.value]; 
+        if (d) { 
+            Object.keys(d).filter(k => k !== 'nom').forEach(nk => { 
+                no.add(new Option(d[nk].nom, nk)); 
+            }); 
+            no.disabled = false; 
+        } 
+    });
+    no.addEventListener('change', () => {
+        resetSelects([co]);
+        const d = window.programmes[cy.value][n.value]?.[m.value]?.[no.value];
+        if (!d) return;
+
+        if (d.sous_notions) {
+            Object.values(d.sous_notions).forEach(sn => {
+                (sn.competences || []).forEach(c => co.add(new Option(c, c)));
+            });
+        }
+        else if (d.competences && Array.isArray(d.competences)) {
+            d.competences.forEach(c => co.add(new Option(c, c)));
+        }
+        co.disabled = co.options.length <= 1;
+    });
+    co.addEventListener('change', () => { gen.disabled = !co.value; });
+    competenceInput.addEventListener('input', () => { gen.disabled = !competenceInput.value; });
+
+    document.getElementById('generation-form').addEventListener('submit', async e => {
+        e.preventDefault();
+        const form = e.currentTarget;
+        let comp = '';
+        let levelForInfo = '';
+
+        const isFreeMode = !document.getElementById('free-competence-field').classList.contains('hidden');
+        if (isFreeMode) {
+            comp = competenceInput.value;
+            levelForInfo = form.dataset.level || '';
+        } else {
+            comp = co.value;
+            levelForInfo = n.value;
+        }
+
+        selectedCompetenceInfo = { level: levelForInfo, competence: comp };
+        const contentType = document.getElementById('content-type-select').value;
+        const exerciseCount = document.getElementById('exercise-count').value;
+        
+        const matiereSelect = document.getElementById('matiere-select');
+        const selectedMatiereText = isFreeMode ? '' : matiereSelect.options[matiereSelect.selectedIndex].text;
+        let language = null;
+        if (selectedMatiereText.includes('Anglais')) {
+            language = 'Anglais';
+        } else if (selectedMatiereText.includes('Arabe')) {
+            language = 'Arabe';
+        } else if (selectedMatiereText.includes('Espagnol')) {
+            language = 'Espagnol';
+        }
+
+        document.getElementById('generation-spinner').classList.remove('hidden');
+        try {
+            const d = await apiRequest('/ai/generate-content', 'POST', { competences: comp, contentType, exerciseCount, language });
+            generatedContent = d.structured_content;
+            showEditModal();
+        } catch(err) {
+            alert("Erreur: " + err.message);
+        } finally {
+            document.getElementById('generation-spinner').classList.add('hidden');
+        }
+    });
+    
+    // Correction du bouton Générer depuis Texte/Document
+    document.getElementById('generate-from-upload-form').addEventListener('submit', async (e) => { 
+        e.preventDefault(); 
+        const spinner = document.getElementById('generation-spinner'); 
+        spinner.classList.remove('hidden'); 
+        const formData = new FormData(); 
+        const fileInput = document.getElementById('document-upload-input');
+
+        if (!fileInput.files.length) {
+            alert("Veuillez charger un fichier.");
+            spinner.classList.add('hidden');
+            return;
+        }
+
+        formData.append('document', fileInput.files[0]); 
+        formData.append('contentType', document.getElementById('teacher-content-type-upload').value); 
+        formData.append('exerciseCount', document.getElementById('exercise-count-upload').value); 
+        
+        try { 
+            // Fetch est utilisé ici car apiRequest ne gère pas nativement FormData
+            const response = await fetch(`${window.backendUrl}/api/ai/generate-from-upload`, { method: 'POST', body: formData }); 
+            const data = await response.json(); 
+            if (!response.ok) throw new Error(data.error || "Erreur de l'API Document Intelligence."); 
+            generatedContent = data.structured_content; 
+            showEditModal(); 
+        } catch (err) { 
+            alert('Erreur: ' + err.message); 
+        } finally { 
+            spinner.classList.add('hidden'); 
+        } 
+    });
+
+    const modal = document.getElementById('generation-modal');
+    modal.querySelectorAll('.tab-button').forEach(button => { 
+        button.addEventListener('click', (e) => { 
+            modal.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active')); 
+            modal.querySelectorAll('.tab-panel').forEach(panel => panel.classList.remove('active')); 
+            e.target.classList.add('active'); 
+            document.getElementById(e.target.dataset.tab).classList.add('active'); 
+        }); 
+    });
+
+    // Tentative de préremplissage (pour le Planificateur)
+    if (prefillData) {
+        // ... (Logique complète de préremplissage ici, comme dans l'ancien script.js)
+    }
 }
 
 function showEditModal() {
-    // ... (Logique complète de la modale d'édition et du handle submit qui appelle showAssignModal)
+    let editHtml = `<form id="edit-form"><div class="form-group"><label>Titre</label><input type="text" id="edit-title" value="${generatedContent.title || ''}"></div>`;
+
+    if (generatedContent.type === 'quiz' && Array.isArray(generatedContent.questions)) {
+        generatedContent.questions.forEach((q, i) => {
+            editHtml += `<div class="form-group"><label>Question ${i + 1}</label><input type="text" id="edit-q-${i}" value="${q.question_text || ''}"><label style="margin-top: 0.5rem;">Options</label>`;
+            if (Array.isArray(q.options)) {
+                editHtml += q.options.map((opt, j) => `<input type="text" id="edit-q-${i}-opt-${j}" value="${opt || ''}" style="margin-bottom: 0.5rem;">`).join('');
+            }
+            editHtml += `</div>`;
+        });
+    } else if ((generatedContent.type === 'exercices' || generatedContent.type === 'dm') && Array.isArray(generatedContent.content)) {
+        generatedContent.content.forEach((ex, i) => {
+            editHtml += `<div class="form-group"><label>Exercice ${i + 1}</label><textarea id="edit-ex-${i}" rows="3">${ex.enonce || ''}</textarea></div>`;
+        });
+    } else if (generatedContent.type === 'revision' && typeof generatedContent.content === 'string') {
+        editHtml += `<div class="form-group"><label>Contenu de la fiche</label><textarea id="edit-revision-content" rows="10">${generatedContent.content || ''}</textarea></div>`;
+    } else {
+        editHtml += `<p class="error-message">Le contenu généré par l'IA a une structure inattendue. Vous pouvez le modifier manuellement ci-dessous.</p>`;
+        editHtml += `<div class="form-group"><label>Contenu brut (JSON)</label><textarea rows="10" id="raw-json-edit">${JSON.stringify(generatedContent, null, 2)}</textarea></div>`;
+    }
+    editHtml += `<button type="submit" class="btn btn-main">Valider et Assigner</button></form>`;
+
+    renderModal(getModalTemplate('edit-modal', 'Modifier et Valider le Contenu', editHtml));
+
+    document.getElementById('edit-form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        try {
+            const rawJsonTextarea = document.getElementById('raw-json-edit');
+            if (rawJsonTextarea) {
+                generatedContent = JSON.parse(rawJsonTextarea.value);
+            } else {
+                generatedContent.title = document.getElementById('edit-title').value;
+                if (generatedContent.type === 'quiz' && Array.isArray(generatedContent.questions)) {
+                    generatedContent.questions.forEach((q, i) => {
+                        q.question_text = document.getElementById(`edit-q-${i}`).value;
+                        if (Array.isArray(q.options)) {
+                            q.options.forEach((opt, j) => { q.options[j] = document.getElementById(`edit-q-${i}-opt-${j}`).value; });
+                        }
+                    });
+                } else if ((generatedContent.type === 'exercices' || generatedContent.type === 'dm') && Array.isArray(generatedContent.content)) {
+                    generatedContent.content.forEach((ex, i) => {
+                        ex.enonce = document.getElementById(`edit-ex-${i}`).value;
+                    });
+                } else if (generatedContent.type === 'revision') {
+                    generatedContent.content = document.getElementById('edit-revision-content').value;
+                }
+            }
+            showAssignModal();
+        } catch (err) {
+            alert("Le JSON modifié n'est pas valide. Veuillez le corriger avant de continuer.");
+        }
+    });
 }
 
 function showAssignModal(contentToAssign) { 
-    // ... (Logique complète de la modale d'assignation)
+    const content = contentToAssign || generatedContent; 
+    const defaultDueDate = new Date(); 
+    defaultDueDate.setDate(defaultDueDate.getDate() + 7); 
+    const formattedDefaultDate = defaultDueDate.toISOString().split('T')[0]; 
+    const modalHtml = `<form id="assign-form">
+        <div class="form-group"><label for="assign-class-select">Assigner à la classe</label><select id="assign-class-select" required></select></div>
+        <div class="form-group"><label for="due-date-input">À faire pour le</label><input type="date" id="due-date-input" value="${formattedDefaultDate}" required></div>
+        <div class="form-group checkbox-group"><input type="checkbox" id="is-evaluated-checkbox"><label for="is-evaluated-checkbox">Ce contenu est un devoir évalué</label></div>
+        <button type="submit" class="btn btn-main">Assigner</button>
+    </form>`; 
+    renderModal(getModalTemplate('assign-modal', `Assigner "${content.title}"`, modalHtml)); 
+    const select = document.getElementById('assign-class-select'); 
+    teacherClasses.forEach(c => select.add(new Option(c.className, c.id))); 
+    document.getElementById('assign-form').addEventListener('submit', async e => { 
+        e.preventDefault(); 
+        const classId = select.value; 
+        const dueDate = document.getElementById('due-date-input').value; 
+        const isEvaluated = document.getElementById('is-evaluated-checkbox').checked;
+        if (!classId || !content || !dueDate) return; 
+        try { 
+            await apiRequest('/teacher/assign-content', 'POST', { 
+                classId, 
+                teacherEmail: window.currentUser.email,
+                contentData: { ...content, dueDate, isEvaluated, competence: content.competence || selectedCompetenceInfo } 
+            }); 
+            window.modalContainer.innerHTML = ''; 
+            renderModal(getModalTemplate('assign-confirm', 'Succès', '<p>Le contenu a bien été assigné !</p>')); 
+            setTimeout(() => { window.modalContainer.innerHTML = ''; renderTeacherDashboard(); }, 2000); 
+        } catch (error) { 
+            alert("Erreur lors de l'assignation du contenu: " + error.message); 
+        } 
+    }); 
+}
+
+export async function renderPlannerPage() {
+    const page = document.getElementById('planner-page');
+    changePage('planner-page');
+    page.innerHTML = `
+        <div class="page-header">
+            <h2><i class="fa-solid fa-calendar-days"></i> Planificateur de Cours</h2>
+            <button id="back-to-teacher-dash" class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> Retour</button>
+        </div>
+        <div class="card">
+            <form id="planner-form">
+                <div class="form-group"><label for="planner-theme">Thème de la séquence</label><input type="text" id="planner-theme" placeholder="Ex: L'Empire romain, Les fractions..." required></div>
+                <div class="form-group"><label for="planner-level">Niveau de la classe</label><input type="text" id="planner-level" placeholder="Ex: 6ème, CE2, Seconde..." required></div>
+                <div class="form-group"><label for="planner-sessions">Nombre de séances</label><input type="number" id="planner-sessions" value="3" min="1" max="10" required></div>
+                <button type="submit" class="btn btn-main">Générer la séquence</button>
+            </form>
+        </div>
+        <div id="planner-output" class="hidden">${spinnerHtml}</div>`;
+    const outputContainer = document.getElementById('planner-output');
+    page.querySelector('#back-to-teacher-dash').addEventListener('click', renderTeacherDashboard);
+    page.querySelector('#planner-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        outputContainer.classList.remove('hidden');
+        outputContainer.innerHTML = spinnerHtml;
+        const theme = document.getElementById('planner-theme').value;
+        const level = document.getElementById('planner-level').value;
+        const numSessions = document.getElementById('planner-sessions').value;
+        try {
+            const data = await apiRequest('/ai/generate-lesson-plan', 'POST', { theme, level, numSessions });
+            const plan = data.structured_plan;
+            let outputHtml = `<h3>${plan.planTitle} (Niveau ${plan.level})</h3>`;
+
+            plan.sessions.forEach((session, sessionIndex) => {
+                session.resources = session.resources || [];
+                outputHtml += `<div class="session-card">
+                    <div class="session-header"><div class="session-number">${session.sessionNumber}</div><h4>${session.title}</h4></div>
+                    <p><strong>Objectif :</strong> ${session.objective}</p>
+                    <p><strong>Activités :</strong></p><ul>${session.activities.map(act => `<li>${act}</li>`).join('')}</ul>
+                    <p><strong>Ressources AIDA :</strong></p><ul>`;
+                
+                session.resources.forEach((res, resIndex) => {
+                     const resourceData = JSON.stringify(res).replace(/'/g, '&#39;');
+                     outputHtml += `<li>
+                                       <span>${res.type.charAt(0).toUpperCase() + res.type.slice(1)} : ${res.sujet}</span>
+                                       <button class="btn btn-generate-planner" data-resource='${resourceData}' data-level="${plan.level}">
+                                           <i class="fa-solid fa-wand-sparkles"></i> Générer
+                                       </button>
+                                   </li>`;
+                });
+                outputHtml += `</ul></div>`;
+            });
+            outputContainer.innerHTML = outputHtml;
+
+            outputContainer.querySelectorAll('.btn-generate-planner').forEach(button => {
+                button.addEventListener('click', (e) => {
+                    const resourceString = e.currentTarget.dataset.resource;
+                    if(resourceString) {
+                        try {
+                            const prefillData = JSON.parse(resourceString.replace(/&#39;/g, "'"));
+                            prefillData.level = e.currentTarget.dataset.level;
+                            showGenerationModal(prefillData);
+                        } catch (err) {
+                            console.error("Erreur lors de l'analyse des données de la ressource :", err, "String:", resourceString);
+                            alert("Une erreur est survenue en essayant de lire les informations du contenu à générer.");
+                        }
+                    }
+                });
+            });
+        } catch (error) { outputContainer.innerHTML = `<p class="error-message">Erreur lors de la génération du plan : ${error.message}</p>`; }
+    });
 }
 
 
@@ -668,36 +1023,390 @@ export async function renderStudentDashboard() {
         studentDashboardData = await apiRequest(`/student/dashboard?studentEmail=${window.currentUser.email}`);
         
         let todoHtml = '<h3>À faire</h3>';
-        // ... (Logique de construction des listes todo, pending, completed)
+        if (studentDashboardData.todo.length === 0) {
+            todoHtml += "<p>Bravo, tu es à jour !</p>";
+        } else {
+            todoHtml += '<div class="dashboard-grid">';
+            studentDashboardData.todo.forEach(item => {
+                todoHtml += createStudentCard(item, 'todo');
+            });
+            todoHtml += '</div>';
+        }
+
+        let pendingHtml = '<h3 style="margin-top: 2rem;">En attente de validation</h3>';
+        if (studentDashboardData.pending.length === 0) {
+            pendingHtml += "<p>Aucun devoir en attente de correction.</p>";
+        } else {
+            pendingHtml += '<div class="dashboard-grid">';
+            studentDashboardData.pending.forEach(item => {
+                pendingHtml += createStudentCard(item, 'pending');
+            });
+            pendingHtml += '</div>';
+        }
+
+        let completedHtml = `
+            <div class="page-header" style="margin-top: 2rem;">
+                <h3>Archives</h3>
+                <div id="archive-filters">
+                    <button class="btn btn-secondary active" data-filter="all">Tout</button>
+                    <button class="btn btn-secondary" data-filter="month">Ce mois-ci</button>
+                    <button class="btn btn-secondary" data-filter="week">Cette semaine</button>
+                </div>
+            </div>
+            <div id="student-completed-list"></div>`;
+
+        page.innerHTML = `<h2>Bonjour ${window.currentUser.firstName}!</h2>${todoHtml}${pendingHtml}${completedHtml}`;
         
-        page.innerHTML = `<h2>Bonjour ${window.currentUser.firstName}!</h2>${todoHtml}`;
+        renderFilteredArchives('all'); 
         
-        // ... (Ajout des listeners pour les boutons start-btn et view-correction-btn)
+        page.querySelectorAll('#archive-filters').forEach(button => {
+            button.addEventListener('click', (e) => {
+                if (e.target.tagName === 'BUTTON') {
+                    page.querySelectorAll('#archive-filters button').forEach(btn => btn.classList.remove('active'));
+                    e.target.classList.add('active');
+                    renderFilteredArchives(e.target.dataset.filter);
+                }
+            });
+        });
+
+        page.querySelectorAll('.start-btn').forEach(button => {
+             button.addEventListener('click', (e) => {
+                const content = studentDashboardData.todo.find(item => item.id === e.target.dataset.contentId);
+                if (content) renderContentViewer(content);
+            });
+        });
+
+         page.querySelectorAll('.view-correction-btn').forEach(button => {
+             button.addEventListener('click', (e) => {
+                const contentId = e.target.dataset.contentId;
+                const content = studentDashboardData.completed.find(item => item.id === contentId);
+                if(content) showValidatedResultModal(content, content);
+            });
+        });
+
 
     } catch (error) {
         page.innerHTML = `<p class="error-message">Impossible de charger le tableau de bord étudiant: ${error.message}</p>`;
     }
 }
 
+function renderFilteredArchives(filter) {
+    const container = document.getElementById('student-completed-list');
+    if (!studentDashboardData || !studentDashboardData.completed || studentDashboardData.completed.length === 0) {
+        container.innerHTML = "<p>Aucun devoir terminé pour le moment.</p>";
+        return;
+    }
+    
+    const now = new Date();
+    const filteredItems = studentDashboardData.completed.filter(item => {
+        const completedDate = new Date(item.completedAt);
+        if (filter === 'week') {
+            const startOfWeek = new Date(now);
+            startOfWeek.setDate(now.getDate() - now.getDay() + (now.getDay() === 0 ? -6 : 1)); 
+            startOfWeek.setHours(0,0,0,0);
+            return completedDate >= startOfWeek;
+        }
+        if (filter === 'month') {
+            return completedDate.getFullYear() === now.getFullYear() && completedDate.getMonth() === now.getMonth();
+        }
+        return true; 
+    });
+
+    if (filteredItems.length === 0) {
+        container.innerHTML = "<p>Aucun exercice terminé pour cette période.</p>";
+        return;
+    }
+
+    const groupedBySubject = filteredItems.reduce((acc, item) => {
+        const subject = getSubjectInfo(item.title).name;
+        if (!acc[subject]) acc[subject] = [];
+        acc[subject].push(item);
+        return acc;
+    }, {});
+
+    let completedHtml = '';
+    for (const subject in groupedBySubject) {
+        completedHtml += `<h4 style="margin-top:1.5rem; margin-bottom:1rem; border-bottom: 2px solid var(--primary-color); padding-bottom:0.5rem;">${subject}</h4>`;
+        completedHtml += '<div class="dashboard-grid">';
+        groupedBySubject[subject]
+            .sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt))
+            .forEach(item => {
+                completedHtml += createStudentCard(item, 'completed');
+            });
+        completedHtml += '</div>';
+    }
+    container.innerHTML = completedHtml;
+    
+    container.querySelectorAll('.view-correction-btn').forEach(button => {
+         button.addEventListener('click', (e) => {
+            const contentId = e.target.dataset.contentId;
+            const content = studentDashboardData.completed.find(item => item.id === contentId);
+            if(content) showValidatedResultModal(content, content);
+        });
+    });
+}
+
+
 function createStudentCard(c, status) {
     const subjectInfo = getSubjectInfo(c.title);
-    // ... (Logique complète de la création de la carte étudiant)
+    let dateInfoHtml = '';
+    let buttonHtml = '';
+
+    switch(status) {
+        case 'todo':
+            const dueDate = new Date(c.dueDate);
+            const today = new Date(); today.setHours(0,0,0,0);
+            const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate() + 1);
+            let statusClass = 'status-ontime';
+            let statusText = `À faire pour le ${dueDate.toLocaleDateString('fr-FR')}`;
+            if (dueDate < today) {
+                statusClass = 'status-overdue';
+                statusText = `En retard (pour le ${dueDate.toLocaleDateString('fr-FR')})`;
+            } else if (dueDate <= tomorrow) {
+                statusClass = 'status-due-soon';
+                statusText = `À rendre bientôt`;
+            }
+            dateInfoHtml = `<span class="deadline-status ${statusClass}">${statusText}</span>`;
+            buttonHtml = `<button class="btn btn-main start-btn" data-content-id="${c.id}">Commencer</button>`;
+            break;
+        case 'pending':
+            dateInfoHtml = `<span class="deadline-status status-pending">En attente de correction</span>`;
+            buttonHtml = `<button class="btn btn-secondary" disabled>En attente</button>`;
+            break;
+        case 'completed':
+            const appreciationText = c.appreciation ? getAppreciationText(c.appreciation) : 'Validé';
+            dateInfoHtml = `<span class="deadline-status status-completed">${appreciationText}</span>`;
+            buttonHtml = `<button class="btn btn-secondary view-correction-btn" data-content-id="${c.id}">Voir la correction</button>`;
+            break;
+    }
+
+    return `
+        <div class="dashboard-card-student">
+            <div class="card-header">
+                <span class="subject-tag ${subjectInfo.cssClass}">${c.type.charAt(0).toUpperCase() + c.type.slice(1)}</span>
+                ${dateInfoHtml}
+            </div>
+            <div class="card-content">
+                <h4>${c.title}</h4>
+                <p>Classe: ${c.className}</p>
+            </div>
+            <div class="card-footer">
+                ${buttonHtml}
+            </div>
+        </div>`;
+}
+
+// Fonction générique pour afficher la modal d'aide d'AIDA (réutilisée du Playground)
+async function showAidaHelpModal(prompt) {
+    renderModal(getModalTemplate('aida-help-modal', 'Aide d\'AIDA', `
+        <div id="aida-chat-container">
+            <div class="chat-message aida-message">
+                <p>Bonjour ! Pose-moi ta question ou donne-moi le sujet de l'exercice pour obtenir de l'aide sans la réponse.</p>
+            </div>
+            <div id="chat-history"></div>
+            <form id="aida-chat-form" style="margin-top: 1rem;">
+                <textarea id="aida-chat-input" placeholder="Tape ta question ici..." rows="2" required>${prompt ? prompt : ''}</textarea>
+                <button type="submit" class="btn btn-main"><i class="fa-solid fa-paper-plane"></i> Envoyer</button>
+            </form>
+            <div id="aida-error" class="error-message"></div>
+            <div id="aida-spinner" class="hidden" style="text-align: right; margin-top: 0.5rem;">${spinnerHtml}</div>
+        </div>
+    `));
+
+    const chatForm = document.getElementById('aida-chat-form');
+    const chatInput = document.getElementById('aida-chat-input');
+    const chatHistory = document.getElementById('chat-history');
+    const spinner = document.getElementById('aida-spinner');
+    const errorDiv = document.getElementById('aida-error');
+    
+    const history = [];
+
+    const appendMessage = (sender, text) => {
+        const msgDiv = document.createElement('div');
+        msgDiv.className = `chat-message ${sender}-message`;
+        msgDiv.innerHTML = `<p>${text.replace(/\n/g, '<br>')}</p>`;
+        chatHistory.appendChild(msgDiv);
+        chatHistory.scrollTop = chatHistory.scrollHeight;
+    };
+    
+    const sendMessage = async (e) => {
+        e.preventDefault();
+        const message = chatInput.value.trim();
+        if (!message) return;
+
+        appendMessage('user', message);
+        chatInput.value = '';
+        spinner.classList.remove('hidden');
+        errorDiv.textContent = '';
+        
+        history.push({ role: 'user', content: message });
+
+        try {
+            const response = await apiRequest('/ai/get-aida-help', 'POST', {
+                history: history
+            });
+            
+            const aidaResponse = response.response;
+            appendMessage('aida', aidaResponse);
+            history.push({ role: 'assistant', content: aidaResponse });
+
+        } catch (err) {
+            errorDiv.textContent = 'Erreur: Aide indisponible.';
+            history.pop(); 
+        } finally {
+            spinner.classList.add('hidden');
+        }
+    };
+
+    chatForm.addEventListener('submit', sendMessage);
+    
+    if (prompt) {
+        chatForm.dispatchEvent(new Event('submit'));
+    }
 }
 
 function renderContentViewer(c) {
-    // ... (Logique complète du viewer de contenu et des formulaires de quiz/DM)
+    const p = document.getElementById('content-viewer-page');
+    if (c.isEvaluated) {
+        sessionStorage.setItem('isEvaluatedSession', 'true');
+    } else {
+        sessionStorage.removeItem('isEvaluatedSession');
+    }
+    
+    helpUsedInQuiz = false;
+    helpUsedInHomework = false;
+
+    let html = '';
+    let footerHtml = '';
+    const isInteractiveHomework = c.type === 'exercices' || c.type === 'dm';
+
+    if (c.type === 'quiz') {
+         c.questions.forEach((q, i) => {
+            html += `<div class="quiz-question">
+                        <div class="question-header">
+                            <p><strong>${q.question_text}</strong></p>
+                            <button type="button" class="btn-help" data-question="${q.question_text}"><i class="fa-solid fa-lightbulb"></i> Aide</button>
+                        </div>
+                        <div class="quiz-options-grid">${q.options.map((o, j) => `
+                            <label class="quiz-option">
+                                <input type="radio" name="q${i}" value="${j}" required>
+                                <div class="option-label">${o}</div>
+                            </label>`).join('')}
+                        </div>
+                    </div>`;
+        });
+        footerHtml = `<button type="submit" class="btn btn-main">Valider mes réponses</button>`;
+    } else if (isInteractiveHomework) {
+        c.content.forEach((exo, i) => {
+            html += `
+                <div class="exercice-block">
+                    <h4>Exercice ${i + 1}</h4>
+                    <p class="enonce">${exo.enonce}</p>
+                    <textarea class="reponse-eleve" data-exercice-index="${i}" placeholder="Rédige ta réponse ici..."></textarea>
+                </div>
+            `;
+        });
+        if (c.isEvaluated) {
+             footerHtml += `<button type="button" id="open-aida-help-btn" class="btn btn-secondary"><i class="fa-solid fa-lightbulb"></i> Obtenir de l'aide</button>`;
+        }
+        footerHtml += `<button type="submit" class="btn btn-main">Soumettre le devoir</button>`;
+    } else { 
+        html = `<div class="revision-content">${c.content.replace(/\n/g, '<br>')}</div>`;
+        footerHtml = `<button type="button" id="finish-exercise-btn" class="btn btn-main"><i class="fa-solid fa-check"></i> Marquer comme lu</button>`;
+    }
+
+    p.innerHTML = `<button id="back-to-student" class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> Retour</button>
+                     <div class="card" style="margin-top:1rem;">
+                        <h2>${c.title}</h2>
+                        <form id="content-form">
+                            <div>${html}</div>
+                            <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 2rem;">${footerHtml}</div>
+                        </form>
+                     </div>`;
+    
+    const backBtn = p.querySelector('#back-to-student');
+    backBtn.addEventListener('click', () => {
+        sessionStorage.removeItem('isEvaluatedSession');
+        renderStudentDashboard();
+    });
+
+    const form = p.querySelector('#content-form');
+
+    if (c.type === 'quiz') {
+        form.addEventListener('submit', e => { e.preventDefault(); handleSubmitQuiz(c); });
+        form.querySelectorAll('.btn-help').forEach(b => b.addEventListener('click', handleHelpRequest));
+    } else if (isInteractiveHomework) {
+        form.addEventListener('submit', e => { e.preventDefault(); handleSubmitNonQuiz(c); });
+        const aidaHelpBtn = p.querySelector('#open-aida-help-btn');
+        if (aidaHelpBtn) {
+            aidaHelpBtn.addEventListener('click', () => {
+                helpUsedInHomework = true;
+                showAidaHelpModal(`Aide pour le devoir : ${c.title}`);
+            });
+        }
+    } else {
+        const finishBtn = p.querySelector('#finish-exercise-btn');
+        if (finishBtn) {
+            finishBtn.addEventListener('click', async () => {
+                sessionStorage.removeItem('isEvaluatedSession');
+                try {
+                    await apiRequest('/student/submit-quiz', 'POST', { 
+                        studentEmail: window.currentUser.email, classId: c.classId, contentId: c.id, 
+                        title: c.title, score: 0, totalQuestions: 0, answers: [], helpUsed: false, teacherEmail: c.teacherEmail
+                    });
+                    renderStudentDashboard();
+                } catch (error) {
+                    alert("Erreur lors de la soumission: " + error.message);
+                }
+            });
+        }
+    }
+    changePage('content-viewer-page');
 }
 
 async function handleHelpRequest(e) { 
-    // ... (Logique complète de l'appel à l'aide AIDA)
+    e.preventDefault(); 
+    helpUsedInQuiz = true;
+    const q = e.target.closest('button').dataset.question; 
+    showAidaHelpModal(q);
 }
 
 async function handleSubmitQuiz(c) { 
-    // ... (Logique complète de la soumission de quiz)
+    sessionStorage.removeItem('isEvaluatedSession');
+    const answers = c.questions.map((q, i) => { const sel = document.querySelector(`input[name=q${i}]:checked`); return sel ? parseInt(sel.value) : -1; }); 
+    const score = answers.reduce((acc, ans, i) => acc + (ans == c.questions[i].correct_answer_index ? 1 : 0), 0); 
+    try {
+        await apiRequest('/student/submit-quiz', 'POST', { 
+            studentEmail: window.currentUser.email, classId: c.classId, contentId: c.id, title: c.title, 
+            score, totalQuestions: c.questions.length, answers, helpUsed: helpUsedInQuiz, teacherEmail: c.teacherEmail
+        }); 
+        renderStudentDashboard();
+    } catch (error) {
+        alert("Erreur lors de la soumission: " + error.message);
+    }
 }
 
 async function handleSubmitNonQuiz(c) {
-    // ... (Logique complète de la soumission d'exercices/DM)
+    sessionStorage.removeItem('isEvaluatedSession');
+    const answerTextareas = document.querySelectorAll('#content-form .reponse-eleve');
+    const answers = Array.from(answerTextareas).map(textarea => textarea.value);
+
+    if (answers.every(answer => answer.trim() === '')) {
+        alert("Veuillez répondre à au moins un exercice avant de soumettre.");
+        return;
+    }
+
+    try {
+        await apiRequest('/student/submit-quiz', 'POST', {
+            studentEmail: window.currentUser.email, classId: c.classId, contentId: c.id, title: c.title,
+            score: 0, totalQuestions: c.content.length, answers: answers, 
+            helpUsed: helpUsedInHomework, 
+            teacherEmail: c.teacherEmail
+        });
+        renderStudentDashboard();
+    } catch (error) {
+        alert("Erreur lors de la soumission: " + error.message);
+    }
 }
 
 
@@ -735,15 +1444,42 @@ export async function renderLibraryPage() {
 
 async function loadLibraryContents() {
     const grid = document.getElementById('library-grid');
-    // ... (Logique complète de chargement et d'affichage des contenus de la bibliothèque)
-}
+    grid.innerHTML = spinnerHtml;
+    const searchTerm = document.getElementById('library-search-input').value;
+    const subject = document.getElementById('library-subject-filter').value;
+    
+    try {
+        const results = await apiRequest(`/library?searchTerm=${searchTerm}&subject=${subject}`);
+        grid.innerHTML = '';
+        if (results.length === 0) {
+            grid.innerHTML = '<p>Aucun contenu trouvé. Essayez d\'autres mots-clés ou partagez le vôtre !</p>';
+            return;
+        }
+        results.forEach(content => {
+            const subjectInfo = getSubjectInfo(content.title);
+            const card = document.createElement('div');
+            card.className = 'dashboard-card';
+            const contentString = JSON.stringify(content).replace(/"/g, '&quot;');
+            card.innerHTML = `
+                <div class="dashboard-card-title"><h4>${content.title}</h4></div>
+                <p><span class="subject-tag ${subjectInfo.cssClass}">${subjectInfo.name}</span></p>
+                <p>Type: ${content.type}</p>
+                <p>Auteur: ${content.authorName}</p>
+                <div style="text-align:right; margin-top: 1rem;">
+                   <button class="btn btn-secondary import-content-btn" data-content="${contentString}">Ajouter à une classe</button>
+                </div>
+            `;
+            grid.appendChild(card);
+        });
+        
+        grid.querySelectorAll('.import-content-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const contentData = JSON.parse(e.target.dataset.content);
+                showAssignModal(contentData);
+            });
+        });
 
-
-// --- 4. FONCTION PLANIFICATEUR ---
-
-export async function renderPlannerPage() {
-    const page = document.getElementById('planner-page');
-    // ... (Logique complète du planificateur et de l'appel à l'IA)
-    page.innerHTML = `<h2>Planificateur de Cours</h2><p>Le contenu complet doit être déplacé ici.</p>`;
-    changePage('planner-page');
+    } catch(error) {
+        grid.innerHTML = '<p class="error-message">Impossible de charger la bibliothèque: ' + error.message + '</p>';
+    }
 }
