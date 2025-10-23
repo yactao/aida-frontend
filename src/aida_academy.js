@@ -234,14 +234,20 @@ function showSessionReportModal(report) {
 
 // --- 4. Fonctions de Rendu (Mises à Jour) ---
 
+// src/aida_academy.js - Modification de renderAcademyStudentDashboard
+
 export async function renderAcademyStudentDashboard() {
     const page = document.getElementById('student-dashboard-page');
     changePage('student-dashboard-page'); 
 
-    const scenarios = [prototypeScenario]; // Liste des scénarios pour l'élève
+    const scenarios = [prototypeScenario]; // Liste des scénarios disponibles
+    
+    // NOUVEAU: Récupérer les sessions terminées de l'utilisateur
+    const sessions = window.currentUser.academyProgress?.sessions || []; 
+    sessions.sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt)); // Trier par date récente
 
     let html = `
-        <h2>Bienvenue ${window.currentUser.firstName} sur l'Académie MRE! 🌍</h2>
+        <h2>Bienvenue ${window.currentUser.firstName} sur l'Académie d'Arabe Littéraire ! 📚</h2>
         <p class="subtitle">Pratiquez l'Arabe Littéraire (Al-Fusha) en immersion totale.</p>
 
         <h3 style="margin-top: 2rem;">Vos Scénarios d'Immersion</h3>
@@ -250,7 +256,7 @@ export async function renderAcademyStudentDashboard() {
 
     scenarios.forEach(scen => {
         html += `
-            <div class="dashboard-card" data-scenario-id="${scen.id}" style="cursor: pointer;">
+            <div class="dashboard-card primary-card" data-scenario-id="${scen.id}" style="cursor: pointer;">
                 <h4>${scen.title}</h4>
                 <p>Langue : <strong>${scen.language}</strong></p>
                 <p>Niveau : ${scen.level}</p>
@@ -263,12 +269,59 @@ export async function renderAcademyStudentDashboard() {
     });
     
     html += '</div>';
+
+    // AFFICHAGE DES SESSIONS TERMINÉES
+    if (sessions.length > 0) {
+        html += `
+            <h3 style="margin-top: 3rem;">Historique de vos Sessions (${sessions.length})</h3>
+            <div class="dashboard-grid sessions-grid">
+        `;
+
+        sessions.forEach((session, index) => {
+            const date = new Date(session.completedAt).toLocaleDateString('fr-FR', {
+                day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
+            });
+            const title = (session.report?.summaryTitle || 'Bilan de session');
+            const status = session.report?.completionStatus || 'Terminée';
+            const feedbackPreview = session.report?.feedback[0] || 'Cliquez pour les détails.';
+            
+            html += `
+                <div class="dashboard-card clickable-session" data-session-index="${index}" style="cursor: pointer;">
+                    <p style="font-size: 0.9em; color: var(--text-color-secondary); margin-bottom: 5px;">${date}</p>
+                    <h5 style="color: var(--primary-color);">${title}</h5>
+                    <p style="font-size: 0.9em;">Statut : <strong>${status}</strong></p>
+                    <p style="font-style: italic; margin-top: 10px;">Feedback : ${feedbackPreview}</p>
+                    <div style="text-align: right; margin-top: 1rem;">
+                        <button class="btn btn-secondary view-report-btn" data-session-index="${index}"><i class="fa-solid fa-eye"></i> Voir Rapport</button>
+                    </div>
+                </div>
+            `;
+        });
+        
+        html += '</div>';
+    } else {
+        html += `<p style="margin-top: 2rem; color: var(--text-color-secondary);"><i class="fa-solid fa-info-circle"></i> Aucune session n'a encore été enregistrée.</p>`;
+    }
+    
     page.innerHTML = html;
 
-    page.querySelectorAll('.start-scenario-btn, .dashboard-card').forEach(element => {
+    // Gestion de l'événement de clic pour démarrer le scénario
+    page.querySelectorAll('.start-scenario-btn, .dashboard-card.primary-card').forEach(element => {
         element.addEventListener('click', (e) => {
             e.stopPropagation();
             renderScenarioViewer(prototypeScenario);
+        });
+    });
+
+    // Gestion de l'événement de clic pour afficher le rapport de session
+    page.querySelectorAll('.clickable-session, .view-report-btn').forEach(element => {
+        element.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const index = e.currentTarget.dataset.sessionIndex;
+            if (index !== undefined) {
+                const sessionReport = sessions[index].report;
+                showSessionReportModal(sessionReport); // Réutiliser la modal existante
+            }
         });
     });
 }
