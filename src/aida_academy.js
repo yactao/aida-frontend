@@ -18,7 +18,7 @@ const repeaterScenario = {
     level: "Débutant Absolu",
     context: "L'IA joue le rôle d'un tuteur amical et patient. Ton objectif est de répéter les phrases pour maîtriser la prononciation et le vocabulaire de base.", 
     characterName: "Le Répétiteur (المُعِيد)", 
-    characterIntro: "أهلاً بك! هيا نتدرب على النطق. كرر هذه الجملة: أنا بخير. <PHONETIQUE>Ahlan bik! Hayyā natadarab 'alā an-nuṭq. Karrir hādhihi al-jumla: Anā bi-khayr.</PHONETIQUE> <TRADUCTION>Bienvenue ! Entraînons-nous à la prononciation. Répète cette phrase : Je vais bien.</TRADUCTION>",
+    characterIntro: "أهلاً بك! هيا نتدرب على النطق. كرر هذه الجملة: أنا بخير. <PHONETIQUE>Ahlan bik! Hayyā natadarab 'alā an-nuṭq. Karrir hādhihi al-jumla: Anā bi-khayr.</PHONETIQUE> <TRADUCTION>Bienvenue ! Entraînons-nous à la prononciation. Répète cette phrase : Je vais bien.</TRADuction>",
     objectives: [
         "Répéter correctement 'Je vais bien'.",
         "Répéter correctement 'Merci'.",
@@ -42,8 +42,45 @@ const prototypeScenario = {
     ]
 };
 
-// Liste des scénarios disponibles
+// Liste des scénarios disponibles pour le Dashboard Élève/Enseignant
 const availableScenarios = [repeaterScenario, prototypeScenario];
+
+
+// --- SIMULATION DE DONNÉES ÉLÈVES POUR LE DASHBOARD ENSEIGNANT ---
+// Note : Le Front-End ajoute automatiquement l'utilisateur courant à cette liste s'il a des sessions.
+const simulatedStudentsData = [
+    { 
+        id: 'student-A', 
+        firstName: 'Youssef', 
+        academyProgress: { 
+            sessions: [
+                {
+                    id: 'sess-y1',
+                    completedAt: new Date(Date.now() - 3600000).toISOString(),
+                    report: { summaryTitle: "Maîtrise de la Salutation", completionStatus: "Réussi", feedback: ["Très bonne prononciation des voyelles. Concentration sur la longueur des mots."], newVocabulary: [{word: "شكراً", translation: "Merci"}] }
+                }
+            ]
+        }
+    },
+    { 
+        id: 'student-B', 
+        firstName: 'Amira', 
+        academyProgress: { 
+            sessions: [
+                {
+                    id: 'sess-a1',
+                    completedAt: new Date(Date.now() - 7200000).toISOString(),
+                    report: { summaryTitle: "Difficultés de Structure", completionStatus: "Échec", feedback: ["Confusion entre les verbes être/avoir. Revoir la structure sujet-prédicat."], newVocabulary: [{word: "أنا", translation: "Je"}] }
+                },
+                {
+                    id: 'sess-a2',
+                    completedAt: new Date(Date.now() - 1800000).toISOString(),
+                    report: { summaryTitle: "Bonne Progression", completionStatus: "En Cours", feedback: ["Amélioration des structures, mais l'accent reste à travailler."], newVocabulary: [{word: "تفضل", translation: "Entrez/SVP"}] }
+                }
+            ]
+        }
+    }
+];
 
 
 // Fonction pour définir la personnalité de l'IA (le "system prompt")
@@ -95,7 +132,7 @@ function setupSpeechRecognition(micBtn, userInput, chatForm) {
     
     recognition.onstart = () => {
         micBtn.classList.add('recording');
-        micBtn.innerHTML = '<i class="fa-solid fa-square"></i>'; // Icône d'enregistrement en cours
+        micBtn.innerHTML = '<i class="fa-solid fa-square"></i>'; 
     };
     
     recognition.onend = () => {
@@ -144,7 +181,7 @@ async function togglePlayback(text, buttonEl) {
     buttonEl.innerHTML = `<div class="spinner-dots" style="transform: scale(0.6);"><span></span><span></span><span></span></div>`;
 
     try {
-        const voice = 'ar-XA-Wavenet-B'; 
+        const voice = 'ar-XA-Wavenet-D'; 
         const rate = 1.0;
         const pitch = 0.0;
 
@@ -185,7 +222,6 @@ async function endScenarioSession(scenario, history) {
     chatForm.style.pointerEvents = 'none';
     spinner.classList.remove('hidden');
     
-    // Le prompt pour forcer le JSON
     const finalPrompt = { 
         role: 'user', 
         content: `La session est terminée. Votre dernière réponse doit être un **JSON valide** contenant le bilan de l'élève. Le JSON doit avoir la structure suivante : 
@@ -262,13 +298,13 @@ function showSessionReportModal(report) {
 }
 
 
-// --- 4. Fonctions de Rendu du Dashboard (Affichage de l'Historique) ---
+// --- 4. Fonctions de Rendu du Dashboard (Élève et Enseignant) ---
 
 export async function renderAcademyStudentDashboard() {
     const page = document.getElementById('student-dashboard-page');
     changePage('student-dashboard-page'); 
 
-    // Récupérer les scénarios et les sessions
+    // Récupérer les sessions
     const sessions = window.currentUser.academyProgress?.sessions || []; 
     sessions.sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt)); 
 
@@ -356,6 +392,144 @@ export async function renderAcademyStudentDashboard() {
             }
         });
     });
+}
+
+// Fonction pour afficher le détail d'un élève (utilisée par le dashboard Enseignant)
+function renderTeacherStudentDetail(student) {
+    const page = document.getElementById('teacher-dashboard-page');
+    changePage('teacher-dashboard-page'); 
+
+    const sessions = student.academyProgress?.sessions || [];
+    sessions.sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt));
+    
+    let html = `
+        <button id="back-to-teacher-dash" class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> Retour au Tableau de Bord</button>
+        
+        <h2 style="margin-top: 1rem;">Progression de ${student.firstName}</h2>
+        <p class="subtitle">${sessions.length} sessions complétées en Arabe Littéraire.</p>
+
+        <h3 style="margin-top: 2rem;">Historique des Sessions</h3>
+        <div class="dashboard-grid sessions-grid">
+    `;
+
+    if (sessions.length > 0) {
+        sessions.forEach((session, index) => {
+            const date = new Date(session.completedAt).toLocaleDateString('fr-FR', {
+                day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
+            });
+            const title = (session.report?.summaryTitle || 'Bilan de session');
+            const status = session.report?.completionStatus || 'Terminée';
+            const feedbackPreview = session.report?.feedback[0] || 'Cliquez pour les détails.';
+            
+            // Note: Nous utilisons l'index dans le tableau de sessions de CET ÉTUDIANT pour la modale
+            html += `
+                <div class="dashboard-card clickable-session" data-session-index="${index}" style="cursor: pointer;">
+                    <p style="font-size: 0.9em; color: var(--text-color-secondary); margin-bottom: 5px;">${date}</p>
+                    <h5 style="color: var(--primary-color);">${title}</h5>
+                    <p style="font-size: 0.9em;">Statut : <strong>${status}</strong></p>
+                    <p style="font-style: italic; margin-top: 10px;">Feedback : ${feedbackPreview}</p>
+                    <div style="text-align: right; margin-top: 1rem;">
+                        <button class="btn btn-secondary view-report-btn" data-session-index="${index}"><i class="fa-solid fa-eye"></i> Voir Rapport</button>
+                    </div>
+                </div>
+            `;
+        });
+    } else {
+         html += `<p style="margin-top: 2rem;">Aucun historique de session disponible pour ${student.firstName}.</p>`;
+    }
+    
+    html += '</div>';
+    page.innerHTML = html;
+
+    // Retour au dashboard Enseignant
+    document.getElementById('back-to-teacher-dash').addEventListener('click', renderAcademyTeacherDashboard);
+
+    // Gestion de l'affichage du rapport de session (Les sessions sont dans l'objet 'student' local)
+    page.querySelectorAll('.clickable-session, .view-report-btn').forEach(element => {
+        element.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const index = e.currentTarget.dataset.sessionIndex;
+            if (index !== undefined) {
+                // Utilisation du tableau de sessions de l'étudiant local pour l'affichage
+                const sessionReport = sessions[index].report; 
+                showSessionReportModal(sessionReport); 
+            }
+        });
+    });
+}
+
+// Rendu du Dashboard Enseignant
+export async function renderAcademyTeacherDashboard() {
+    const page = document.getElementById('teacher-dashboard-page');
+    changePage('teacher-dashboard-page'); 
+
+    const students = [...simulatedStudentsData];
+
+    // Ajouter l'utilisateur courant s'il a des sessions (pour les tests rapides)
+    if (window.currentUser.academyProgress?.sessions?.length > 0 && !students.some(s => s.id === window.currentUser.id)) {
+        students.push({
+            id: window.currentUser.id,
+            firstName: window.currentUser.firstName,
+            academyProgress: window.currentUser.academyProgress
+        });
+    }
+
+    let html = `
+        <h2>Tableau de Bord Enseignant / Tuteur 🧑‍🏫</h2>
+        <p class="subtitle">Vue d'ensemble et suivi des progrès de vos élèves en Arabe Littéraire.</p>
+
+        <h3 style="margin-top: 2rem;">Vos Élèves (${students.length})</h3>
+        <div class="dashboard-grid teacher-grid">
+    `;
+
+    students.forEach(student => {
+        const totalSessions = student.academyProgress?.sessions?.length || 0;
+        // La session la plus récente est la première si elle a été triée, ce qui est le cas dans studentDetail.
+        const lastSession = totalSessions > 0 ? student.academyProgress.sessions.slice().sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt))[0] : null;
+        
+        const lastActivity = lastSession ? new Date(lastSession.completedAt).toLocaleDateString('fr-FR') : 'Aucune';
+        
+        let statusColor = totalSessions > 0 ? 'var(--primary-color)' : 'var(--text-color-secondary)';
+        let statusText = `${totalSessions} Session(s)`;
+        
+        if (lastSession && lastSession.report?.completionStatus === 'Échec') {
+             statusColor = 'var(--incorrect-color)';
+             statusText = `Échec Récent`;
+        }
+
+        html += `
+            <div class="dashboard-card student-card" data-student-id="${student.id}" style="border-left: 5px solid ${statusColor}; cursor: pointer;">
+                <h4>${student.firstName}</h4>
+                <p>Statut : <strong style="color: ${statusColor}">${statusText}</strong></p>
+                <p>Dernière activité : ${lastActivity}</p>
+                <div style="text-align: right; margin-top: 1rem;">
+                    <button class="btn btn-secondary view-student-btn" data-student-id="${student.id}"><i class="fa-solid fa-chart-line"></i> Voir Détail</button>
+                </div>
+            </div>
+        `;
+    });
+    
+    html += '</div>';
+    page.innerHTML = html;
+
+    page.querySelectorAll('.view-student-btn, .student-card').forEach(element => {
+        element.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const studentId = e.currentTarget.dataset.studentId;
+            const studentData = students.find(s => s.id === studentId);
+            if (studentData) {
+                renderTeacherStudentDetail(studentData);
+            }
+        });
+    });
+}
+
+
+// --- 5. Stubs du Dashboard Parent (Identique au professeur pour l'instant) ---
+
+export async function renderAcademyParentDashboard() {
+    // Dans cette version, le Parent voit le même suivi que l'Enseignant pour simplifier
+    await renderAcademyTeacherDashboard();
 }
 
 // Fonction appendMessage (Logique de découpage des balises)
@@ -551,20 +725,7 @@ function renderScenarioViewer(scenario) {
 
 // --- 5. Stubs des Autres Dashboards ---
 
-export async function renderAcademyTeacherDashboard() {
-    const page = document.getElementById('teacher-dashboard-page');
-    changePage('teacher-dashboard-page'); 
-    page.innerHTML = `
-        <h2>Bienvenue ${window.currentUser.firstName} sur l'Académie MRE!</h2>
-        <p>Rôle : Enseignant. Prochaine étape : Outil de création/attribution de scénarios.</p>
-    `;
-}
-
 export async function renderAcademyParentDashboard() {
-    const page = document.getElementById('student-dashboard-page'); 
-    changePage('student-dashboard-page'); 
-    page.innerHTML = `
-        <h2>Bienvenue ${window.currentUser.firstName} sur l'Académie MRE!</h2>
-        <p>Rôle : Parent. Prochaine étape : Le suivi intelligent de la progression.</p>
-    `;
+    // Dans cette version, le Parent voit le même suivi que l'Enseignant pour simplifier
+    await renderAcademyTeacherDashboard();
 }
