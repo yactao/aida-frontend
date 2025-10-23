@@ -85,13 +85,16 @@ function setupSpeechRecognition(micBtn, userInput, chatForm) {
 }
 
 function startListening() {
-    if (recognition && !recognition.classList.contains('recording')) {
+    // L'API Web Speech gère les états. Si start() est appelé alors que l'écoute est déjà lancée, 
+    // l'API lève généralement une erreur "already started". Pour être sûr, on utilise recognition.recognizing.
+    if (recognition && !recognition.recognizing) {
         recognition.start();
     }
 }
 
 function stopListening() {
-    if (recognition && recognition.classList.contains('recording')) {
+    // Arrête la reconnaissance quand le bouton est relâché (mouseup/touchend).
+    if (recognition) {
         recognition.stop();
     }
 }

@@ -466,7 +466,7 @@ body.dark-mode #chat-history {
 
 /* styles.css - Nouveaux styles pour l'aide de l'Académie MRE */
 .aida-message .arabic-text-only {
-    font-size: 1.2em; 
+    font-size: 1.5em; 
     font-weight: bold;
     direction: rtl; /* Pour forcer l'alignement à droite de l'Arabe */
     text-align: right;
@@ -501,4 +501,18 @@ body.dark-mode #chat-history {
 
 .btn-icon.toggle-help-btn.active {
     color: var(--warning-color); /* Met l'ampoule en jaune si l'aide est affichée */
+}
+
+/* 1. Couleur de base et animation de pulsation */
+@keyframes pulse-red {
+    0% { box-shadow: 0 0 0 0 rgba(255, 0, 0, 0.7); }
+    70% { box-shadow: 0 0 0 10px rgba(255, 0, 0, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(255, 0, 0, 0); }
+}
+
+/* 2. Style du bouton en mode enregistrement */
+.btn-icon.recording {
+    background-color: var(--incorrect-color) !important; /* ROUGE */
+    color: white !important;
+    animation: pulse-red 1.5s infinite; /* Active l'animation */
 }
