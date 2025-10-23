@@ -1,4 +1,4 @@
-// src/aida_academy.js - Logique complète pour l'Académie d'Arabe Littéraire
+// src/aida_academy.js - Logique complète pour l'Académie d'Arabe Littéraire (Mode Dynamique)
 
 import { changePage, spinnerHtml, apiRequest, renderModal, getModalTemplate } from './utils.js';
 
@@ -7,47 +7,7 @@ let recognition;
 let currentAudio = null;
 let currentListenBtn = null; 
 
-
-// --- 1. Scénarios de Prototype (Arabe Littéraire - Al-Fusha) ---
-
-// Scénario 0 : Répétiteur Vocal (Débutant Absolu)
-const repeaterScenario = {
-    id: 'scen-0',
-    title: "Scénario 0 : Répétiteur Vocal (Phrases de Base)",
-    language: "Arabe Littéraire (Al-Fusha)", 
-    level: "Débutant Absolu",
-    context: "L'IA joue le rôle d'un tuteur amical et patient. Ton objectif est de répéter les phrases pour maîtriser la prononciation et le vocabulaire de base.", 
-    characterName: "Le Répétiteur (المُعِيد)", 
-    characterIntro: "أهلاً بك! هيا نتدرب على النطق. كرر هذه الجملة: أنا بخير. <PHONETIQUE>Ahlan bik! Hayyā natadarab 'alā an-nuṭq. Karrir hādhihi al-jumla: Anā bi-khayr.</PHONETIQUE> <TRADUCTION>Bienvenue ! Entraînons-nous à la prononciation. Répète cette phrase : Je vais bien.</TRADuction>",
-    objectives: [
-        "Répéter correctement 'Je vais bien'.",
-        "Répéter correctement 'Merci'.",
-        "Répéter correctement 'Quel est votre nom?'."
-    ]
-};
-
-// Scénario 1 : Conversation Contextuelle (Débutant)
-const prototypeScenario = {
-    id: 'scen-1',
-    title: "Scénario 1 : Commander son petit-déjeuner",
-    language: "Arabe Littéraire (Al-Fusha)", 
-    level: "Débutant",
-    context: "Vous entrez dans un café à Marrakech. Le serveur vous sourit et vous attend.", 
-    characterName: "Le Serveur (النادِل)", 
-    characterIntro: "صباح الخير، تفضل. ماذا تود أن تطلب اليوم؟ <PHONETIQUE>Sabah al-khayr, tafaddal. Mādhā tawaddu an taṭlub al-yawm?</PHONETIQUE> <TRADUCTION>Bonjour, entrez. Que souhaitez-vous commander aujourd'hui ?</TRADUCTION>",
-    objectives: [
-        "Demander un thé et un croissant.", 
-        "Comprendre le prix total.",
-        "Dire 'Merci' et 'Au revoir'."
-    ]
-};
-
-// Liste des scénarios disponibles pour le Dashboard Élève/Enseignant
-const availableScenarios = [repeaterScenario, prototypeScenario];
-
-
-// --- SIMULATION DE DONNÉES ÉLÈVES POUR LE DASHBOARD ENSEIGNANT ---
-// Note : Le Front-End ajoute automatiquement l'utilisateur courant à cette liste s'il a des sessions.
+// --- SIMULATION DE DONNÉES ÉLÈVES POUR LE DASHBOARD ENSEIGNANT (Maintenu ici pour le test) ---
 const simulatedStudentsData = [
     { 
         id: 'student-A', 
@@ -57,7 +17,7 @@ const simulatedStudentsData = [
                 {
                     id: 'sess-y1',
                     completedAt: new Date(Date.now() - 3600000).toISOString(),
-                    report: { summaryTitle: "Maîtrise de la Salutation", completionStatus: "Réussi", feedback: ["Très bonne prononciation des voyelles. Concentration sur la longueur des mots."], newVocabulary: [{word: "شكراً", translation: "Merci"}] }
+                    report: { summaryTitle: "Maîtrise de la Salutation", completionStatus: "Réussi", feedback: ["Très bonne prononciation des voyelles."], newVocabulary: [{word: "شكراً", translation: "Merci"}] }
                 }
             ]
         }
@@ -70,12 +30,12 @@ const simulatedStudentsData = [
                 {
                     id: 'sess-a1',
                     completedAt: new Date(Date.now() - 7200000).toISOString(),
-                    report: { summaryTitle: "Difficultés de Structure", completionStatus: "Échec", feedback: ["Confusion entre les verbes être/avoir. Revoir la structure sujet-prédicat."], newVocabulary: [{word: "أنا", translation: "Je"}] }
+                    report: { summaryTitle: "Difficultés de Structure", completionStatus: "Échec", feedback: ["Revoir la structure sujet-prédicat."], newVocabulary: [{word: "أنا", translation: "Je"}] }
                 },
                 {
                     id: 'sess-a2',
                     completedAt: new Date(Date.now() - 1800000).toISOString(),
-                    report: { summaryTitle: "Bonne Progression", completionStatus: "En Cours", feedback: ["Amélioration des structures, mais l'accent reste à travailler."], newVocabulary: [{word: "تفضل", translation: "Entrez/SVP"}] }
+                    report: { summaryTitle: "Bonne Progression", completionStatus: "En Cours", feedback: ["Amélioration des structures."], newVocabulary: [{word: "تفضل", translation: "Entrez/SVP"}] }
                 }
             ]
         }
@@ -83,9 +43,12 @@ const simulatedStudentsData = [
 ];
 
 
+// --- Fonctions de Configuration et d'Aide ---
+
 // Fonction pour définir la personnalité de l'IA (le "system prompt")
 function getAcademySystemPrompt(scenario) {
-    const isRepeaterMode = scenario.id === 'scen-0'; // Détection du mode Répétiteur
+    // Détection dynamique du mode Répétiteur par ID pour la logique de prompt
+    const isRepeaterMode = scenario.id === 'scen-0'; 
 
     return `Tu es un tuteur expert en immersion linguistique. Ton rôle actuel est celui de "${scenario.characterName}" dans le contexte suivant : "${scenario.context}". La conversation doit se dérouler **UNIQUEMENT en Arabe Littéraire (Al-Fusha)**. 
     
@@ -181,7 +144,7 @@ async function togglePlayback(text, buttonEl) {
     buttonEl.innerHTML = `<div class="spinner-dots" style="transform: scale(0.6);"><span></span><span></span><span></span></div>`;
 
     try {
-        const voice = 'ar-XA-Wavenet-D'; 
+        const voice = 'ar-XA-Wavenet-B'; 
         const rate = 1.0;
         const pitch = 0.0;
 
@@ -304,6 +267,16 @@ export async function renderAcademyStudentDashboard() {
     const page = document.getElementById('student-dashboard-page');
     changePage('student-dashboard-page'); 
 
+    // NOUVEAU: Récupération dynamique des scénarios via l'API
+    let availableScenarios = [];
+    try {
+        availableScenarios = await apiRequest('/academy/scenarios', 'GET'); 
+    } catch (e) {
+        console.error("Erreur lors du chargement des scénarios:", e);
+        page.innerHTML = `<h2>Erreur de Connexion</h2><p class="error-message">Impossible de charger la liste des scénarios. Vérifiez la connexion API du Back-End.</p>`;
+        return;
+    }
+
     // Récupérer les sessions
     const sessions = window.currentUser.academyProgress?.sessions || []; 
     sessions.sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt)); 
@@ -375,8 +348,6 @@ export async function renderAcademyStudentDashboard() {
             const selectedScenario = availableScenarios.find(s => s.id === scenarioId);
             if (selectedScenario) {
                 renderScenarioViewer(selectedScenario);
-            } else {
-                renderScenarioViewer(prototypeScenario); // Fallback
             }
         });
     });
@@ -421,7 +392,6 @@ function renderTeacherStudentDetail(student) {
             const status = session.report?.completionStatus || 'Terminée';
             const feedbackPreview = session.report?.feedback[0] || 'Cliquez pour les détails.';
             
-            // Note: Nous utilisons l'index dans le tableau de sessions de CET ÉTUDIANT pour la modale
             html += `
                 <div class="dashboard-card clickable-session" data-session-index="${index}" style="cursor: pointer;">
                     <p style="font-size: 0.9em; color: var(--text-color-secondary); margin-bottom: 5px;">${date}</p>
@@ -450,7 +420,6 @@ function renderTeacherStudentDetail(student) {
             e.stopPropagation();
             const index = e.currentTarget.dataset.sessionIndex;
             if (index !== undefined) {
-                // Utilisation du tableau de sessions de l'étudiant local pour l'affichage
                 const sessionReport = sessions[index].report; 
                 showSessionReportModal(sessionReport); 
             }
@@ -484,7 +453,6 @@ export async function renderAcademyTeacherDashboard() {
 
     students.forEach(student => {
         const totalSessions = student.academyProgress?.sessions?.length || 0;
-        // La session la plus récente est la première si elle a été triée, ce qui est le cas dans studentDetail.
         const lastSession = totalSessions > 0 ? student.academyProgress.sessions.slice().sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt))[0] : null;
         
         const lastActivity = lastSession ? new Date(lastSession.completedAt).toLocaleDateString('fr-FR') : 'Aucune';
@@ -525,104 +493,7 @@ export async function renderAcademyTeacherDashboard() {
 }
 
 
-// --- 5. Stubs du Dashboard Parent (Identique au professeur pour l'instant) ---
-
-export async function renderAcademyParentDashboard() {
-    // Dans cette version, le Parent voit le même suivi que l'Enseignant pour simplifier
-    await renderAcademyTeacherDashboard();
-}
-
-// Fonction appendMessage (Logique de découpage des balises)
-const appendMessage = (sender, text, canListen = false) => {
-    const chatWindow = document.getElementById('scenario-chat-window');
-    
-    const msgDiv = document.createElement('div');
-    msgDiv.className = `chat-message ${sender === 'user' ? 'user' : 'aida'}`;
-    
-    const bubble = document.createElement('div');
-    bubble.className = sender === 'user' ? 'user-message' : 'aida-message';
-    
-    
-    let displayedText = text.replace(/\n/g, '<br>');
-    let textToRead = text; 
-    let helpContent = ''; 
-    let isAidaMessage = sender === 'aida' && (text.includes('<PHONETIQUE>') || text.includes('<TRADUCTION>'));
-
-
-    // --- 1. Détection, Extraction et Remplissage du Contenu ---
-    if (isAidaMessage) {
-        
-        const firstTagIndex = Math.min(
-            text.indexOf('<PHONETIQUE>') > -1 ? text.indexOf('<PHONETIQUE>') : Infinity,
-            text.indexOf('<TRADUCTION>') > -1 ? text.indexOf('<TRADUCTION>') : Infinity
-        );
-        const arabicPart = text.substring(0, firstTagIndex).trim();
-        textToRead = arabicPart; 
-
-        const phoneticMatch = text.match(/<PHONETIQUE>(.*?)<\/PHONETIQUE>/);
-        const traductionMatch = text.match(/<TRADUCTION>(.*?)<\/TRADUCTION>/);
-        
-        if (phoneticMatch) { helpContent += `<p class="help-phonetic">Phonétique: ${phoneticMatch[1].trim()}</p>`; }
-        if (traductionMatch) { helpContent += `<p class="help-translation">Traduction: ${traductionMatch[1].trim()}</p>`; }
-
-        displayedText = `<p class="arabic-text-only">${arabicPart}</p>`;
-    } 
-    
-    bubble.innerHTML = displayedText;
-    
-    // Aligner le message
-    msgDiv.style.alignSelf = sender === 'user' ? 'flex-end' : 'flex-start';
-    msgDiv.style.marginLeft = sender === 'user' ? 'auto' : 'unset';
-
-
-    // --- 2. AJOUT DES CONTRÔLES (Boutons) à la BUBBLE ---
-    if (sender === 'aida' && canListen) {
-        
-        // 2a. Activation du FLEX pour aligner le texte et les boutons
-        bubble.style.display = 'flex';
-        bubble.style.alignItems = 'center';
-        bubble.style.gap = '10px';
-        
-        // 2b. BOUTON ÉCOUTER (Haut-parleur)
-        const listenBtn = document.createElement('button');
-        listenBtn.className = 'btn-icon';
-        listenBtn.innerHTML = '<i class="fa-solid fa-volume-high"></i>';
-        listenBtn.title = 'Écouter la réponse (Arabe Littéraire)';
-        listenBtn.onclick = () => togglePlayback(textToRead, listenBtn); 
-        bubble.appendChild(listenBtn);
-
-
-        // 2c. BOUTON AIDE (Ampoule) et son Div Masqué
-        if (helpContent) {
-            const helpBtn = document.createElement('button');
-            helpBtn.className = 'btn-icon toggle-help-btn';
-            helpBtn.innerHTML = '<i class="fa-solid fa-lightbulb"></i>';
-            helpBtn.title = 'Afficher l\'aide (Phonétique / Traduction)';
-            
-            helpBtn.onclick = () => {
-                const helpDiv = msgDiv.querySelector('.aida-help-div');
-                helpDiv.classList.toggle('hidden');
-                helpBtn.classList.toggle('active');
-            };
-            
-            bubble.appendChild(helpBtn);
-            
-            // Ajout du DIV d'aide masqué au MESSAGE (à la div parente)
-            const helpDiv = document.createElement('div');
-            helpDiv.className = 'aida-help-div hidden'; 
-            helpDiv.innerHTML = helpContent;
-            msgDiv.appendChild(helpDiv);
-        }
-    }
-
-    // 3. ATTACHEMENT FINAL au DOM
-    msgDiv.appendChild(bubble); 
-    chatWindow.appendChild(msgDiv);
-    chatWindow.scrollTop = chatWindow.scrollHeight;
-};
-
-
-// Vue pour le chat immersif (Intégration du Push-to-Talk)
+// Vue pour le chat immersif 
 function renderScenarioViewer(scenario) {
     const p = document.getElementById('content-viewer-page');
     changePage('content-viewer-page');
@@ -720,4 +591,95 @@ function renderScenarioViewer(scenario) {
             document.getElementById('scenario-spinner').classList.add('hidden');
         }
     });
+}
+
+
+// Fonction appendMessage (Logique de découpage des balises)
+const appendMessage = (sender, text, canListen = false) => {
+    const chatWindow = document.getElementById('scenario-chat-window');
+    
+    const msgDiv = document.createElement('div');
+    msgDiv.className = `chat-message ${sender === 'user' ? 'user' : 'aida'}`;
+    
+    const bubble = document.createElement('div');
+    bubble.className = sender === 'user' ? 'user-message' : 'aida-message';
+    
+    
+    let displayedText = text.replace(/\n/g, '<br>');
+    let textToRead = text; 
+    let helpContent = ''; 
+    let isAidaMessage = sender === 'aida' && (text.includes('<PHONETIQUE>') || text.includes('<TRADUCTION>'));
+
+
+    // --- 1. Détection, Extraction et Remplissage du Contenu ---
+    if (isAidaMessage) {
+        
+        const firstTagIndex = Math.min(
+            text.indexOf('<PHONETIQUE>') > -1 ? text.indexOf('<PHONETIQUE>') : Infinity,
+            text.indexOf('<TRADUCTION>') > -1 ? text.indexOf('<TRADUCTION>') : Infinity
+        );
+        const arabicPart = text.substring(0, firstTagIndex).trim();
+        textToRead = arabicPart; 
+
+        const phoneticMatch = text.match(/<PHONETIQUE>(.*?)<\/PHONETIQUE>/);
+        const traductionMatch = text.match(/<TRADUCTION>(.*?)<\/TRADUCTION>/);
+        
+        if (phoneticMatch) { helpContent += `<p class="help-phonetic">Phonétique: ${phoneticMatch[1].trim()}</p>`; }
+        if (traductionMatch) { helpContent += `<p class="help-translation">Traduction: ${traductionMatch[1].trim()}</p>`; }
+
+        displayedText = `<p class="arabic-text-only">${arabicPart}</p>`;
+    } 
+    
+    bubble.innerHTML = displayedText;
+    
+    // Aligner le message
+    msgDiv.style.alignSelf = sender === 'user' ? 'flex-end' : 'flex-start';
+    msgDiv.style.marginLeft = sender === 'user' ? 'auto' : 'unset';
+
+
+    // --- 2. AJOUT DES CONTRÔLES (Boutons) à la BUBBLE ---
+    if (sender === 'aida' && canListen) {
+        
+        // 2a. Activation du FLEX pour aligner le texte et les boutons
+        bubble.style.display = 'flex';
+        bubble.style.alignItems = 'center';
+        bubble.style.gap = '10px';
+        
+        // 2b. BOUTON ÉCOUTER (Haut-parleur)
+        const listenBtn = document.createElement('button');
+        listenBtn.className = 'btn-icon';
+        listenBtn.innerHTML = '<i class="fa-solid fa-volume-high"></i>';
+        listenBtn.title = 'Écouter la réponse (Arabe Littéraire)';
+        listenBtn.onclick = () => togglePlayback(textToRead, listenBtn); 
+        bubble.appendChild(listenBtn);
+
+
+        // 2c. BOUTON AIDE (Ampoule) et son Div Masqué
+        if (helpContent) {
+            const helpBtn = document.createElement('button');
+            helpBtn.className = 'btn-icon toggle-help-btn';
+            helpBtn.innerHTML = '<i class="fa-solid fa-lightbulb"></i>';
+            helpBtn.title = 'Afficher l\'aide (Phonétique / Traduction)';
+            
+            helpBtn.onclick = () => {
+                const helpDiv = msgDiv.querySelector('.aida-help-div');
+                helpDiv.classList.toggle('hidden');
+                helpBtn.classList.toggle('active');
+            };
+            
+            bubble.appendChild(helpBtn);
+            
+            // Ajout du DIV d'aide masqué au MESSAGE (à la div parente)
+            const helpDiv = document.createElement('div');
+            helpDiv.className = 'aida-help-div hidden'; 
+            helpDiv.innerHTML = helpContent;
+            msgDiv.appendChild(helpDiv);
+        }
+    }
+
+    // 3. ATTACHEMENT FINAL au DOM
+    msgDiv.appendChild(bubble); 
+    chatWindow.appendChild(msgDiv);
+    chatWindow.scrollTop = chatWindow.scrollHeight;
+
 }
