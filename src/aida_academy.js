@@ -236,94 +236,69 @@ function showSessionReportModal(report) {
 
 // src/aida_academy.js - Modification de renderAcademyStudentDashboard
 
-export async function renderAcademyStudentDashboard() {
-    const page = document.getElementById('student-dashboard-page');
-    changePage('student-dashboard-page'); 
-
-    const scenarios = [prototypeScenario]; // Liste des scénarios disponibles
+async function endScenarioSession(scenario, history) {
+    const spinner = document.getElementById('scenario-spinner');
+    const errorDisplay = document.getElementById('scenario-error');
+    const chatForm = document.getElementById('scenario-chat-form');
     
-    // NOUVEAU: Récupérer les sessions terminées de l'utilisateur
-    const sessions = window.currentUser.academyProgress?.sessions || []; 
-    sessions.sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt)); // Trier par date récente
-
-    let html = `
-        <h2>Bienvenue ${window.currentUser.firstName} sur l'Académie d'Arabe Littéraire ! 📚</h2>
-        <p class="subtitle">Pratiquez l'Arabe Littéraire (Al-Fusha) en immersion totale.</p>
-
-        <h3 style="margin-top: 2rem;">Vos Scénarios d'Immersion</h3>
-        <div class="dashboard-grid">
-    `;
-
-    scenarios.forEach(scen => {
-        html += `
-            <div class="dashboard-card primary-card" data-scenario-id="${scen.id}" style="cursor: pointer;">
-                <h4>${scen.title}</h4>
-                <p>Langue : <strong>${scen.language}</strong></p>
-                <p>Niveau : ${scen.level}</p>
-                <p style="margin-top: 1rem;">Objectif: ${scen.objectives[0]}...</p>
-                <div style="text-align: right; margin-top: 1rem;">
-                    <button class="btn btn-main start-scenario-btn" data-scenario-id="${scen.id}"><i class="fa-solid fa-play"></i> Commencer</button>
-                </div>
-            </div>
-        `;
-    });
+    chatForm.style.pointerEvents = 'none';
+    spinner.classList.remove('hidden');
     
-    html += '</div>';
+    // Le prompt pour forcer le JSON
+    const finalPrompt = { 
+        role: 'user', 
+        content: `La session est terminée. Votre dernière réponse doit être un **JSON valide** contenant le bilan de l'élève. Le JSON doit avoir la structure suivante : 
+        { "summaryTitle": "Bilan de Session", "score": "N/A", "completionStatus": "Completed", "feedback": ["..."], "newVocabulary": [{"word": "...", "translation": "..."}] }
+        Le feedback doit se concentrer sur les erreurs de Grammaire/Vocabulaire Arabe Littéraire observées dans notre conversation. Ne donnez aucune autre réponse que le JSON.`
+    };
+    
+    history.push(finalPrompt);
 
-    // AFFICHAGE DES SESSIONS TERMINÉES
-    if (sessions.length > 0) {
-        html += `
-            <h3 style="margin-top: 3rem;">Historique de vos Sessions (${sessions.length})</h3>
-            <div class="dashboard-grid sessions-grid">
-        `;
-
-        sessions.forEach((session, index) => {
-            const date = new Date(session.completedAt).toLocaleDateString('fr-FR', {
-                day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
-            });
-            const title = (session.report?.summaryTitle || 'Bilan de session');
-            const status = session.report?.completionStatus || 'Terminée';
-            const feedbackPreview = session.report?.feedback[0] || 'Cliquez pour les détails.';
-            
-            html += `
-                <div class="dashboard-card clickable-session" data-session-index="${index}" style="cursor: pointer;">
-                    <p style="font-size: 0.9em; color: var(--text-color-secondary); margin-bottom: 5px;">${date}</p>
-                    <h5 style="color: var(--primary-color);">${title}</h5>
-                    <p style="font-size: 0.9em;">Statut : <strong>${status}</strong></p>
-                    <p style="font-style: italic; margin-top: 10px;">Feedback : ${feedbackPreview}</p>
-                    <div style="text-align: right; margin-top: 1rem;">
-                        <button class="btn btn-secondary view-report-btn" data-session-index="${index}"><i class="fa-solid fa-eye"></i> Voir Rapport</button>
-                    </div>
-                </div>
-            `;
-        });
+    try {
+        // L'IA génère le rapport
+        const response = await apiRequest('/academy/ai/chat', 'POST', { history, response_format: { type: "json_object" } });
         
-        html += '</div>';
-    } else {
-        html += `<p style="margin-top: 2rem; color: var(--text-color-secondary);"><i class="fa-solid fa-info-circle"></i> Aucune session n'a encore été enregistrée.</p>`;
-    }
-    
-    page.innerHTML = html;
-
-    // Gestion de l'événement de clic pour démarrer le scénario
-    page.querySelectorAll('.start-scenario-btn, .dashboard-card.primary-card').forEach(element => {
-        element.addEventListener('click', (e) => {
-            e.stopPropagation();
-            renderScenarioViewer(prototypeScenario);
-        });
-    });
-
-    // Gestion de l'événement de clic pour afficher le rapport de session
-    page.querySelectorAll('.clickable-session, .view-report-btn').forEach(element => {
-        element.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const index = e.currentTarget.dataset.sessionIndex;
-            if (index !== undefined) {
-                const sessionReport = sessions[index].report;
-                showSessionReportModal(sessionReport); // Réutiliser la modal existante
+        history.pop(); 
+        
+        let report;
+        try {
+            // NOUVELLE LOGIQUE DE PARSING ROBUSTE : 
+            // 1. Cherche le premier { et capture tout jusqu'à la fin de la réponse.
+            const jsonString = response.reply.match(/\{[\s\S]*\}/)?.[0];
+            
+            if (!jsonString) {
+                // Si aucune accolade ouvrante n'est trouvée, nous n'avons rien à analyser.
+                throw new Error("Aucun objet JSON structuré n'a pu être détecté dans la réponse de l'IA. Réponse reçue : " + response.reply);
             }
-        });
-    });
+            
+            // 2. Tente de parser la chaîne JSON isolée.
+            report = JSON.parse(jsonString); 
+        } catch(e) {
+            console.error("Erreur critique de parsing JSON du rapport IA:", e, "Réponse brute:", response.reply);
+            report = { summaryTitle: "Bilan Indisponible (Détails en console)", completionStatus: "Erreur", feedback: [`L'IA n'a pas pu générer le rapport structuré. ${e.message}`], newVocabulary: [] };
+        }
+        
+        // Si le rapport a été généré avec succès (ou généré comme erreur par défaut), on essaie de sauvegarder.
+        // 2. Sauvegarder la Session (Backend)
+        try {
+             await apiRequest('/academy/session/save', 'POST', {
+                userId: window.currentUser.id,
+                scenarioId: scenario.id,
+                report: report,
+                fullHistory: history 
+            });
+        } catch (e) {
+            console.warn("Erreur lors de la sauvegarde du bilan (Vérifiez server.js):", e.message);
+        }
+
+        // 3. Afficher le Bilan à l'élève
+        showSessionReportModal(report);
+
+    } catch (err) {
+        errorDisplay.textContent = `Erreur lors de la génération du bilan: ${err.message}`;
+    } finally {
+        spinner.classList.add('hidden');
+    }
 }
 
 // Fonction appendMessage (Logique de découpage des balises)
