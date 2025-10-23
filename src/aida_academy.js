@@ -721,11 +721,3 @@ function renderScenarioViewer(scenario) {
         }
     });
 }
-
-
-// --- 5. Stubs des Autres Dashboards ---
-
-export async function renderAcademyParentDashboard() {
-    // Dans cette version, le Parent voit le même suivi que l'Enseignant pour simplifier
-    await renderAcademyTeacherDashboard();
-}
