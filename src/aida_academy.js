@@ -1,24 +1,22 @@
-// src/aida_academy.js - Logique pour l'Académie MRE (Langues, Voix, Bilan)
+// src/aida_academy.js - Logique pour l'Académie MRE (Arabe Littéraire, Voix PTT, Bilan)
 
 import { changePage, spinnerHtml, apiRequest, renderModal, getModalTemplate } from './utils.js';
 
-// --- Variables d'état vocal pour le module (Globales au module) ---
+// --- Variables d'état vocal pour le module ---
 let recognition;
 let currentAudio = null;
 let currentListenBtn = null; 
 
 
-// --- 1. Scénario de Prototype MRE (Arabe Littéraire) ---
+// --- 1. Scénario de Prototype (Arabe Littéraire - Al-Fusha) ---
 const prototypeScenario = {
     id: 'scen-1',
-    // PARAMÈTRES POUR L'ARABE LITTÉRAIRE (AL-FUSHA)
     title: "Scénario 1 : Commander son petit-déjeuner",
     language: "Arabe Littéraire (Al-Fusha)", 
     level: "Débutant",
-    context: "Vous entrez dans un café a Marrakech. Le serveur vous sourit et vous attend.", 
+    context: "Vous entrez dans un café moderne au Caire. Le serveur vous sourit et vous attend.", 
     characterName: "Le Serveur (النادِل)", 
-    
-    // Le message est en Arabe Littéraire avec les balises d'aide
+    // Message initial structuré pour l'extraction de l'aide
     characterIntro: "صباح الخير، تفضل. ماذا تود أن تطلب اليوم؟ <PHONETIQUE>Sabah al-khayr, tafaddal. Mādhā tawaddu an taṭlub al-yawm?</PHONETIQUE> <TRADUCTION>Bonjour, entrez. Que souhaitez-vous commander aujourd'hui ?</TRADUCTION>",
     objectives: [
         "Demander un thé et un croissant.", 
@@ -40,13 +38,13 @@ function getAcademySystemPrompt(scenario) {
     Tes objectifs clés sont :
     1.  **Incarnation du Personnage** : Maintiens le rôle et le décor.
     2.  **Pédagogie et Soutien** : Les corrections doivent se concentrer sur la **Grammaire et Vocabulaire de l'Arabe Littéraire**.
-    3.  **Suivi des Objectifs** : Les objectifs de l'élève sont : ${scenario.objectives.join(', ')}. Guide la conversation vers l'accomplissement de ces objectifs.
+    3.  **Suivi des Objectifs** : ${scenario.objectives.join(', ')}. Guide la conversation vers l'accomplissement de ces objectifs.
     4.  **Focalisation Fusha** : Concentre les interactions sur l'usage pratique de l'**Arabe Littéraire**.
-    5.  **Format de Réponse** : Réponds toujours en tant que le personnage. Assure-toi que la première ligne du message est la seule chose que l'on verra sans l'aide.`;
+    5.  **Format de Réponse** : Réponds toujours en tant que le personnage.`;
 }
 
 
-// --- 2. Fonctions Vocales (Modifiées pour le Push-to-Talk) ---
+// --- 2. Fonctions Vocales (Push-to-Talk et TTS) ---
 
 function setupSpeechRecognition(micBtn, userInput, chatForm) {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -58,12 +56,11 @@ function setupSpeechRecognition(micBtn, userInput, chatForm) {
     recognition = new SpeechRecognition();
     recognition.lang = 'ar-SA'; 
     recognition.interimResults = false;
-    recognition.continuous = false; // Important: on veut un seul énoncé par pression
+    recognition.continuous = false; 
     
     recognition.onresult = (event) => {
         const transcript = event.results[0][0].transcript;
         userInput.value = transcript;
-        // On laisse l'utilisateur cliquer sur Envoyer pour valider la saisie vocale
     };
     
     recognition.onstart = () => {
@@ -73,33 +70,32 @@ function setupSpeechRecognition(micBtn, userInput, chatForm) {
     
     recognition.onend = () => {
         micBtn.classList.remove('recording');
-        micBtn.innerHTML = '<i class="fa-solid fa-microphone"></i>'; // Icône Micro
+        micBtn.innerHTML = '<i class="fa-solid fa-microphone"></i>'; 
     };
     
     recognition.onerror = (event) => {
         console.error("Erreur de reconnaissance vocale:", event.error);
         micBtn.classList.remove('recording');
         micBtn.innerHTML = '<i class="fa-solid fa-microphone"></i>';
-        // Afficher un message d'erreur à l'utilisateur si besoin
     };
 }
 
 function startListening() {
-    // L'API Web Speech gère les états. Si start() est appelé alors que l'écoute est déjà lancée, 
-    // l'API lève généralement une erreur "already started". Pour être sûr, on utilise recognition.recognizing.
+    // Vérifie l'état interne de l'API avant de lancer
     if (recognition && !recognition.recognizing) {
         recognition.start();
     }
 }
 
 function stopListening() {
-    // Arrête la reconnaissance quand le bouton est relâché (mouseup/touchend).
+    // Stoppe l'écoute si l'utilisateur relâche le bouton
     if (recognition) {
         recognition.stop();
     }
 }
 
 async function togglePlayback(text, buttonEl) {
+    // Logique d'arrêt si déjà en lecture
     if (currentListenBtn === buttonEl) {
         if(currentAudio) currentAudio.pause();
         buttonEl.innerHTML = '<i class="fa-solid fa-volume-high"></i>';
@@ -109,6 +105,7 @@ async function togglePlayback(text, buttonEl) {
         return;
     }
 
+    // Arrêter toute autre lecture en cours
     if (currentAudio) {
         currentAudio.pause();
         if (currentListenBtn) {
@@ -121,8 +118,8 @@ async function togglePlayback(text, buttonEl) {
     buttonEl.innerHTML = `<div class="spinner-dots" style="transform: scale(0.6);"><span></span><span></span><span></span></div>`;
 
     try {
-        // Voix Fusha de haute qualité (WaveNet) pour l'Arabe Littéraire
-        const voice = 'ar-XA-Wavenet-D'; 
+        // Voix Fusha de haute qualité (WaveNet)
+        const voice = 'ar-XA-Wavenet-B'; 
         const rate = 1.0;
         const pitch = 0.0;
 
@@ -153,7 +150,7 @@ async function togglePlayback(text, buttonEl) {
 }
 
 
-// --- 3. Logique de Bilan et de Sauvegarde ---
+// --- 3. Logique de Bilan et de Sauvegarde (avec Parsing Robuste) ---
 
 async function endScenarioSession(scenario, history) {
     const spinner = document.getElementById('scenario-spinner');
@@ -163,6 +160,7 @@ async function endScenarioSession(scenario, history) {
     chatForm.style.pointerEvents = 'none';
     spinner.classList.remove('hidden');
     
+    // Le prompt pour forcer le JSON
     const finalPrompt = { 
         role: 'user', 
         content: `La session est terminée. Votre dernière réponse doit être un **JSON valide** contenant le bilan de l'élève. Le JSON doit avoir la structure suivante : 
@@ -179,10 +177,17 @@ async function endScenarioSession(scenario, history) {
         
         let report;
         try {
-            report = JSON.parse(response.reply); 
+            // LOGIQUE DE PARSING ROBUSTE: Extrait le JSON même si l'IA ajoute du texte ou des balises markdown (```json)
+            const jsonString = response.reply.match(/\{[\s\S]*\}/)?.[0];
+            
+            if (!jsonString) {
+                throw new Error("Aucun objet JSON structuré n'a pu être détecté.");
+            }
+            
+            report = JSON.parse(jsonString); 
         } catch(e) {
-            console.error("Erreur de parsing JSON du rapport IA:", response.reply);
-            report = { summaryTitle: "Bilan Indisponible", completionStatus: "Erreur", feedback: ["L'IA n'a pas pu générer le rapport structuré."], newVocabulary: [] };
+            console.error("Erreur critique de parsing JSON du rapport IA:", e, "Réponse brute:", response.reply);
+            report = { summaryTitle: "Bilan Indisponible (Erreur Critique)", completionStatus: "Erreur", feedback: [`L'IA n'a pas pu générer le rapport structuré. Détails: ${e.message}`], newVocabulary: [] };
         }
         
         // 2. Sauvegarder la Session (Backend)
@@ -232,19 +237,17 @@ function showSessionReportModal(report) {
 }
 
 
-// --- 4. Fonctions de Rendu (Mises à Jour) ---
-
-// src/aida_academy.js - Modification de renderAcademyStudentDashboard
+// --- 4. Fonctions de Rendu du Dashboard (Affichage de l'Historique) ---
 
 export async function renderAcademyStudentDashboard() {
     const page = document.getElementById('student-dashboard-page');
     changePage('student-dashboard-page'); 
 
-    const scenarios = [prototypeScenario]; // Liste des scénarios disponibles
+    const scenarios = [prototypeScenario]; 
     
-    // NOUVEAU: Récupérer les sessions terminées de l'utilisateur
+    // Récupérer les sessions terminées de l'utilisateur
     const sessions = window.currentUser.academyProgress?.sessions || []; 
-    sessions.sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt)); // Trier par date récente
+    sessions.sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt)); 
 
     let html = `
         <h2>Bienvenue ${window.currentUser.firstName} sur l'Académie d'Arabe Littéraire ! 📚</h2>
@@ -476,9 +479,9 @@ function renderScenarioViewer(scenario) {
     setupSpeechRecognition(micBtn, userInput, chatForm); 
     micBtn.addEventListener('mousedown', startListening);
     micBtn.addEventListener('mouseup', stopListening);
-    micBtn.addEventListener('touchstart', startListening); // Pour les appareils tactiles
+    micBtn.addEventListener('touchstart', startListening); 
     micBtn.addEventListener('touchend', stopListening);
-    micBtn.addEventListener('click', (e) => e.preventDefault()); // Empêche le comportement click par défaut
+    micBtn.addEventListener('click', (e) => e.preventDefault()); 
 
 
     endSessionBtn.addEventListener('click', () => endScenarioSession(scenario, history));

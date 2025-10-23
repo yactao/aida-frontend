@@ -516,3 +516,8 @@ body.dark-mode #chat-history {
     color: white !important;
     animation: pulse-red 1.5s infinite; /* Active l'animation */
 }
+/* NOUVELLE RÈGLE pour les messages de l'utilisateur */
+.user-message p {
+    font-size: 1.5em; /* Applique la même taille à la bulle utilisateur */
+    line-height: 1.5; /* Optionnel: assure une bonne lisibilité avec une grande police */
+}
