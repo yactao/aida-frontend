@@ -1,4 +1,4 @@
-// src/aida_academy.js - Logique pour l'Académie MRE (Arabe Littéraire, Voix PTT, Bilan)
+// src/aida_academy.js - Logique complète pour l'Académie d'Arabe Littéraire
 
 import { changePage, spinnerHtml, apiRequest, renderModal, getModalTemplate } from './utils.js';
 
@@ -8,15 +8,32 @@ let currentAudio = null;
 let currentListenBtn = null; 
 
 
-// --- 1. Scénario de Prototype (Arabe Littéraire - Al-Fusha) ---
+// --- 1. Scénarios de Prototype (Arabe Littéraire - Al-Fusha) ---
+
+// Scénario 0 : Répétiteur Vocal (Débutant Absolu)
+const repeaterScenario = {
+    id: 'scen-0',
+    title: "Scénario 0 : Répétiteur Vocal (Phrases de Base)",
+    language: "Arabe Littéraire (Al-Fusha)", 
+    level: "Débutant Absolu",
+    context: "L'IA joue le rôle d'un tuteur amical et patient. Ton objectif est de répéter les phrases pour maîtriser la prononciation et le vocabulaire de base.", 
+    characterName: "Le Répétiteur (المُعِيد)", 
+    characterIntro: "أهلاً بك! هيا نتدرب على النطق. كرر هذه الجملة: أنا بخير. <PHONETIQUE>Ahlan bik! Hayyā natadarab 'alā an-nuṭq. Karrir hādhihi al-jumla: Anā bi-khayr.</PHONETIQUE> <TRADUCTION>Bienvenue ! Entraînons-nous à la prononciation. Répète cette phrase : Je vais bien.</TRADUCTION>",
+    objectives: [
+        "Répéter correctement 'Je vais bien'.",
+        "Répéter correctement 'Merci'.",
+        "Répéter correctement 'Quel est votre nom?'."
+    ]
+};
+
+// Scénario 1 : Conversation Contextuelle (Débutant)
 const prototypeScenario = {
     id: 'scen-1',
     title: "Scénario 1 : Commander son petit-déjeuner",
     language: "Arabe Littéraire (Al-Fusha)", 
     level: "Débutant",
-    context: "Vous entrez dans un café moderne au Caire. Le serveur vous sourit et vous attend.", 
+    context: "Vous entrez dans un café à Marrakech. Le serveur vous sourit et vous attend.", 
     characterName: "Le Serveur (النادِل)", 
-    // Message initial structuré pour l'extraction de l'aide
     characterIntro: "صباح الخير، تفضل. ماذا تود أن تطلب اليوم؟ <PHONETIQUE>Sabah al-khayr, tafaddal. Mādhā tawaddu an taṭlub al-yawm?</PHONETIQUE> <TRADUCTION>Bonjour, entrez. Que souhaitez-vous commander aujourd'hui ?</TRADUCTION>",
     objectives: [
         "Demander un thé et un croissant.", 
@@ -25,10 +42,23 @@ const prototypeScenario = {
     ]
 };
 
+// Liste des scénarios disponibles
+const availableScenarios = [repeaterScenario, prototypeScenario];
+
+
 // Fonction pour définir la personnalité de l'IA (le "system prompt")
 function getAcademySystemPrompt(scenario) {
+    const isRepeaterMode = scenario.id === 'scen-0'; // Détection du mode Répétiteur
+
     return `Tu es un tuteur expert en immersion linguistique. Ton rôle actuel est celui de "${scenario.characterName}" dans le contexte suivant : "${scenario.context}". La conversation doit se dérouler **UNIQUEMENT en Arabe Littéraire (Al-Fusha)**. 
     
+    // Instructions spécifiques au mode Répétiteur
+    ${isRepeaterMode ? 
+        "TON OBJECTIF PRINCIPAL est de fournir une phrase ou un mot, puis d'attendre que l'élève le **répète le plus fidèlement possible**. Tu dois féliciter pour la réussite ('ممتاز!') et encourager pour l'échec ('حاول مجدداً.'). Passe à la phrase cible suivante seulement après la réussite." 
+        : 
+        "Tes objectifs sont de converser et de guider l'élève vers l'accomplissement des objectifs du scénario."
+    }
+
     // INSTRUCTIONS CLÉS POUR LE FORMATAGE et l'IA :
     // 1. Ton message doit commencer par la phrase en Arabe Littéraire.
     // 2. À la suite de la phrase (sur la même ligne), tu dois ajouter la phonétique et la traduction, EN UTILISANT CE FORMAT STRICT:
@@ -36,9 +66,9 @@ function getAcademySystemPrompt(scenario) {
     // 3. N'utilise pas d'autres balises dans ta réponse.
     
     Tes objectifs clés sont :
-    1.  **Incarnation du Personnage** : Maintiens le rôle et le décor.
+    1.  **Incarnation du Personnage** : Maintiens le rôle.
     2.  **Pédagogie et Soutien** : Les corrections doivent se concentrer sur la **Grammaire et Vocabulaire de l'Arabe Littéraire**.
-    3.  **Suivi des Objectifs** : ${scenario.objectives.join(', ')}. Guide la conversation vers l'accomplissement de ces objectifs.
+    3.  **Suivi des Objectifs** : ${scenario.objectives.join(', ')}.
     4.  **Focalisation Fusha** : Concentre les interactions sur l'usage pratique de l'**Arabe Littéraire**.
     5.  **Format de Réponse** : Réponds toujours en tant que le personnage.`;
 }
@@ -81,21 +111,18 @@ function setupSpeechRecognition(micBtn, userInput, chatForm) {
 }
 
 function startListening() {
-    // Vérifie l'état interne de l'API avant de lancer
     if (recognition && !recognition.recognizing) {
         recognition.start();
     }
 }
 
 function stopListening() {
-    // Stoppe l'écoute si l'utilisateur relâche le bouton
     if (recognition) {
         recognition.stop();
     }
 }
 
 async function togglePlayback(text, buttonEl) {
-    // Logique d'arrêt si déjà en lecture
     if (currentListenBtn === buttonEl) {
         if(currentAudio) currentAudio.pause();
         buttonEl.innerHTML = '<i class="fa-solid fa-volume-high"></i>';
@@ -105,7 +132,6 @@ async function togglePlayback(text, buttonEl) {
         return;
     }
 
-    // Arrêter toute autre lecture en cours
     if (currentAudio) {
         currentAudio.pause();
         if (currentListenBtn) {
@@ -118,7 +144,6 @@ async function togglePlayback(text, buttonEl) {
     buttonEl.innerHTML = `<div class="spinner-dots" style="transform: scale(0.6);"><span></span><span></span><span></span></div>`;
 
     try {
-        // Voix Fusha de haute qualité (WaveNet)
         const voice = 'ar-XA-Wavenet-B'; 
         const rate = 1.0;
         const pitch = 0.0;
@@ -177,7 +202,7 @@ async function endScenarioSession(scenario, history) {
         
         let report;
         try {
-            // LOGIQUE DE PARSING ROBUSTE: Extrait le JSON même si l'IA ajoute du texte ou des balises markdown (```json)
+            // LOGIQUE DE PARSING ROBUSTE: Extrait le JSON même si l'IA ajoute du texte ou des balises markdown
             const jsonString = response.reply.match(/\{[\s\S]*\}/)?.[0];
             
             if (!jsonString) {
@@ -243,9 +268,7 @@ export async function renderAcademyStudentDashboard() {
     const page = document.getElementById('student-dashboard-page');
     changePage('student-dashboard-page'); 
 
-    const scenarios = [prototypeScenario]; 
-    
-    // Récupérer les sessions terminées de l'utilisateur
+    // Récupérer les scénarios et les sessions
     const sessions = window.currentUser.academyProgress?.sessions || []; 
     sessions.sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt)); 
 
@@ -257,7 +280,7 @@ export async function renderAcademyStudentDashboard() {
         <div class="dashboard-grid">
     `;
 
-    scenarios.forEach(scen => {
+    availableScenarios.forEach(scen => {
         html += `
             <div class="dashboard-card primary-card" data-scenario-id="${scen.id}" style="cursor: pointer;">
                 <h4>${scen.title}</h4>
@@ -308,22 +331,28 @@ export async function renderAcademyStudentDashboard() {
     
     page.innerHTML = html;
 
-    // Gestion de l'événement de clic pour démarrer le scénario
+    // Gestion du clic pour démarrer le scénario
     page.querySelectorAll('.start-scenario-btn, .dashboard-card.primary-card').forEach(element => {
         element.addEventListener('click', (e) => {
             e.stopPropagation();
-            renderScenarioViewer(prototypeScenario);
+            const scenarioId = e.currentTarget.dataset.scenarioId;
+            const selectedScenario = availableScenarios.find(s => s.id === scenarioId);
+            if (selectedScenario) {
+                renderScenarioViewer(selectedScenario);
+            } else {
+                renderScenarioViewer(prototypeScenario); // Fallback
+            }
         });
     });
 
-    // Gestion de l'événement de clic pour afficher le rapport de session
+    // Gestion du clic pour afficher le rapport de session
     page.querySelectorAll('.clickable-session, .view-report-btn').forEach(element => {
         element.addEventListener('click', (e) => {
             e.stopPropagation();
             const index = e.currentTarget.dataset.sessionIndex;
             if (index !== undefined) {
                 const sessionReport = sessions[index].report;
-                showSessionReportModal(sessionReport); // Réutiliser la modal existante
+                showSessionReportModal(sessionReport);
             }
         });
     });
@@ -349,7 +378,6 @@ const appendMessage = (sender, text, canListen = false) => {
     // --- 1. Détection, Extraction et Remplissage du Contenu ---
     if (isAidaMessage) {
         
-        // --- Extraction de l'Arabe pur (ce qui est avant la première balise) ---
         const firstTagIndex = Math.min(
             text.indexOf('<PHONETIQUE>') > -1 ? text.indexOf('<PHONETIQUE>') : Infinity,
             text.indexOf('<TRADUCTION>') > -1 ? text.indexOf('<TRADUCTION>') : Infinity
@@ -357,18 +385,15 @@ const appendMessage = (sender, text, canListen = false) => {
         const arabicPart = text.substring(0, firstTagIndex).trim();
         textToRead = arabicPart; 
 
-        // --- Extraction de l'aide pour l'affichage masqué ---
         const phoneticMatch = text.match(/<PHONETIQUE>(.*?)<\/PHONETIQUE>/);
         const traductionMatch = text.match(/<TRADUCTION>(.*?)<\/TRADUCTION>/);
         
         if (phoneticMatch) { helpContent += `<p class="help-phonetic">Phonétique: ${phoneticMatch[1].trim()}</p>`; }
         if (traductionMatch) { helpContent += `<p class="help-translation">Traduction: ${traductionMatch[1].trim()}</p>`; }
 
-        // Le texte affiché est UNIQUEMENT la partie en Arabe pur (pour l'immersion)
         displayedText = `<p class="arabic-text-only">${arabicPart}</p>`;
     } 
     
-    // Remplissage de la bulle avec le contenu structuré ou le fallback
     bubble.innerHTML = displayedText;
     
     // Aligner le message
