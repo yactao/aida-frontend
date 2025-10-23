@@ -681,5 +681,10 @@ const appendMessage = (sender, text, canListen = false) => {
     msgDiv.appendChild(bubble); 
     chatWindow.appendChild(msgDiv);
     chatWindow.scrollTop = chatWindow.scrollHeight;
+};
 
+
+// --- 5. Dashboard Parent (Utilise la même logique que l'enseignant) ---
+export async function renderAcademyParentDashboard() {
+    await renderAcademyTeacherDashboard();
 }
