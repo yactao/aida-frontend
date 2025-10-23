@@ -47,7 +47,6 @@ const simulatedStudentsData = [
 
 // Fonction pour définir la personnalité de l'IA (le "system prompt")
 function getAcademySystemPrompt(scenario) {
-    // Détection dynamique du mode Répétiteur par ID pour la logique de prompt
     const isRepeaterMode = scenario.id === 'scen-0'; 
 
     return `Tu es un tuteur expert en immersion linguistique. Ton rôle actuel est celui de "${scenario.characterName}" dans le contexte suivant : "${scenario.context}". La conversation doit se dérouler **UNIQUEMENT en Arabe Littéraire (Al-Fusha)**. 
@@ -261,13 +260,93 @@ function showSessionReportModal(report) {
 }
 
 
-// --- 4. Fonctions de Rendu du Dashboard (Élève et Enseignant) ---
+// --- 4. Outil de Création de Scénarios (pour l'Enseignant) ---
+
+function getScenarioCreatorTemplate() {
+    return `
+        <form id="scenario-creator-form">
+            <div class="form-group">
+                <label for="scen-title">Titre du Scénario</label>
+                <input type="text" id="scen-title" required placeholder="Ex: Commander des légumes au marché">
+            </div>
+            <div class="form-group">
+                <label for="scen-context">Contexte (Pour l'IA)</label>
+                <textarea id="scen-context" rows="2" required placeholder="Ex: Vous êtes un vendeur de fruits et légumes au souk d'Amman."></textarea>
+            </div>
+            <div class="form-group">
+                <label for="scen-objectives">Objectifs de l'Élève (Séparés par une virgule)</label>
+                <input type="text" id="scen-objectives" required placeholder="Ex: Saluer, Demander le prix, Négocier un peu, Dire au revoir">
+            </div>
+            <div class="form-group">
+                <label for="scen-intro">Phrase d'Introduction de l'IA (Doit contenir les balises d'aide)</label>
+                <textarea id="scen-intro" rows="4" required 
+                    placeholder="Ex: أهلاً، ماذا تريد؟ <PHONETIQUE>Ahlan, mādhā turīd?</PHONETIQUE> <TRADUCTION>Bonjour, que voulez-vous ?</TRADUCTION>"></textarea>
+                <small style="color: var(--incorrect-color);">**ATTENTION :** La phrase d'introduction doit contenir les balises &lt;PHONETIQUE&gt; et &lt;TRADUCTION&gt;.</small>
+            </div>
+            
+            <button type="submit" class="btn btn-main" style="width: 100%; margin-top: 1rem;">
+                <i class="fa-solid fa-save"></i> Enregistrer le Scénario
+            </button>
+            <p id="creator-error" class="error-message" style="margin-top: 10px;"></p>
+        </form>
+    `;
+}
+
+function renderScenarioCreatorModal() {
+    const title = "Créer un Nouveau Scénario d'Immersion";
+    const content = getScenarioCreatorTemplate();
+    renderModal(getModalTemplate('scenario-creator-modal', title, content));
+    
+    const form = document.getElementById('scenario-creator-form');
+    const errorDisplay = document.getElementById('creator-error');
+    
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        errorDisplay.textContent = '';
+        const submitBtn = form.querySelector('button[type="submit"]');
+        submitBtn.disabled = true;
+
+        const objectivesArray = document.getElementById('scen-objectives').value
+            .split(',').map(o => o.trim()).filter(o => o.length > 0);
+
+        const newScenarioData = {
+            title: document.getElementById('scen-title').value,
+            context: document.getElementById('scen-context').value,
+            characterIntro: document.getElementById('scen-intro').value,
+            objectives: objectivesArray,
+            language: "Arabe Littéraire (Al-Fusha)", 
+            level: "Personnalisé"
+        };
+        
+        try {
+            // Appel à la nouvelle route de création du Back-End
+            const response = await apiRequest('/academy/scenarios/create', 'POST', newScenarioData);
+            
+            errorDisplay.style.color = 'var(--success-color)';
+            errorDisplay.textContent = `Scénario "${response.scenario.title}" créé! Actualisez le tableau de bord pour le voir.`;
+            
+            // Recharger le dashboard après un petit délai
+            setTimeout(() => {
+                window.modalContainer.innerHTML = '';
+                renderAcademyStudentDashboard(); 
+            }, 1500);
+
+        } catch (err) {
+            errorDisplay.style.color = 'var(--incorrect-color)';
+            errorDisplay.textContent = `Erreur de création: ${err.message}`;
+            submitBtn.disabled = false;
+        }
+    });
+}
+
+
+// --- 5. Fonctions de Rendu du Dashboard (Élève et Enseignant) ---
 
 export async function renderAcademyStudentDashboard() {
     const page = document.getElementById('student-dashboard-page');
     changePage('student-dashboard-page'); 
 
-    // NOUVEAU: Récupération dynamique des scénarios via l'API
+    // Récupération dynamique des scénarios via l'API
     let availableScenarios = [];
     try {
         availableScenarios = await apiRequest('/academy/scenarios', 'GET'); 
@@ -444,8 +523,16 @@ export async function renderAcademyTeacherDashboard() {
     }
 
     let html = `
-        <h2>Tableau de Bord Enseignant / Tuteur 🧑‍🏫</h2>
-        <p class="subtitle">Vue d'ensemble et suivi des progrès de vos élèves en Arabe Littéraire.</p>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+            <div>
+                <h2>Tableau de Bord Enseignant / Tuteur 🧑‍🏫</h2>
+                <p class="subtitle">Vue d'ensemble et suivi des progrès de vos élèves en Arabe Littéraire.</p>
+            </div>
+            
+            <button id="create-scenario-btn" class="btn btn-main" style="white-space: nowrap;">
+                <i class="fa-solid fa-file-circle-plus"></i> Créer un Scénario
+            </button>
+        </div>
 
         <h3 style="margin-top: 2rem;">Vos Élèves (${students.length})</h3>
         <div class="dashboard-grid teacher-grid">
@@ -490,6 +577,9 @@ export async function renderAcademyTeacherDashboard() {
             }
         });
     });
+
+    // NOUVEAU: Listener pour le bouton de création de scénario
+    document.getElementById('create-scenario-btn').addEventListener('click', renderScenarioCreatorModal);
 }
 
 
@@ -684,7 +774,9 @@ const appendMessage = (sender, text, canListen = false) => {
 };
 
 
-// --- 5. Dashboard Parent (Utilise la même logique que l'enseignant) ---
+// --- 6. Dashboard Parent (Utilise la même logique que l'enseignant) ---
+
+// Note: Cette fonction est exportée pour être utilisée par d'autres modules (si le Parent a un rôle)
 export async function renderAcademyParentDashboard() {
     await renderAcademyTeacherDashboard();
 }
