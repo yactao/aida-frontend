@@ -11,11 +11,11 @@ let currentListenBtn = null;
 // --- 1. Scénario de Prototype MRE (Arabe Littéraire) ---
 const prototypeScenario = {
     id: 'scen-1',
-    // CHANGEMENTS POUR L'ARABE LITTÉRAIRE (AL-FUSHA)
+    // PARAMÈTRES POUR L'ARABE LITTÉRAIRE (AL-FUSHA)
     title: "Scénario 1 : Commander son petit-déjeuner",
     language: "Arabe Littéraire (Al-Fusha)", 
     level: "Débutant",
-    context: "Vous entrez dans un café moderne au Caire. Le serveur vous sourit et vous attend.", 
+    context: "Vous entrez dans un café a Marrakech. Le serveur vous sourit et vous attend.", 
     characterName: "Le Serveur (النادِل)", 
     
     // Le message est en Arabe Littéraire avec les balises d'aide
@@ -25,31 +25,30 @@ const prototypeScenario = {
         "Comprendre le prix total.",
         "Dire 'Merci' et 'Au revoir'."
     ]
-    // SUPPRESSION DE voiceCode ici pour éviter le blocage de la connexion.
 };
 
 // Fonction pour définir la personnalité de l'IA (le "system prompt")
 function getAcademySystemPrompt(scenario) {
     return `Tu es un tuteur expert en immersion linguistique. Ton rôle actuel est celui de "${scenario.characterName}" dans le contexte suivant : "${scenario.context}". La conversation doit se dérouler **UNIQUEMENT en Arabe Littéraire (Al-Fusha)**. 
     
-    // NOUVELLES INSTRUCTIONS CLÉS POUR LE FORMATAGE ET LA VOIX :
+    // INSTRUCTIONS CLÉS POUR LE FORMATAGE et l'IA :
     // 1. Ton message doit commencer par la phrase en Arabe Littéraire.
     // 2. À la suite de la phrase (sur la même ligne), tu dois ajouter la phonétique et la traduction, EN UTILISANT CE FORMAT STRICT:
     //    <PHONETIQUE>Ta transcription phonétique</PHONETIQUE> <TRADUCTION>Ta traduction française</TRADUCTION>
     // 3. N'utilise pas d'autres balises dans ta réponse.
     
     Tes objectifs clés sont :
-    1.  **Incarnation du Personnage** : Maintiens le rôle et le décor. Ne romps jamais ton rôle.
-    2.  **Pédagogie et Soutien** : Si l'élève commet une erreur, corrige-la subtilement. Guide-le doucement par une question ou un indice. Les corrections doivent se concentrer sur la **Grammaire et Vocabulaire de l'Arabe Littéraire**.
+    1.  **Incarnation du Personnage** : Maintiens le rôle et le décor.
+    2.  **Pédagogie et Soutien** : Les corrections doivent se concentrer sur la **Grammaire et Vocabulaire de l'Arabe Littéraire**.
     3.  **Suivi des Objectifs** : Les objectifs de l'élève sont : ${scenario.objectives.join(', ')}. Guide la conversation vers l'accomplissement de ces objectifs.
     4.  **Focalisation Fusha** : Concentre les interactions sur l'usage pratique de l'**Arabe Littéraire**.
     5.  **Format de Réponse** : Réponds toujours en tant que le personnage. Assure-toi que la première ligne du message est la seule chose que l'on verra sans l'aide.`;
 }
 
 
-// --- 2. Fonctions Vocales (Pour l'Immersion) ---
+// --- 2. Fonctions Vocales (Modifiées pour le Push-to-Talk) ---
 
-function setupSpeechRecognition(micBtn, userInput) {
+function setupSpeechRecognition(micBtn, userInput, chatForm) {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
         micBtn.disabled = true;
@@ -59,26 +58,41 @@ function setupSpeechRecognition(micBtn, userInput) {
     recognition = new SpeechRecognition();
     recognition.lang = 'ar-SA'; 
     recognition.interimResults = false;
-
+    recognition.continuous = false; // Important: on veut un seul énoncé par pression
+    
     recognition.onresult = (event) => {
         const transcript = event.results[0][0].transcript;
         userInput.value = transcript;
+        // On laisse l'utilisateur cliquer sur Envoyer pour valider la saisie vocale
     };
-    recognition.onstart = () => micBtn.classList.add('recording');
-    recognition.onend = () => micBtn.classList.remove('recording');
+    
+    recognition.onstart = () => {
+        micBtn.classList.add('recording');
+        micBtn.innerHTML = '<i class="fa-solid fa-square"></i>'; // Icône d'enregistrement en cours
+    };
+    
+    recognition.onend = () => {
+        micBtn.classList.remove('recording');
+        micBtn.innerHTML = '<i class="fa-solid fa-microphone"></i>'; // Icône Micro
+    };
+    
     recognition.onerror = (event) => {
         console.error("Erreur de reconnaissance vocale:", event.error);
         micBtn.classList.remove('recording');
-        alert("Erreur micro. Assurez-vous que le micro est autorisé.");
+        micBtn.innerHTML = '<i class="fa-solid fa-microphone"></i>';
+        // Afficher un message d'erreur à l'utilisateur si besoin
     };
 }
 
-function toggleListening(micBtn) {
-    if (!recognition) return;
-    if (micBtn.classList.contains('recording')) {
-        recognition.stop();
-    } else {
+function startListening() {
+    if (recognition && !recognition.classList.contains('recording')) {
         recognition.start();
+    }
+}
+
+function stopListening() {
+    if (recognition && recognition.classList.contains('recording')) {
+        recognition.stop();
     }
 }
 
@@ -104,7 +118,7 @@ async function togglePlayback(text, buttonEl) {
     buttonEl.innerHTML = `<div class="spinner-dots" style="transform: scale(0.6);"><span></span><span></span><span></span></div>`;
 
     try {
-        // UTILISATION DE LA VOIX FUSHA (ARABE LITTÉRAIRE) POUR LA COHÉRENCE
+        // Voix Fusha de haute qualité (WaveNet) pour l'Arabe Littéraire
         const voice = 'ar-XA-Wavenet-D'; 
         const rate = 1.0;
         const pitch = 0.0;
@@ -131,7 +145,7 @@ async function togglePlayback(text, buttonEl) {
         console.error("Erreur lors de la lecture de l'audio neuronal:", error);
         buttonEl.innerHTML = '<i class="fa-solid fa-volume-high"></i>';
         currentListenBtn = null;
-        alert(`Impossible de jouer la voix du Vendeur. Le service est-il configuré?`);
+        alert(`Impossible de jouer la voix du Serveur.`);
     }
 }
 
@@ -282,7 +296,7 @@ const appendMessage = (sender, text, canListen = false) => {
             text.indexOf('<TRADUCTION>') > -1 ? text.indexOf('<TRADUCTION>') : Infinity
         );
         const arabicPart = text.substring(0, firstTagIndex).trim();
-        textToRead = arabicPart; // Seulement l'Arabe pour la voix
+        textToRead = arabicPart; 
 
         // --- Extraction de l'aide pour l'affichage masqué ---
         const phoneticMatch = text.match(/<PHONETIQUE>(.*?)<\/PHONETIQUE>/);
@@ -291,7 +305,7 @@ const appendMessage = (sender, text, canListen = false) => {
         if (phoneticMatch) { helpContent += `<p class="help-phonetic">Phonétique: ${phoneticMatch[1].trim()}</p>`; }
         if (traductionMatch) { helpContent += `<p class="help-translation">Traduction: ${traductionMatch[1].trim()}</p>`; }
 
-        // Le texte affiché est MAINTENANT UNIQUEMENT la partie en Arabe pur (pour l'immersion)
+        // Le texte affiché est UNIQUEMENT la partie en Arabe pur (pour l'immersion)
         displayedText = `<p class="arabic-text-only">${arabicPart}</p>`;
     } 
     
@@ -350,7 +364,7 @@ const appendMessage = (sender, text, canListen = false) => {
 };
 
 
-// Vue pour le chat immersif (Intégration de la VOIX et Bilan)
+// Vue pour le chat immersif (Intégration du Push-to-Talk)
 function renderScenarioViewer(scenario) {
     const p = document.getElementById('content-viewer-page');
     changePage('content-viewer-page');
@@ -364,7 +378,7 @@ function renderScenarioViewer(scenario) {
             <h2>${scenario.title}</h2>
             <p class="subtitle">${scenario.context}</p>
             <p style="font-size: 0.9em; color: var(--primary-color); margin-bottom: 1rem;">
-                <i class="fa-solid fa-microphone-alt"></i> **Mode Vocal Activé.** Parlez avec le micro ou utilisez le clavier.
+                <i class="fa-solid fa-microphone-alt"></i> **Mode Vocal Activé.** Appuyez sur le micro pour enregistrer.
             </p>
 
             <div id="scenario-chat-window" style="height: 400px; overflow-y: auto; padding: 10px; border: 1px solid #ccc; border-radius: 8px; margin-top: 1.5rem; background-color: var(--aida-chat-bg);">
@@ -373,7 +387,7 @@ function renderScenarioViewer(scenario) {
             <form id="scenario-chat-form" style="display: flex; gap: 0.5rem; margin-top: 1rem;">
                 <textarea id="user-scenario-input" placeholder="Parlez en Arabe ou écrivez votre réponse..." rows="2" style="flex-grow: 1; resize: none;"></textarea>
                 
-                <button type="button" id="mic-btn" class="btn-icon" title="Parler">
+                <button type="button" id="mic-btn" class="btn-icon" title="Maintenir enfoncé pour parler">
                     <i class="fa-solid fa-microphone"></i>
                 </button>
 
@@ -402,8 +416,14 @@ function renderScenarioViewer(scenario) {
         renderAcademyStudentDashboard();
     });
 
-    setupSpeechRecognition(micBtn, userInput);
-    micBtn.addEventListener('click', () => toggleListening(micBtn));
+    // Initialisation du Push-to-Talk
+    setupSpeechRecognition(micBtn, userInput, chatForm); 
+    micBtn.addEventListener('mousedown', startListening);
+    micBtn.addEventListener('mouseup', stopListening);
+    micBtn.addEventListener('touchstart', startListening); // Pour les appareils tactiles
+    micBtn.addEventListener('touchend', stopListening);
+    micBtn.addEventListener('click', (e) => e.preventDefault()); // Empêche le comportement click par défaut
+
 
     endSessionBtn.addEventListener('click', () => endScenarioSession(scenario, history));
 
