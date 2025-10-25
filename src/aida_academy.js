@@ -123,12 +123,7 @@ function stopListening() {
 }
 
 async function togglePlayback(text, buttonEl) {
-    // CORRECTION #2: Le texte à lire est l'Arabe pur extrait par appendMessage,
-    // mais pour ne pas refaire le parsing ici, nous allons lire le 'textToRead' stocké.
-    
-    // La fonction appendMessage extrait le texte pur dans 'textToRead' (arabe seulement)
-    // Nous allons refaire l'extraction du texte Arabe Pur ici pour garantir la cohérence
-    
+    // Correction TTS: Extraire le texte Arabe Pur pour la lecture
     let textToRead = text;
     const firstTagIndex = Math.min(
         text.indexOf('<PHONETIQUE>') > -1 ? text.indexOf('<PHONETIQUE>') : Infinity,
@@ -373,6 +368,56 @@ function renderScenarioCreatorModal() {
     });
 }
 
+// --- Nouvelle fonction pour afficher la gestion des scénarios créés par le professeur ---
+async function renderTeacherScenarioManagement(page) {
+    let availableScenarios = [];
+    try {
+        // Récupérer tous les scénarios
+        availableScenarios = await apiRequest('/api/academy/scenarios', 'GET'); 
+    } catch (e) {
+        page.querySelector('.scenario-management-section').innerHTML = `<h3 class="error-message">Erreur : Impossible de charger les scénarios.</h3>`;
+        return;
+    }
+    
+    // Filtrage: Ne montrer que les scénarios custom créés par l'enseignant
+    // NOTE: Actuellement, nous filtrons par ID pour exclure les prototypes 'scen-0' et 'scen-1'
+    const customScenarios = availableScenarios.filter(s => s.id.startsWith('scen-') && s.id !== 'scen-0' && s.id !== 'scen-1');
+
+    let html = `
+        <h3>Gestion des Scénarios Personnalisés (${customScenarios.length})</h3>
+        <p class="subtitle">Assignez ces scénarios à vos élèves pour les rendre disponibles sur leur tableau de bord.</p>
+        
+        <div class="dashboard-grid scenario-management-grid" style="margin-top: 1rem;">
+    `;
+
+    if (customScenarios.length === 0) {
+        html += `<p style="margin-top: 1rem; color: var(--text-color-secondary);">Aucun scénario créé. Utilisez le bouton "Créer un Scénario" ci-dessus.</p>`;
+    } else {
+        customScenarios.forEach(scen => {
+            // Affichage de l'aperçu du scénario (sans bouton "Commencer" pour le prof)
+            const introPreview = scen.characterIntro.replace(/<PHONETIQUE>.*?<\/PHONETIQUE>|<TRADUCTION>.*?<\/TRADUCTION>/g, '').trim();
+            
+            html += `
+                <div class="dashboard-card" data-scenario-id="${scen.id}" style="border-left: 5px solid var(--warning-color);">
+                    <h4>${scen.title}</h4>
+                    <p>Niveau: <strong>${scen.level}</strong></p>
+                    <p style="font-size: 0.9em; margin-top: 10px;">Intro: ${introPreview.substring(0, 50)}...</p>
+                    <div style="text-align: right; margin-top: 1rem;">
+                        <button class="btn btn-secondary view-scenario-details-btn" data-scenario-id="${scen.id}">
+                            <i class="fa-solid fa-user-plus"></i> Détails / Assignation
+                        </button>
+                    </div>
+                </div>
+            `;
+        });
+    }
+    
+    html += '</div>';
+    
+    page.querySelector('.scenario-management-section').innerHTML = html;
+    
+    // NOTE: Ajouter ici les listeners pour l'assignation si vous créez cette fonctionnalité.
+}
 
 // --- 5. Fonctions de Rendu du Dashboard (Élève et Enseignant) ---
 
@@ -541,7 +586,7 @@ function renderTeacherStudentDetail(student) {
     });
 }
 
-// Rendu du Dashboard Enseignant (Corrigé pour ne plus lancer le scénario)
+// Rendu du Dashboard Enseignant (Corrigé pour ne plus lancer le scénario + Ajout de la section gestion)
 export async function renderAcademyTeacherDashboard() {
     const page = document.getElementById('teacher-dashboard-page');
     changePage('teacher-dashboard-page'); 
@@ -568,6 +613,9 @@ export async function renderAcademyTeacherDashboard() {
                 <i class="fa-solid fa-file-circle-plus"></i> Créer un Scénario
             </button>
         </div>
+        
+        <div class="scenario-management-section">
+            </div>
 
         <h3 style="margin-top: 2rem;">Vos Élèves (${students.length})</h3>
         <div class="dashboard-grid teacher-grid">
@@ -597,11 +645,13 @@ export async function renderAcademyTeacherDashboard() {
                 </div>
             </div>
         `;
-        // CORRECTION #3: Le professeur ne voit pas la carte de scénario cliquable pour jouer
     });
     
     html += '</div>';
     page.innerHTML = html;
+
+    // PLACEMENT CRITIQUE: Charger la section de gestion des scénarios ici
+    await renderTeacherScenarioManagement(page); 
 
     // Listeners pour voir le détail de l'élève
     page.querySelectorAll('.view-student-btn, .student-card').forEach(element => {
@@ -754,15 +804,13 @@ const appendMessage = (sender, text, canListen = false) => {
         if (phoneticMatch) { helpContent += `<p class="help-phonetic">Phonétique: ${phoneticMatch[1].trim()}</p>`; }
         if (traductionMatch) { helpContent += `<p class="help-translation">Traduction: ${traductionMatch[1].trim()}</p>`; }
 
-        // CORRECTION #1: Le texte affiché est UNIQUEMENT la partie en Arabe pur (pour l'immersion)
-        // CORRECTION #2: Utiliser un <p> pour appliquer la taille de police CSS
+        // Correction de la régression de l'aide
         displayedText = `<p class="arabic-text-only">${arabicPart}</p>`;
     } else if (sender === 'user') {
-         // CORRECTION #2: S'assurer que le texte utilisateur est aussi dans un <p> pour le style 1.5em
+        // Correction de la régression de la taille de police utilisateur
         displayedText = `<p>${text}</p>`;
     }
     
-    // Remplissage de la bulle avec le contenu structuré ou le fallback
     bubble.innerHTML = displayedText;
     
     // Aligner le message
@@ -783,7 +831,6 @@ const appendMessage = (sender, text, canListen = false) => {
         listenBtn.className = 'btn-icon';
         listenBtn.innerHTML = '<i class="fa-solid fa-volume-high"></i>';
         listenBtn.title = 'Écouter la réponse (Arabe Littéraire)';
-        // CORRECTION #1 (Partie 2): On passe le TEXTE COMPLET à togglePlayback, qui fera lui-même l'extraction de l'Arabe pur
         listenBtn.onclick = () => togglePlayback(text, listenBtn);  
         bubble.appendChild(listenBtn);
 
