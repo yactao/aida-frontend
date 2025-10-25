@@ -8,7 +8,6 @@ let currentAudio = null;
 let currentListenBtn = null; 
 
 // --- SIMULATION DE DONNÉES ÉLÈVES POUR LE DASHBOARD ENSEIGNANT (Maintenu ici pour le test) ---
-// Ces données sont des MOCKS pour le dashboard Enseignant.
 const simulatedStudentsData = [
     { 
         id: 'student-A', 
@@ -124,6 +123,21 @@ function stopListening() {
 }
 
 async function togglePlayback(text, buttonEl) {
+    // CORRECTION #2: Le texte à lire est l'Arabe pur extrait par appendMessage,
+    // mais pour ne pas refaire le parsing ici, nous allons lire le 'textToRead' stocké.
+    
+    // La fonction appendMessage extrait le texte pur dans 'textToRead' (arabe seulement)
+    // Nous allons refaire l'extraction du texte Arabe Pur ici pour garantir la cohérence
+    
+    let textToRead = text;
+    const firstTagIndex = Math.min(
+        text.indexOf('<PHONETIQUE>') > -1 ? text.indexOf('<PHONETIQUE>') : Infinity,
+        text.indexOf('<TRADUCTION>') > -1 ? text.indexOf('<TRADUCTION>') : Infinity
+    );
+    if (firstTagIndex !== Infinity) {
+        textToRead = text.substring(0, firstTagIndex).trim();
+    }
+    
     if (currentListenBtn === buttonEl) {
         if(currentAudio) currentAudio.pause();
         buttonEl.innerHTML = '<i class="fa-solid fa-volume-high"></i>';
@@ -149,8 +163,7 @@ async function togglePlayback(text, buttonEl) {
         const rate = 1.0;
         const pitch = 0.0;
 
-        // La route utilise maintenant l'API de synthèse vocale (Google TTS ou Azure Speech)
-        const response = await apiRequest('/api/ai/synthesize-speech', 'POST', { text, voice, rate, pitch });
+        const response = await apiRequest('/api/ai/synthesize-speech', 'POST', { text: textToRead, voice, rate, pitch });
         
         const audioBlob = await (await fetch(`data:audio/mp3;base64,${response.audioContent}`)).blob(); 
         const audioUrl = URL.createObjectURL(audioBlob);
@@ -197,7 +210,6 @@ async function endScenarioSession(scenario, history) {
     history.push(finalPrompt);
 
     try {
-        // La route utilise la route d'API standard de l'Académie
         const response = await apiRequest('/api/academy/ai/chat', 'POST', { history, response_format: { type: "json_object" } });
         
         history.pop(); 
@@ -340,17 +352,14 @@ function renderScenarioCreatorModal() {
             objectives: objectivesArray,
             language: "Arabe Littéraire (Al-Fusha)", 
             level: "Personnalisé"
-            // L'ID est généré côté serveur
         };
         
         try {
-            // Appel à la route de création du Back-End (qui enregistre dans Cosmos DB)
             const response = await apiRequest('/api/academy/scenarios/create', 'POST', newScenarioData);
             
             errorDisplay.style.color = 'var(--success-color)';
             errorDisplay.textContent = `Scénario "${response.scenario.title}" créé! Actualisation...`;
             
-            // Recharger le dashboard pour que la nouvelle liste (dynamique) soit visible
             setTimeout(() => {
                 window.modalContainer.innerHTML = '';
                 renderAcademyStudentDashboard(); 
@@ -532,7 +541,7 @@ function renderTeacherStudentDetail(student) {
     });
 }
 
-// Rendu du Dashboard Enseignant
+// Rendu du Dashboard Enseignant (Corrigé pour ne plus lancer le scénario)
 export async function renderAcademyTeacherDashboard() {
     const page = document.getElementById('teacher-dashboard-page');
     changePage('teacher-dashboard-page'); 
@@ -588,11 +597,13 @@ export async function renderAcademyTeacherDashboard() {
                 </div>
             </div>
         `;
+        // CORRECTION #3: Le professeur ne voit pas la carte de scénario cliquable pour jouer
     });
     
     html += '</div>';
     page.innerHTML = html;
 
+    // Listeners pour voir le détail de l'élève
     page.querySelectorAll('.view-student-btn, .student-card').forEach(element => {
         element.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -722,7 +733,6 @@ const appendMessage = (sender, text, canListen = false) => {
     
     
     let displayedText = text.replace(/\n/g, '<br>');
-    let textToRead = text; 
     let helpContent = ''; 
     let isAidaMessage = sender === 'aida' && (text.includes('<PHONETIQUE>') || text.includes('<TRADUCTION>'));
 
@@ -730,22 +740,29 @@ const appendMessage = (sender, text, canListen = false) => {
     // --- 1. Détection, Extraction et Remplissage du Contenu ---
     if (isAidaMessage) {
         
+        // Trouver la partie Arabe pure (ce qui est avant la première balise)
         const firstTagIndex = Math.min(
             text.indexOf('<PHONETIQUE>') > -1 ? text.indexOf('<PHONETIQUE>') : Infinity,
             text.indexOf('<TRADUCTION>') > -1 ? text.indexOf('<TRADUCTION>') : Infinity
         );
         const arabicPart = text.substring(0, firstTagIndex).trim();
-        textToRead = arabicPart; 
 
+        // Extraction de l'aide
         const phoneticMatch = text.match(/<PHONETIQUE>(.*?)<\/PHONETIQUE>/);
         const traductionMatch = text.match(/<TRADUCTION>(.*?)<\/TRADUCTION>/);
         
         if (phoneticMatch) { helpContent += `<p class="help-phonetic">Phonétique: ${phoneticMatch[1].trim()}</p>`; }
         if (traductionMatch) { helpContent += `<p class="help-translation">Traduction: ${traductionMatch[1].trim()}</p>`; }
 
+        // CORRECTION #1: Le texte affiché est UNIQUEMENT la partie en Arabe pur (pour l'immersion)
+        // CORRECTION #2: Utiliser un <p> pour appliquer la taille de police CSS
         displayedText = `<p class="arabic-text-only">${arabicPart}</p>`;
-    } 
+    } else if (sender === 'user') {
+         // CORRECTION #2: S'assurer que le texte utilisateur est aussi dans un <p> pour le style 1.5em
+        displayedText = `<p>${text}</p>`;
+    }
     
+    // Remplissage de la bulle avec le contenu structuré ou le fallback
     bubble.innerHTML = displayedText;
     
     // Aligner le message
@@ -766,7 +783,8 @@ const appendMessage = (sender, text, canListen = false) => {
         listenBtn.className = 'btn-icon';
         listenBtn.innerHTML = '<i class="fa-solid fa-volume-high"></i>';
         listenBtn.title = 'Écouter la réponse (Arabe Littéraire)';
-        listenBtn.onclick = () => togglePlayback(textToRead, listenBtn); 
+        // CORRECTION #1 (Partie 2): On passe le TEXTE COMPLET à togglePlayback, qui fera lui-même l'extraction de l'Arabe pur
+        listenBtn.onclick = () => togglePlayback(text, listenBtn);  
         bubble.appendChild(listenBtn);
 
 
