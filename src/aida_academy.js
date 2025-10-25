@@ -8,6 +8,7 @@ let currentAudio = null;
 let currentListenBtn = null; 
 
 // --- SIMULATION DE DONNÉES ÉLÈVES POUR LE DASHBOARD ENSEIGNANT (Maintenu ici pour le test) ---
+// Ces données sont des MOCKS pour le dashboard Enseignant.
 const simulatedStudentsData = [
     { 
         id: 'student-A', 
@@ -144,11 +145,11 @@ async function togglePlayback(text, buttonEl) {
     buttonEl.innerHTML = `<div class="spinner-dots" style="transform: scale(0.6);"><span></span><span></span><span></span></div>`;
 
     try {
-        // La voix Arabe Fusha est maintenant gérée par le Back-End TTS
         const voice = 'ar-XA-Wavenet-B'; 
         const rate = 1.0;
         const pitch = 0.0;
 
+        // La route utilise maintenant l'API de synthèse vocale (Google TTS ou Azure Speech)
         const response = await apiRequest('/api/ai/synthesize-speech', 'POST', { text, voice, rate, pitch });
         
         const audioBlob = await (await fetch(`data:audio/mp3;base64,${response.audioContent}`)).blob(); 
@@ -196,13 +197,14 @@ async function endScenarioSession(scenario, history) {
     history.push(finalPrompt);
 
     try {
+        // La route utilise la route d'API standard de l'Académie
         const response = await apiRequest('/api/academy/ai/chat', 'POST', { history, response_format: { type: "json_object" } });
         
         history.pop(); 
         
         let report;
         try {
-            // LOGIQUE DE PARSING ROBUSTE: Extrait le JSON même si l'IA ajoute du texte ou des balises markdown
+            // LOGIQUE DE PARSING ROBUSTE: Extrait le JSON
             const jsonString = response.reply.match(/\{[\s\S]*\}/)?.[0];
             
             if (!jsonString) {
@@ -317,7 +319,6 @@ function renderScenarioCreatorModal() {
         } else {
             warningText.textContent = "**ATTENTION :** La phrase d'introduction doit contenir les balises <PHONETIQUE> et <TRADUCTION>.";
             warningText.style.color = 'var(--incorrect-color)'; 
-            // On laisse l'utilisateur soumettre même avec l'erreur pour la flexibilité, mais c'est risqué.
         }
     }
 
@@ -339,11 +340,11 @@ function renderScenarioCreatorModal() {
             objectives: objectivesArray,
             language: "Arabe Littéraire (Al-Fusha)", 
             level: "Personnalisé"
-            // Note: L'ID est généré côté serveur.
+            // L'ID est généré côté serveur
         };
         
         try {
-            // Appel à la nouvelle route de création du Back-End
+            // Appel à la route de création du Back-End (qui enregistre dans Cosmos DB)
             const response = await apiRequest('/api/academy/scenarios/create', 'POST', newScenarioData);
             
             errorDisplay.style.color = 'var(--success-color)';
@@ -370,7 +371,7 @@ export async function renderAcademyStudentDashboard() {
     const page = document.getElementById('student-dashboard-page');
     changePage('student-dashboard-page'); 
 
-    // Récupération dynamique des scénarios via l'API (maintenant depuis la DB)
+    // Récupération dynamique des scénarios via l'API (depuis la DB)
     let availableScenarios = [];
     try {
         availableScenarios = await apiRequest('/api/academy/scenarios', 'GET'); 
@@ -551,7 +552,7 @@ export async function renderAcademyTeacherDashboard() {
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
             <div>
                 <h2>Tableau de Bord Enseignant / Tuteur 🧑‍🏫</h2>
-                <p class="subtitle">Vue d'ensemble et suivi des progrès de vos élèves en Arabe Littéraire.</p>
+                <p class="subtitle">Vue d'overview et suivi des progrès de vos élèves en Arabe Littéraire.</p>
             </div>
             
             <button id="create-scenario-btn" class="btn btn-main" style="white-space: nowrap;">
@@ -603,7 +604,7 @@ export async function renderAcademyTeacherDashboard() {
         });
     });
 
-    // NOUVEAU: Listener pour le bouton de création de scénario
+    // Listener pour le bouton de création de scénario
     document.getElementById('create-scenario-btn').addEventListener('click', renderScenarioCreatorModal);
 }
 
