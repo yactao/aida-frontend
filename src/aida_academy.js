@@ -47,6 +47,7 @@ const simulatedStudentsData = [
 
 // Fonction pour définir la personnalité de l'IA (le "system prompt")
 function getAcademySystemPrompt(scenario) {
+    // Détection dynamique du mode Répétiteur par ID pour la logique de prompt
     const isRepeaterMode = scenario.id === 'scen-0'; 
 
     return `Tu es un tuteur expert en immersion linguistique. Ton rôle actuel est celui de "${scenario.characterName}" dans le contexte suivant : "${scenario.context}". La conversation doit se dérouler **UNIQUEMENT en Arabe Littéraire (Al-Fusha)**. 
@@ -143,11 +144,12 @@ async function togglePlayback(text, buttonEl) {
     buttonEl.innerHTML = `<div class="spinner-dots" style="transform: scale(0.6);"><span></span><span></span><span></span></div>`;
 
     try {
+        // La voix Arabe Fusha est maintenant gérée par le Back-End TTS
         const voice = 'ar-XA-Wavenet-B'; 
         const rate = 1.0;
         const pitch = 0.0;
 
-        const response = await apiRequest('/ai/synthesize-speech', 'POST', { text, voice, rate, pitch });
+        const response = await apiRequest('/api/ai/synthesize-speech', 'POST', { text, voice, rate, pitch });
         
         const audioBlob = await (await fetch(`data:audio/mp3;base64,${response.audioContent}`)).blob(); 
         const audioUrl = URL.createObjectURL(audioBlob);
@@ -169,7 +171,7 @@ async function togglePlayback(text, buttonEl) {
         console.error("Erreur lors de la lecture de l'audio neuronal:", error);
         buttonEl.innerHTML = '<i class="fa-solid fa-volume-high"></i>';
         currentListenBtn = null;
-        alert(`Impossible de jouer la voix du Serveur.`);
+        alert(`Impossible de jouer la voix du Serveur. Erreur: ${error.message}`);
     }
 }
 
@@ -194,7 +196,7 @@ async function endScenarioSession(scenario, history) {
     history.push(finalPrompt);
 
     try {
-        const response = await apiRequest('/academy/ai/chat', 'POST', { history, response_format: { type: "json_object" } });
+        const response = await apiRequest('/api/academy/ai/chat', 'POST', { history, response_format: { type: "json_object" } });
         
         history.pop(); 
         
@@ -215,7 +217,7 @@ async function endScenarioSession(scenario, history) {
         
         // 2. Sauvegarder la Session (Backend)
         try {
-             await apiRequest('/academy/session/save', 'POST', {
+             await apiRequest('/api/academy/session/save', 'POST', {
                 userId: window.currentUser.id,
                 scenarioId: scenario.id,
                 report: report,
@@ -281,7 +283,7 @@ function getScenarioCreatorTemplate() {
                 <label for="scen-intro">Phrase d'Introduction de l'IA (Doit contenir les balises d'aide)</label>
                 <textarea id="scen-intro" rows="4" required 
                     placeholder="Ex: أهلاً، ماذا تريد؟ <PHONETIQUE>Ahlan, mādhā turīd?</PHONETIQUE> <TRADUCTION>Bonjour, que voulez-vous ?</TRADUCTION>"></textarea>
-                <small style="color: var(--incorrect-color);">**ATTENTION :** La phrase d'introduction doit contenir les balises &lt;PHONETIQUE&gt; et &lt;TRADUCTION&gt;.</small>
+                <small id="intro-warning" style="color: var(--incorrect-color);">**ATTENTION :** La phrase d'introduction doit contenir les balises &lt;PHONETIQUE&gt; et &lt;TRADUCTION&gt;.</small>
             </div>
             
             <button type="submit" class="btn btn-main" style="width: 100%; margin-top: 1rem;">
@@ -299,11 +301,32 @@ function renderScenarioCreatorModal() {
     
     const form = document.getElementById('scenario-creator-form');
     const errorDisplay = document.getElementById('creator-error');
-    
+    const introField = document.getElementById('scen-intro');
+    const warningText = document.getElementById('intro-warning');
+    const submitBtn = form.querySelector('button[type="submit"]');
+
+    function validateIntroFormat() {
+        const text = introField.value;
+        const hasPhonetic = text.includes('<PHONETIQUE>') && text.includes('</PHONETIQUE>');
+        const hasTranslation = text.includes('<TRADUCTION>') && text.includes('</TRADUCTION>');
+        
+        if (hasPhonetic && hasTranslation) {
+            warningText.textContent = "Format du message d'introduction validé. 👍";
+            warningText.style.color = 'var(--success-color)';
+            submitBtn.disabled = false;
+        } else {
+            warningText.textContent = "**ATTENTION :** La phrase d'introduction doit contenir les balises <PHONETIQUE> et <TRADUCTION>.";
+            warningText.style.color = 'var(--incorrect-color)'; 
+            // On laisse l'utilisateur soumettre même avec l'erreur pour la flexibilité, mais c'est risqué.
+        }
+    }
+
+    introField.addEventListener('input', validateIntroFormat);
+    validateIntroFormat();
+
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
         errorDisplay.textContent = '';
-        const submitBtn = form.querySelector('button[type="submit"]');
         submitBtn.disabled = true;
 
         const objectivesArray = document.getElementById('scen-objectives').value
@@ -316,16 +339,17 @@ function renderScenarioCreatorModal() {
             objectives: objectivesArray,
             language: "Arabe Littéraire (Al-Fusha)", 
             level: "Personnalisé"
+            // Note: L'ID est généré côté serveur.
         };
         
         try {
             // Appel à la nouvelle route de création du Back-End
-            const response = await apiRequest('/academy/scenarios/create', 'POST', newScenarioData);
+            const response = await apiRequest('/api/academy/scenarios/create', 'POST', newScenarioData);
             
             errorDisplay.style.color = 'var(--success-color)';
-            errorDisplay.textContent = `Scénario "${response.scenario.title}" créé! Actualisez le tableau de bord pour le voir.`;
+            errorDisplay.textContent = `Scénario "${response.scenario.title}" créé! Actualisation...`;
             
-            // Recharger le dashboard après un petit délai
+            // Recharger le dashboard pour que la nouvelle liste (dynamique) soit visible
             setTimeout(() => {
                 window.modalContainer.innerHTML = '';
                 renderAcademyStudentDashboard(); 
@@ -346,10 +370,10 @@ export async function renderAcademyStudentDashboard() {
     const page = document.getElementById('student-dashboard-page');
     changePage('student-dashboard-page'); 
 
-    // Récupération dynamique des scénarios via l'API
+    // Récupération dynamique des scénarios via l'API (maintenant depuis la DB)
     let availableScenarios = [];
     try {
-        availableScenarios = await apiRequest('/academy/scenarios', 'GET'); 
+        availableScenarios = await apiRequest('/api/academy/scenarios', 'GET'); 
     } catch (e) {
         console.error("Erreur lors du chargement des scénarios:", e);
         page.innerHTML = `<h2>Erreur de Connexion</h2><p class="error-message">Impossible de charger la liste des scénarios. Vérifiez la connexion API du Back-End.</p>`;
@@ -368,13 +392,14 @@ export async function renderAcademyStudentDashboard() {
         <div class="dashboard-grid">
     `;
 
+    // Affichage des scénarios chargés dynamiquement
     availableScenarios.forEach(scen => {
         html += `
             <div class="dashboard-card primary-card" data-scenario-id="${scen.id}" style="cursor: pointer;">
                 <h4>${scen.title}</h4>
                 <p>Langue : <strong>${scen.language}</strong></p>
                 <p>Niveau : ${scen.level}</p>
-                <p style="margin-top: 1rem;">Objectif: ${scen.objectives[0]}...</p>
+                <p style="margin-top: 1rem;">Objectif: ${scen.objectives?.[0] || 'Objectif non spécifié'}...</p>
                 <div style="text-align: right; margin-top: 1rem;">
                     <button class="btn btn-main start-scenario-btn" data-scenario-id="${scen.id}"><i class="fa-solid fa-play"></i> Commencer</button>
                 </div>
@@ -668,7 +693,7 @@ function renderScenarioViewer(scenario) {
         history.push({ role: 'user', content: message });
 
         try {
-            const response = await apiRequest('/academy/ai/chat', 'POST', { history });
+            const response = await apiRequest('/api/academy/ai/chat', 'POST', { history });
             
             const aidaResponse = response.reply;
             appendMessage('aida', aidaResponse, true); 
@@ -776,7 +801,6 @@ const appendMessage = (sender, text, canListen = false) => {
 
 // --- 6. Dashboard Parent (Utilise la même logique que l'enseignant) ---
 
-// Note: Cette fonction est exportée pour être utilisée par d'autres modules (si le Parent a un rôle)
 export async function renderAcademyParentDashboard() {
     await renderAcademyTeacherDashboard();
 }
