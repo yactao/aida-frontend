@@ -1490,8 +1490,9 @@ async function loadLibraryContents() {
     const subject = document.getElementById('library-subject-filter').value;
     
     try {
-        // CORRECTION: L'API doit être disponible sur le Back-End pour que cette route fonctionne.
-        const results = await apiRequest('/library?searchTerm=${searchTerm}&subject=${subject}');
+        // CORRECTION : Vous devez utiliser des BACKTICKS (``) ici, PAS des guillemets ("")
+        const results = await apiRequest(`/library?searchTerm=${searchTerm}&subject=${subject}`);
+        
         grid.innerHTML = '';
         if (results.length === 0) {
             grid.innerHTML = '<p>Aucun contenu trouvé. Essayez d\'autres mots-clés ou partagez le vôtre !</p>';
