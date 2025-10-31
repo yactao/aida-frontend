@@ -571,7 +571,7 @@ function showValidatedResultModal(result, content) {
                 </div>`;
         });
     } else {
-         detailsHtml = `<p>Le détail des réponses n'est pas disponible pour ce devoir.</p>`;
+         detailsHtml = `<p>Le détail des réponses n'est pas disponible pour ce type de devoir.</p>`;
     }
 
     let feedbackHtml = `
@@ -1233,6 +1233,11 @@ async function handleSubmitQuiz(c) {
             studentEmail: window.currentUser.email, classId: c.classId, contentId: c.id, title: c.title, 
             score, totalQuestions: c.questions.length, answers, helpUsed: helpUsedInQuiz, teacherEmail: c.teacherEmail
         }); 
+
+        // CORRECTION : Réafficher le lien Espace de Travail du header
+        const headerWorkspaceLink = document.getElementById('workspace-link');
+        if (headerWorkspaceLink) headerWorkspaceLink.classList.remove('hidden');
+        
         renderStudentDashboard();
     } catch (error) {
         alert("Erreur lors de la soumission: " + error.message);
@@ -1241,6 +1246,10 @@ async function handleSubmitQuiz(c) {
 
 function renderContentViewer(c) {
     const p = document.getElementById('content-viewer-page');
+    
+    // CORRECTION : Masquer le bouton Espace de Travail du Header
+    const headerWorkspaceLink = document.getElementById('workspace-link');
+    if (headerWorkspaceLink) headerWorkspaceLink.classList.add('hidden');
     
     // Mise à jour de la session pour la barre d'alerte (si elle est utilisée)
     if (c.isEvaluated) {
@@ -1293,8 +1302,8 @@ function renderContentViewer(c) {
              // Bouton d'aide MODAL général pour DM évalué
              footerHtml += `<button type="button" id="open-aida-help-btn" class="btn btn-secondary" style="margin-right: auto;"><i class="fa-solid fa-lightbulb"></i> Obtenir de l'aide</button>`;
         } else {
-             // Bouton Espace de Travail pour les exercices non évalués
-             footerHtml += `<a href="playground.html" target="_blank" class="btn btn-secondary" style="margin-right: auto;"><i class="fa-solid fa-pen-ruler"></i> Espace de Travail</a>`;
+             // CORRECTION : Bouton Espace de Travail pour les exercices non évalués SUPPRIMÉ
+             // footerHtml += `<a href="playground.html" target="_blank" class="btn btn-secondary" style="margin-right: auto;"><i class="fa-solid fa-pen-ruler"></i> Espace de Travail</a>`;
         }
         footerHtml += `<button type="submit" class="btn btn-main"><i class="fa-solid fa-paper-plane"></i> Soumettre le devoir</button>`;
     } else { 
@@ -1314,6 +1323,11 @@ function renderContentViewer(c) {
     const backBtn = p.querySelector('#back-to-student');
     backBtn.addEventListener('click', () => {
         sessionStorage.removeItem('isEvaluatedSession');
+        
+        // CORRECTION : Réafficher le lien Espace de Travail du header
+        const headerWorkspaceLink = document.getElementById('workspace-link');
+        if (headerWorkspaceLink) headerWorkspaceLink.classList.remove('hidden');
+        
         renderStudentDashboard();
     });
 
@@ -1350,6 +1364,11 @@ function renderContentViewer(c) {
                         studentEmail: window.currentUser.email, classId: c.classId, contentId: c.id, 
                         title: c.title, score: 0, totalQuestions: 0, answers: [], helpUsed: false, teacherEmail: c.teacherEmail
                     });
+                    
+                    // CORRECTION : Réafficher le lien Espace de Travail du header
+                    const headerWorkspaceLink = document.getElementById('workspace-link');
+                    if (headerWorkspaceLink) headerWorkspaceLink.classList.remove('hidden');
+        
                     renderStudentDashboard();
                 } catch (error) {
                     alert("Erreur lors de la soumission: " + error.message);
@@ -1377,6 +1396,11 @@ async function handleSubmitNonQuiz(c) {
             helpUsed: helpUsedInHomework, 
             teacherEmail: c.teacherEmail
         });
+        
+        // CORRECTION : Réafficher le lien Espace de Travail du header
+        const headerWorkspaceLink = document.getElementById('workspace-link');
+        if (headerWorkspaceLink) headerWorkspaceLink.classList.remove('hidden');
+        
         renderStudentDashboard();
     } catch (error) {
         alert("Erreur lors de la soumission: " + error.message);
