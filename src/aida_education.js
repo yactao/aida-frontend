@@ -8,11 +8,11 @@ import {
     spinnerHtml, 
     getSubjectInfo, 
     getAppreciationText,
-    showAidaHelpModal // <--- DÉPENDANCE IMPORTÉE
+    showAidaHelpModal 
 } from './utils.js';
 import { updateUI } from './ui_utils.js';
 
-// --- Variables d'État Locales (Globales au module) ---
+// --- Variables d'État Locales ---
 let teacherClasses = [];
 let generatedContent = null;
 let currentClassData = null;
@@ -46,7 +46,7 @@ function resetSelects(selects) {
 
 // --- 1. FONCTIONS ENSEIGNANT (Dashboard, Classes, Corrections, Génération) ---
 
-export async function renderTeacherDashboard() {
+export async function renderTeacherDashboard() { // EXPORT CORRIGÉ
     const p = document.getElementById('teacher-dashboard-page');
     p.innerHTML = `
         <div class="page-header">
@@ -133,6 +133,7 @@ export async function renderTeacherDashboard() {
     }
 }
 
+// NOTE: showCreateClassModal n'a pas besoin d'export car elle est appelée par renderTeacherDashboard
 async function showCreateClassModal() { 
     renderModal(getModalTemplate('create-class-modal', 'Nouvelle Classe', `<form id=create-class-form><div class=form-group><label for=class-name-input>Nom</label><input type=text id=class-name-input required></div><button type=submit class="btn btn-main">Créer</button></form>`)); 
     document.getElementById('create-class-form').addEventListener('submit', async e => { 
@@ -147,9 +148,9 @@ async function showCreateClassModal() {
     }); 
 }
 
-export async function renderClassDetailsPage(id) {
+export async function renderClassDetailsPage(id) { // EXPORT CORRIGÉ
     const page = document.getElementById('class-details-page');
-    page.innerHTML = `<button id="back-to-teacher" class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> Retour</button>${spinnerHtml}`;
+    p.innerHTML = `<button id="back-to-teacher" class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> Retour</button>${spinnerHtml}`;
     page.querySelector('#back-to-teacher').addEventListener('click', renderTeacherDashboard);
     changePage('class-details-page');
     
