@@ -1216,16 +1216,23 @@ function createStudentCard(c, status) {
 
 function renderContentViewer(c) {
     const p = document.getElementById('content-viewer-page');
+    
+    // Mise à jour de la session pour la barre d'alerte (si elle est utilisée)
+    if (c.isEvaluated) {
+        sessionStorage.setItem('isEvaluatedSession', 'true');
+    } else {
+        sessionStorage.removeItem('isEvaluatedSession');
+    }
+    
+    helpUsedInQuiz = false;
+    helpUsedInHomework = false;
+
     let html = '';
     let footerHtml = '';
-    
-    // Flag pour déterminer si c'est un devoir interactif (non-quiz)
-    const isInteractiveHomework = c.type !== 'quiz' && c.type !== 'document';
+    const isInteractiveHomework = c.type === 'exercices' || c.type === 'dm';
 
-    // --- 1. Génération du contenu HTML (Hypothèse que votre code est ici) ---
-    // (Cette section est conservée car elle contient votre logique de quiz)
     if (c.type === 'quiz') {
-        c.questions.forEach((q, i) => {
+         c.questions.forEach((q, i) => {
             html += `<div class="quiz-question">
                         <div class="question-header">
                             <p><strong>${q.question_text}</strong></p>
@@ -1241,22 +1248,31 @@ function renderContentViewer(c) {
         });
         footerHtml = `<button type="submit" class="btn btn-main"><i class="fa-solid fa-paper-plane"></i> Soumettre le Quiz</button>`;
     } else if (isInteractiveHomework) {
-        html = `<div style="margin-bottom: 2rem;">${c.content}</div>
-                <div class="form-group">
-                    <label for="student-response">Ta réponse :</label>
-                    <textarea id="student-response" rows="8" placeholder="Saisis ta réponse ici..."></textarea>
-                </div>`;
-        // Bouton d'aide pour le DM
-        footerHtml = `<button type="button" class="btn btn-secondary" id="open-aida-help-btn" style="margin-right: auto;"><i class="fa-solid fa-lightbulb"></i> Obtenir de l'aide (AIDA)</button>
-                      <button type="submit" class="btn btn-main"><i class="fa-solid fa-paper-plane"></i> Soumettre l'exercice</button>`;
-    } else { // Document ou autre
-        html = `<div>${c.content}</div>`;
-        footerHtml = `<button type="button" class="btn btn-main" id="finish-exercise-btn"><i class="fa-solid fa-check"></i> Terminer l'exercice</button>`;
+        // CORRECTION CLÉ: Rétablissement du template HTML pour les exercices/DM
+        c.content.forEach((exo, i) => {
+            html += `
+                <div class="exercice-block">
+                    <h4>Exercice ${i + 1}</h4>
+                    <p class="enonce">${exo.enonce}</p>
+                    <textarea class="reponse-eleve" data-exercice-index="${i}" placeholder="Rédige ta réponse ici..."></textarea>
+                </div>
+            `;
+        });
+        
+        // Rétablissement du bouton d'aide du DM/Exercice
+        if (c.isEvaluated) {
+             // Bouton d'aide pour DM évalué (DM et exercices évalués)
+             footerHtml += `<button type="button" id="open-aida-help-btn" class="btn btn-secondary"><i class="fa-solid fa-lightbulb"></i> Obtenir de l'aide</button>`;
+        } else {
+             // Bouton d'aide pour les exercices non évalués (bouton différent)
+             footerHtml += `<a href="playground.html" target="_blank" class="btn btn-secondary" style="margin-right: auto;"><i class="fa-solid fa-rocket"></i> Espace de Travail</a>`;
+        }
+        footerHtml += `<button type="submit" class="btn btn-main"><i class="fa-solid fa-paper-plane"></i> Soumettre le devoir</button>`;
+    } else { 
+        html = `<div class="revision-content">${c.content.replace(/\n/g, '<br>')}</div>`;
+        footerHtml = `<button type="button" id="finish-exercise-btn" class="btn btn-main"><i class="fa-solid fa-check"></i> Marquer comme lu</button>`;
     }
 
-
-    // --- 2. Injection du HTML dans le DOM (L'ÉLÉMENT CRITIQUE) ---
-    // Les éléments HTML sont créés et insérés dans la page à ce moment précis.
     p.innerHTML = `<button id="back-to-student" class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> Retour</button>
                      <div class="card" style="margin-top:1rem;">
                         <h2>${c.title}</h2>
@@ -1265,9 +1281,6 @@ function renderContentViewer(c) {
                             <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 2rem;">${footerHtml}</div>
                         </form>
                      </div>`;
-
-    // --- 3. Attachement des Listeners (L'ORDRE CORRIGÉ) ---
-    // On peut maintenant chercher les éléments car ils existent dans le DOM.
     
     const backBtn = p.querySelector('#back-to-student');
     backBtn.addEventListener('click', () => {
@@ -1276,38 +1289,35 @@ function renderContentViewer(c) {
     });
 
     const form = p.querySelector('#content-form');
-    
+
+    // --- Rétablissement des Listeners ---
+
     if (c.type === 'quiz') {
         form.addEventListener('submit', e => { e.preventDefault(); handleSubmitQuiz(c); });
-        // ✅ CORRECTION CLÉ : Les boutons .btn-help sont maintenant trouvés
+        // L'ampoule du quiz est cliquable
         form.querySelectorAll('.btn-help').forEach(b => b.addEventListener('click', handleHelpRequest));
-        
     } else if (isInteractiveHomework) {
         form.addEventListener('submit', e => { e.preventDefault(); handleSubmitNonQuiz(c); });
-        
         const aidaHelpBtn = p.querySelector('#open-aida-help-btn');
+        
+        // Listener pour l'aide DM/Exercice évalué
         if (aidaHelpBtn) {
             aidaHelpBtn.addEventListener('click', () => {
                 helpUsedInHomework = true;
                 showAidaHelpModal(`Aide pour le devoir : ${c.title}`);
             });
         }
+        // Pas de listener pour l'Espace de Travail (lien direct via <a>)
     } else {
         const finishBtn = p.querySelector('#finish-exercise-btn');
         if (finishBtn) {
             finishBtn.addEventListener('click', async () => {
                 sessionStorage.removeItem('isEvaluatedSession');
                 try {
-                    // Logique pour marquer l'exercice comme terminé
-                    const result = {
-                        studentEmail: currentUser.email,
-                        contentId: c.id,
-                        classId: c.classId,
-                        submissionTime: new Date().toISOString(),
-                        score: null,
-                        details: "Document consulté et marqué comme terminé."
-                    };
-                    await apiRequest('/results', 'POST', result);
+                    await apiRequest('/student/submit-quiz', 'POST', { 
+                        studentEmail: window.currentUser.email, classId: c.classId, contentId: c.id, 
+                        title: c.title, score: 0, totalQuestions: 0, answers: [], helpUsed: false, teacherEmail: c.teacherEmail
+                    });
                     renderStudentDashboard();
                 } catch (error) {
                     alert("Erreur lors de la soumission: " + error.message);
@@ -1315,7 +1325,6 @@ function renderContentViewer(c) {
             });
         }
     }
-
     changePage('content-viewer-page');
 }
 
