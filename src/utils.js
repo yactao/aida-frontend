@@ -141,12 +141,18 @@ export async function showAidaHelpModal(prompt) {
 
     chatForm.addEventListener('submit', sendMessage);
     
-    if (prompt) {
-        // Déclencher l'envoi du message initial s'il y a un prompt
-        setTimeout(() => chatForm.dispatchEvent(new Event('submit')), 10); 
+ if (prompt) {
+        // CORRECTION: Déclencher directement la fonction de soumission de manière asynchrone
+        // sans passer par un événement dispatché, pour plus de stabilité.
+        (async () => {
+            const initialMessage = chatInput.value.trim();
+            if (initialMessage) {
+                // Simuler l'envoi direct du premier message
+                await sendMessage({ preventDefault: () => {} }); 
+            }
+        })();
     }
 }
-
 
 // --- AJOUT DES FONCTIONS UTILITAIRES GÉNÉRIQUES (Anciennes) ---
 
