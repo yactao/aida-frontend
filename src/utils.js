@@ -76,7 +76,8 @@ export async function loadProgrammes() {
 // --- AJOUT DE LA FONCTION D'AIDE MODALE ( showAidaHelpModal ) ---
 
 // Fonction générique pour afficher la modal d'aide d'AIDA 
-export async function showAidaHelpModal(prompt) {
+// MODIFIÉ : Accepte 'level' comme deuxième argument
+export async function showAidaHelpModal(prompt, level = 'N/A') {
     // NOTE: Utilise les fonctions exportées: renderModal, getModalTemplate, apiRequest
     renderModal(getModalTemplate('aida-help-modal', 'Aide d\'AIDA', `
         <div id="aida-chat-container">
@@ -109,6 +110,7 @@ export async function showAidaHelpModal(prompt) {
         chatHistory.scrollTop = chatHistory.scrollHeight;
     };
     
+    // 'level' (issu de la portée de showAidaHelpModal) est utilisé ici
     const sendMessage = async (e) => {
         e.preventDefault();
         const message = chatInput.value.trim();
@@ -123,8 +125,10 @@ export async function showAidaHelpModal(prompt) {
 
         try {
             // Appel à la route Back-End pour l'aide
+            // MODIFIÉ : Envoi du 'level' avec l'historique
             const response = await apiRequest('/api/ai/get-aida-help', 'POST', {
-                history: history
+                history: history,
+                level: level // Envoi du niveau au backend
             });
             
             const aidaResponse = response.response;
@@ -141,7 +145,7 @@ export async function showAidaHelpModal(prompt) {
 
     chatForm.addEventListener('submit', sendMessage);
     
- if (prompt) {
+    if (prompt) {
         // CORRECTION: Déclencher directement la fonction de soumission de manière asynchrone
         // sans passer par un événement dispatché, pour plus de stabilité.
         (async () => {

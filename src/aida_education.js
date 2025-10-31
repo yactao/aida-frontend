@@ -1215,17 +1215,28 @@ function createStudentCard(c, status) {
 }
 
 
-
+// MODIFIÉ : Correction pour récupérer data-question ET data-question-text
 async function handleHelpRequest(e) { 
     e.preventDefault(); 
-    helpUsedInQuiz = true;
-    const q = e.target.closest('button').dataset.question; 
-    // showAidaHelpModal est maintenant importé de utils.js
-    showAidaHelpModal(q);
+    // Marque que l'aide a été utilisée (pour Quiz ou Devoir)
+    helpUsedInQuiz = true; 
+    helpUsedInHomework = true; 
+
+    const button = e.target.closest('button');
+    
+    // CORRECTION : Récupère le texte de la question (Quiz ou Exercice)
+    const q = button.dataset.question || button.dataset.questionText;
+    
+    // NOUVEAUTÉ : Récupère le niveau depuis le bouton
+    const level = button.dataset.level || 'N/A';
+    
+    // Envoie les deux informations à la modale
+    showAidaHelpModal(q, level);
 }
 
+// MODIFIÉ : Ajout de la restauration du lien header
 async function handleSubmitQuiz(c) { 
-    sessionStorage.removeItem('isEvaluatedSession');
+    sessionStorage.removeItem('isEvaluATEDSession');
     const answers = c.questions.map((q, i) => { const sel = document.querySelector(`input[name=q${i}]:checked`); return sel ? parseInt(sel.value) : -1; }); 
     const score = answers.reduce((acc, ans, i) => acc + (ans == c.questions[i].correct_answer_index ? 1 : 0), 0); 
     try {
@@ -1233,10 +1244,12 @@ async function handleSubmitQuiz(c) {
             studentEmail: window.currentUser.email, classId: c.classId, contentId: c.id, title: c.title, 
             score, totalQuestions: c.questions.length, answers, helpUsed: helpUsedInQuiz, teacherEmail: c.teacherEmail
         }); 
-
+        
         // CORRECTION : Réafficher le lien Espace de Travail du header
         const headerWorkspaceLink = document.getElementById('workspace-link');
-        if (headerWorkspaceLink) headerWorkspaceLink.classList.remove('hidden');
+        if (headerWorkspaceLink && window.currentUser.role === 'student') {
+             headerWorkspaceLink.classList.remove('hidden');
+        }
         
         renderStudentDashboard();
     } catch (error) {
@@ -1244,6 +1257,7 @@ async function handleSubmitQuiz(c) {
     }
 }
 
+// MODIFIÉ : Logique d'affichage des boutons d'aide (spécifique vs global)
 function renderContentViewer(c) {
     const p = document.getElementById('content-viewer-page');
     
@@ -1258,20 +1272,27 @@ function renderContentViewer(c) {
         sessionStorage.removeItem('isEvaluatedSession');
     }
     
-    // Les variables d'aide doivent être définies dans le module scope
-    // helpUsedInQuiz = false; 
-    // helpUsedInHomework = false; 
+    helpUsedInQuiz = false; 
+    helpUsedInHomework = false; 
 
     let html = '';
     let footerHtml = '';
     const isInteractiveHomework = c.type === 'exercices' || c.type === 'dm';
+
+    // NOUVEAUTÉ : Récupération du niveau pour l'injecter dans les boutons
+    const contentLevel = c.competence?.level || 'Niveau non spécifié';
 
     if (c.type === 'quiz') {
          c.questions.forEach((q, i) => {
             html += `<div class="quiz-question">
                         <div class="question-header">
                             <p><strong>${q.question_text}</strong></p>
-                            <button type="button" class="btn-help" data-question="${q.question_text}"><i class="fa-solid fa-lightbulb"></i> Aide</button>
+                            
+                            ${!c.isEvaluated ? `
+                            <button type="button" class="btn-help" data-question="${q.question_text}" data-level="${contentLevel}">
+                                <i class="fa-solid fa-lightbulb"></i> Aide
+                            </button>
+                            ` : ''}
                         </div>
                         <div class="quiz-options-grid">${q.options.map((o, j) => `
                             <label class="quiz-option">
@@ -1281,15 +1302,26 @@ function renderContentViewer(c) {
                         </div>
                     </div>`;
         });
-        footerHtml = `<button type="submit" class="btn btn-main"><i class="fa-solid fa-paper-plane"></i> Soumettre le Quiz</button>`;
+        
+        // STRATÉGIE : Bouton d'aide global pour Quiz Évalué
+        if (c.isEvaluated) {
+             footerHtml += `<button type="button" id="open-aida-help-btn" class="btn btn-secondary" style="margin-right: auto;"><i class="fa-solid fa-lightbulb"></i> Obtenir de l'aide</button>`;
+        }
+        
+        footerHtml += `<button type="submit" class="btn btn-main"><i class="fa-solid fa-paper-plane"></i> Soumettre le Quiz</button>`;
+    
     } else if (isInteractiveHomework) {
-        // CORRECTION CLÉ: Rétablissement du template HTML pour les exercices/DM avec le bouton d'aide PAR ÉNONCÉ
         c.content.forEach((exo, i) => {
             html += `
                 <div class="exercice-block">
                     <div class="question-header" style="justify-content: flex-start; gap: 20px;">
                         <h4>Exercice ${i + 1}</h4>
-                        <button type="button" class="btn-help-exercice" data-question-index="${i}" data-question-text="${exo.enonce}"><i class="fa-solid fa-lightbulb"></i> Aide</button>
+                        
+                        ${!c.isEvaluated ? `
+                        <button type="button" class="btn-help-exercice" data-question-index="${i}" data-question-text="${exo.enonce}" data-level="${contentLevel}">
+                            <i class="fa-solid fa-lightbulb"></i> Aide
+                        </button>
+                        ` : ''}
                     </div>
                     <p class="enonce">${exo.enonce}</p>
                     <textarea class="reponse-eleve" data-exercice-index="${i}" placeholder="Rédige ta réponse ici..."></textarea>
@@ -1297,15 +1329,15 @@ function renderContentViewer(c) {
             `;
         });
         
-        // CORRECTION DU FOOTER : Le bouton "Espace de Travail" ou "Obtenir de l'aide" est déplacé
+        // STRATÉGIE : Le footer dépend de l'évaluation
         if (c.isEvaluated) {
-             // Bouton d'aide MODAL général pour DM évalué
+             // Devoir Noté : Un seul bouton global
              footerHtml += `<button type="button" id="open-aida-help-btn" class="btn btn-secondary" style="margin-right: auto;"><i class="fa-solid fa-lightbulb"></i> Obtenir de l'aide</button>`;
-        } else {
-             // CORRECTION : Bouton Espace de Travail pour les exercices non évalués SUPPRIMÉ
-             // footerHtml += `<a href="playground.html" target="_blank" class="btn btn-secondary" style="margin-right: auto;"><i class="fa-solid fa-pen-ruler"></i> Espace de Travail</a>`;
         }
+        // S'il n'est pas évalué, on ne met PAS le bouton "Espace de Travail" (correction précédente)
+        
         footerHtml += `<button type="submit" class="btn btn-main"><i class="fa-solid fa-paper-plane"></i> Soumettre le devoir</button>`;
+    
     } else { 
         html = `<div class="revision-content">${c.content.replace(/\n/g, '<br>')}</div>`;
         footerHtml = `<button type="button" id="finish-exercise-btn" class="btn btn-main"><i class="fa-solid fa-check"></i> Marquer comme lu</button>`;
@@ -1326,7 +1358,9 @@ function renderContentViewer(c) {
         
         // CORRECTION : Réafficher le lien Espace de Travail du header
         const headerWorkspaceLink = document.getElementById('workspace-link');
-        if (headerWorkspaceLink) headerWorkspaceLink.classList.remove('hidden');
+        if (headerWorkspaceLink && window.currentUser.role === 'student') {
+            headerWorkspaceLink.classList.remove('hidden');
+        }
         
         renderStudentDashboard();
     });
@@ -1337,48 +1371,55 @@ function renderContentViewer(c) {
 
     if (c.type === 'quiz') {
         form.addEventListener('submit', e => { e.preventDefault(); handleSubmitQuiz(c); });
-        // Ampoule du Quiz : écouteur attaché aux boutons .btn-help générés
+        
+        // Le listener ne s'attachera qu'aux boutons qui existent (ceux non évalués)
         form.querySelectorAll('.btn-help').forEach(b => b.addEventListener('click', handleHelpRequest));
+    
     } else if (isInteractiveHomework) {
         form.addEventListener('submit', e => { e.preventDefault(); handleSubmitNonQuiz(c); });
         
-        // NOUVEAU LISTENER : Pour les ampoules ajoutées à CHAQUE énoncé d'exercice/DM
+        // Le listener ne s'attachera qu'aux boutons qui existent (ceux non évalués)
         form.querySelectorAll('.btn-help-exercice').forEach(b => b.addEventListener('click', handleHelpRequest));
-        
-        const aidaHelpBtn = p.querySelector('#open-aida-help-btn');
-        if (aidaHelpBtn) {
-            // Listener pour l'aide DM/Exercice évalué (Bouton général du footer)
-            aidaHelpBtn.addEventListener('click', () => {
-                helpUsedInHomework = true;
-                showAidaHelpModal(`Aide pour le devoir : ${c.title}`);
-            });
-        }
-        // Pas de listener pour l'Espace de Travail (lien direct via <a>)
-    } else {
-        const finishBtn = p.querySelector('#finish-exercise-btn');
-        if (finishBtn) {
-            finishBtn.addEventListener('click', async () => {
-                sessionStorage.removeItem('isEvaluatedSession');
-                try {
-                    await apiRequest('/student/submit-quiz', 'POST', { 
-                        studentEmail: window.currentUser.email, classId: c.classId, contentId: c.id, 
-                        title: c.title, score: 0, totalQuestions: 0, answers: [], helpUsed: false, teacherEmail: c.teacherEmail
-                    });
-                    
-                    // CORRECTION : Réafficher le lien Espace de Travail du header
-                    const headerWorkspaceLink = document.getElementById('workspace-link');
-                    if (headerWorkspaceLink) headerWorkspaceLink.classList.remove('hidden');
-        
-                    renderStudentDashboard();
-                } catch (error) {
-                    alert("Erreur lors de la soumission: " + error.message);
-                }
-            });
-        }
     }
+    
+    // Ce listener (pour le bouton global) ne s'attachera que s'il existe (devoir évalué)
+    const aidaHelpBtn = p.querySelector('#open-aida-help-btn');
+    if (aidaHelpBtn) {
+        aidaHelpBtn.addEventListener('click', () => {
+            helpUsedInHomework = true;
+            // Envoie le titre global et le niveau
+            showAidaHelpModal(`Aide pour le devoir : ${c.title}`, contentLevel);
+        });
+    }
+
+    // ... (partie "finish-exercise-btn" inchangée) ...
+    const finishBtn = p.querySelector('#finish-exercise-btn');
+    if (finishBtn) {
+        finishBtn.addEventListener('click', async () => {
+            sessionStorage.removeItem('isEvaluatedSession');
+            try {
+                await apiRequest('/student/submit-quiz', 'POST', { 
+                    studentEmail: window.currentUser.email, classId: c.classId, contentId: c.id, 
+                    title: c.title, score: 0, totalQuestions: 0, answers: [], helpUsed: false, teacherEmail: c.teacherEmail
+                });
+                
+                // CORRECTION : Réafficher le lien Espace de Travail du header
+                const headerWorkspaceLink = document.getElementById('workspace-link');
+                if (headerWorkspaceLink && window.currentUser.role === 'student') {
+                     headerWorkspaceLink.classList.remove('hidden');
+                }
+    
+                renderStudentDashboard();
+            } catch (error) {
+                alert("Erreur lors de la soumission: " + error.message);
+            }
+        });
+    }
+
     changePage('content-viewer-page');
 }
 
+// MODIFIÉ : Ajout de la restauration du lien header
 async function handleSubmitNonQuiz(c) {
     sessionStorage.removeItem('isEvaluatedSession');
     const answerTextareas = document.querySelectorAll('#content-form .reponse-eleve');
@@ -1399,7 +1440,9 @@ async function handleSubmitNonQuiz(c) {
         
         // CORRECTION : Réafficher le lien Espace de Travail du header
         const headerWorkspaceLink = document.getElementById('workspace-link');
-        if (headerWorkspaceLink) headerWorkspaceLink.classList.remove('hidden');
+        if (headerWorkspaceLink && window.currentUser.role === 'student') {
+             headerWorkspaceLink.classList.remove('hidden');
+        }
         
         renderStudentDashboard();
     } catch (error) {
