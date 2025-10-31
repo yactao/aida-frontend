@@ -29,7 +29,7 @@ export async function apiRequest(endpoint, method = 'GET', body = null) {
                 const err = JSON.parse(errText);
                 throw new Error(err.error || 'Une erreur est survenue');
             } catch (e) {
-                // Remonter le message d'erreur brut (résout le problème 404/405)
+                // Remonter le message d'erreur brut
                 throw new Error(errText);
             }
         }
@@ -72,7 +72,83 @@ export async function loadProgrammes() {
     }
 }
 
-// --- AJOUT DES FONCTIONS UTILITAIRES GÉNÉRIQUES ---
+
+// --- AJOUT DE LA FONCTION D'AIDE MODALE ( showAidaHelpModal ) ---
+
+// Fonction générique pour afficher la modal d'aide d'AIDA 
+export async function showAidaHelpModal(prompt) {
+    // NOTE: Utilise les fonctions exportées: renderModal, getModalTemplate, apiRequest
+    renderModal(getModalTemplate('aida-help-modal', 'Aide d\'AIDA', `
+        <div id="aida-chat-container">
+            <div class="chat-message aida-message">
+                <p>Bonjour ! Pose-moi ta question ou donne-moi le sujet de l'exercice pour obtenir de l'aide sans la réponse.</p>
+            </div>
+            <div id="chat-history"></div>
+            <form id="aida-chat-form" style="margin-top: 1rem;">
+                <textarea id="aida-chat-input" placeholder="Tape ta question ici..." rows="2" required>${prompt ? prompt : ''}</textarea>
+                <button type="submit" class="btn btn-main"><i class="fa-solid fa-paper-plane"></i> Envoyer</button>
+            </form>
+            <div id="aida-error" class="error-message"></div>
+            <div id="aida-spinner" class="hidden" style="text-align: right; margin-top: 0.5rem;">${spinnerHtml}</div>
+        </div>
+    `));
+
+    const chatForm = document.getElementById('aida-chat-form');
+    const chatInput = document.getElementById('aida-chat-input');
+    const chatHistory = document.getElementById('chat-history');
+    const spinner = document.getElementById('aida-spinner');
+    const errorDiv = document.getElementById('aida-error');
+    
+    const history = [];
+
+    const appendMessage = (sender, text) => {
+        const msgDiv = document.createElement('div');
+        msgDiv.className = `chat-message ${sender}-message`;
+        msgDiv.innerHTML = `<p>${text.replace(/\n/g, '<br>')}</p>`;
+        chatHistory.appendChild(msgDiv);
+        chatHistory.scrollTop = chatHistory.scrollHeight;
+    };
+    
+    const sendMessage = async (e) => {
+        e.preventDefault();
+        const message = chatInput.value.trim();
+        if (!message) return;
+
+        appendMessage('user', message);
+        chatInput.value = '';
+        spinner.classList.remove('hidden');
+        errorDiv.textContent = '';
+        
+        history.push({ role: 'user', content: message });
+
+        try {
+            // Appel à la route Back-End pour l'aide
+            const response = await apiRequest('/api/ai/get-aida-help', 'POST', {
+                history: history
+            });
+            
+            const aidaResponse = response.response;
+            appendMessage('aida', aidaResponse);
+            history.push({ role: 'assistant', content: aidaResponse });
+
+        } catch (err) {
+            errorDiv.textContent = 'Erreur: Aide indisponible (' + err.message + ')';
+            history.pop(); 
+        } finally {
+            spinner.classList.add('hidden');
+        }
+    };
+
+    chatForm.addEventListener('submit', sendMessage);
+    
+    if (prompt) {
+        // Déclencher l'envoi du message initial s'il y a un prompt
+        setTimeout(() => chatForm.dispatchEvent(new Event('submit')), 10); 
+    }
+}
+
+
+// --- AJOUT DES FONCTIONS UTILITAIRES GÉNÉRIQUES (Anciennes) ---
 
 export function getSubjectInfo(title) {
     if (!title) return { name: 'Autre', cssClass: 'tag-autre' };

@@ -7,7 +7,8 @@ import {
     getModalTemplate, 
     spinnerHtml, 
     getSubjectInfo, 
-    getAppreciationText 
+    getAppreciationText,
+    showAidaHelpModal // <--- NOUVELLE DÉPENDANCE: Maintenant importée de utils.js
 } from './utils.js';
 import { updateUI } from './ui_utils.js';
 
@@ -358,7 +359,7 @@ function renderContentListPanel() {
             const contentId = button.dataset.contentId;
             const content = contents.find(c => c.id === contentId);
             renderModal(getModalTemplate('delete-content-confirm', 'Confirmer la suppression', `
-                <p>Êtes-vous sûr de vouloir supprimer le contenu "<strong>${content.title}</strong>" ?</p>
+                <p>Êtes-vous sûr de vouloir supprimer <strong>${content.title}</strong>" ?</p>
                 <p>Cette action est irréversible et supprimera également tous les résultats des élèves pour ce devoir.</p>
                 <div style="display:flex; justify-content: flex-end; gap: 1rem; margin-top: 2rem;">
                     <button class="btn btn-secondary" id="cancel-delete">Annuler</button>
@@ -377,6 +378,16 @@ function renderContentListPanel() {
             handlePublishContent(contentId);
         });
     });
+}
+
+async function handleDeleteContent(contentId) {
+     try {
+        await apiRequest(`/teacher/classes/${currentClassData.id}/content/${contentId}?teacherEmail=${window.currentUser.email}`, 'DELETE');
+        window.modalContainer.innerHTML = '';
+        renderClassDetailsPage(currentClassData.id); 
+    } catch (error) {
+        alert(`Erreur lors de la suppression du contenu: ${error.message}`);
+    }
 }
 
 async function handlePublishContent(contentId) {
@@ -599,7 +610,7 @@ function renderStudentDetailsPage(studentEmail) {
             resultsHtml += '<div class="dashboard-grid">';
             groupedResults[subject]
                 .sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt))
-                .forEach(result => { 
+                .forEach(result => {
                     const content = (currentClassData.content || []).find(c => c.id === result.contentId); 
 
                     if (content) {
@@ -843,7 +854,8 @@ function showGenerationModal(prefillData = null) {
         document.getElementById('content-type-select').dispatchEvent(new Event('change'));
 
         let found = false;
-        // Recherche complexe... (Omise pour la concision, mais doit être complète)
+        
+        // Logique de recherche dans window.programmes omise ici, mais doit exister
         
         if (!found) {
             document.getElementById('program-fields').classList.add('hidden');
@@ -943,7 +955,7 @@ function showAssignModal(contentToAssign) {
         } catch (error) { 
             alert("Erreur lors de l'assignation du contenu: " + error.message); 
         } 
-    });
+    }); 
 }
 
 export async function renderPlannerPage() {
@@ -1202,69 +1214,6 @@ function createStudentCard(c, status) {
         </div>`;
 }
 
-// Fonction générique pour afficher la modal d'aide d'AIDA (réutilisée du Playground)
-async function showAidaHelpModal(prompt) {
-    renderModal(getModalTemplate('aida-help-modal', 'Aide d\'AIDA', `
-        <div id="aida-chat-container">
-            <div class="chat-message aida-message">
-                <p>Bonjour ! Pose-moi ta question ou donne-moi le sujet de l'exercice pour obtenir de l'aide sans la réponse.</p>
-            </div>
-            <div id="chat-history"></div>
-            <form id="aida-chat-form" style="margin-top: 1rem;">
-                <textarea id="aida-chat-input" placeholder="Tape ta question ici..." rows="2" required>${prompt ? prompt : ''}</textarea>
-                <button type="submit" class="btn btn-main"><i class="fa-solid fa-paper-plane"></i> Envoyer</button>
-            </form>
-            <div id="aida-error" class="error-message"></div>
-            <div id="aida-spinner" class="hidden" style="text-align: right; margin-top: 0.5rem;">${spinnerHtml}</div>
-        </div>
-    `));
-
-    const chatForm = document.getElementById('aida-chat-form');
-    const chatInput = document.getElementById('aida-chat-input');
-    const chatHistory = document.getElementById('chat-history');
-    const spinner = document.getElementById('aida-spinner');
-    const errorDiv = document.getElementById('aida-error');
-    
-    const history = [];
-
-    const appendMessage = (sender, text) => {
-        const msgDiv = document.createElement('div');
-        msgDiv.className = `chat-message ${sender}-message`;
-        msgDiv.innerHTML = `<p>${text.replace(/\n/g, '<br>')}</p>`;
-        chatHistory.appendChild(msgDiv);
-        chatHistory.scrollTop = chatHistory.scrollHeight;
-    };
-    
-const sendMessage = async (e) => {
-        // ... (Logique de soumission et d'affichage) ...
-
-        try {
-            // CORRECTION: Assurer que l'endpoint commence bien par /api
-            const response = await apiRequest('/api/ai/get-aida-help', 'POST', {
-                history: history
-            });
-            
-            const aidaResponse = response.response;
-            appendMessage('aida', aidaResponse);
-            history.push({ role: 'assistant', content: aidaResponse });
-
-        } catch (err) {
-            errorDiv.textContent = 'Erreur: Aide indisponible (' + err.message + ')';
-            history.pop(); 
-        } finally {
-            spinner.classList.add('hidden');
-        }
-    };
-    
-    chatForm.addEventListener('submit', sendMessage);
-    
-    if (prompt) {
-        // Si le prompt existe, déclencher le sendMessage pour lancer la conversation
-        // Ceci reproduit l'événement submit de manière asynchrone
-        setTimeout(() => chatForm.dispatchEvent(new Event('submit')), 10); 
-    }
-}
-
 function renderContentViewer(c) {
     const p = document.getElementById('content-viewer-page');
     if (c.isEvaluated) {
@@ -1315,7 +1264,7 @@ function renderContentViewer(c) {
         footerHtml = `<button type="button" id="finish-exercise-btn" class="btn btn-main"><i class="fa-solid fa-check"></i> Marquer comme lu</button>`;
     }
 
-p.innerHTML = `<button id="back-to-student" class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> Retour</button>
+    p.innerHTML = `<button id="back-to-student" class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> Retour</button>
                      <div class="card" style="margin-top:1rem;">
                         <h2>${c.title}</h2>
                         <form id="content-form">
@@ -1331,8 +1280,6 @@ p.innerHTML = `<button id="back-to-student" class="btn btn-secondary"><i class="
     });
 
     const form = p.querySelector('#content-form');
-    // Le reste des variables 'helpUsedInQuiz', 'helpUsedInHomework', 'showAidaHelpModal', 'handleHelpRequest'
-    // doit être défini dans le scope ou importé correctement.
 
     if (c.type === 'quiz') {
         form.addEventListener('submit', e => { e.preventDefault(); handleSubmitQuiz(c); });
@@ -1344,46 +1291,8 @@ p.innerHTML = `<button id="back-to-student" class="btn btn-secondary"><i class="
         if (aidaHelpBtn) {
             // RÉTBLISSEMENT DU LISTENER POUR LE BOUTON D'AIDE DES DM
             aidaHelpBtn.addEventListener('click', () => {
-                // Cette variable doit être dans le scope global/module
-                helpUsedInHomework = true; 
-                // showAidaHelpModal doit être importé/défini correctement
-                showAidaHelpModal(`Aide pour le devoir : ${c.title}`);
-            });
-        }
-    } else {
-        const finishBtn = p.querySelector('#finish-exercise-btn');
-        if (finishBtn) {
-            finishBtn.addEventListener('click', async () => {
-                sessionStorage.removeItem('isEvaluatedSession');
-                try {
-                    // ... (Logique de soumission) ...
-                    renderStudentDashboard();
-                } catch (error) {
-                    alert("Erreur lors de la soumission: " + error.message);
-                }
-            });
-        }
-    }
-    changePage('content-viewer-page');
-    
-    const backBtn = p.querySelector('#back-to-student');
-    backBtn.addEventListener('click', () => {
-        sessionStorage.removeItem('isEvaluatedSession');
-        renderStudentDashboard();
-    });
-
-    const form = p.querySelector('#content-form');
-
-    if (c.type === 'quiz') {
-        form.addEventListener('submit', e => { e.preventDefault(); handleSubmitQuiz(c); });
-        // L'ampoule du quiz est rétablie ici
-        form.querySelectorAll('.btn-help').forEach(b => b.addEventListener('click', handleHelpRequest));
-    } else if (isInteractiveHomework) {
-        form.addEventListener('submit', e => { e.preventDefault(); handleSubmitNonQuiz(c); });
-        const aidaHelpBtn = p.querySelector('#open-aida-help-btn');
-        if (aidaHelpBtn) {
-            aidaHelpBtn.addEventListener('click', () => {
                 helpUsedInHomework = true;
+                // showAidaHelpModal doit être importé/défini correctement
                 showAidaHelpModal(`Aide pour le devoir : ${c.title}`);
             });
         }
@@ -1411,6 +1320,7 @@ async function handleHelpRequest(e) {
     e.preventDefault(); 
     helpUsedInQuiz = true;
     const q = e.target.closest('button').dataset.question; 
+    // showAidaHelpModal est maintenant importé de utils.js
     showAidaHelpModal(q);
 }
 
@@ -1493,7 +1403,7 @@ async function loadLibraryContents() {
     
     try {
         // CORRECTION: L'API doit être disponible sur le Back-End pour que cette route fonctionne.
-        const results = await apiRequest(`/library?searchTerm=${searchTerm}&subject=${subject}`);
+        const results = await apiRequest('/library?searchTerm=${searchTerm}&subject=${subject}');
         grid.innerHTML = '';
         if (results.length === 0) {
             grid.innerHTML = '<p>Aucun contenu trouvé. Essayez d\'autres mots-clés ou partagez le vôtre !</p>';
