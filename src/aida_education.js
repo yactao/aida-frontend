@@ -1214,6 +1214,31 @@ function createStudentCard(c, status) {
         </div>`;
 }
 
+
+
+async function handleHelpRequest(e) { 
+    e.preventDefault(); 
+    helpUsedInQuiz = true;
+    const q = e.target.closest('button').dataset.question; 
+    // showAidaHelpModal est maintenant importé de utils.js
+    showAidaHelpModal(q);
+}
+
+async function handleSubmitQuiz(c) { 
+    sessionStorage.removeItem('isEvaluatedSession');
+    const answers = c.questions.map((q, i) => { const sel = document.querySelector(`input[name=q${i}]:checked`); return sel ? parseInt(sel.value) : -1; }); 
+    const score = answers.reduce((acc, ans, i) => acc + (ans == c.questions[i].correct_answer_index ? 1 : 0), 0); 
+    try {
+        await apiRequest('/student/submit-quiz', 'POST', { 
+            studentEmail: window.currentUser.email, classId: c.classId, contentId: c.id, title: c.title, 
+            score, totalQuestions: c.questions.length, answers, helpUsed: helpUsedInQuiz, teacherEmail: c.teacherEmail
+        }); 
+        renderStudentDashboard();
+    } catch (error) {
+        alert("Erreur lors de la soumission: " + error.message);
+    }
+}
+
 function renderContentViewer(c) {
     const p = document.getElementById('content-viewer-page');
     
@@ -1224,8 +1249,9 @@ function renderContentViewer(c) {
         sessionStorage.removeItem('isEvaluatedSession');
     }
     
-    helpUsedInQuiz = false;
-    helpUsedInHomework = false;
+    // Les variables d'aide doivent être définies dans le module scope
+    // helpUsedInQuiz = false; 
+    // helpUsedInHomework = false; 
 
     let html = '';
     let footerHtml = '';
@@ -1248,24 +1274,27 @@ function renderContentViewer(c) {
         });
         footerHtml = `<button type="submit" class="btn btn-main"><i class="fa-solid fa-paper-plane"></i> Soumettre le Quiz</button>`;
     } else if (isInteractiveHomework) {
-        // CORRECTION CLÉ: Rétablissement du template HTML pour les exercices/DM
+        // CORRECTION CLÉ: Rétablissement du template HTML pour les exercices/DM avec le bouton d'aide PAR ÉNONCÉ
         c.content.forEach((exo, i) => {
             html += `
                 <div class="exercice-block">
-                    <h4>Exercice ${i + 1}</h4>
+                    <div class="question-header" style="justify-content: flex-start; gap: 20px;">
+                        <h4>Exercice ${i + 1}</h4>
+                        <button type="button" class="btn-help-exercice" data-question-index="${i}" data-question-text="${exo.enonce}"><i class="fa-solid fa-lightbulb"></i> Aide</button>
+                    </div>
                     <p class="enonce">${exo.enonce}</p>
                     <textarea class="reponse-eleve" data-exercice-index="${i}" placeholder="Rédige ta réponse ici..."></textarea>
                 </div>
             `;
         });
         
-        // Rétablissement du bouton d'aide du DM/Exercice
+        // CORRECTION DU FOOTER : Le bouton "Espace de Travail" ou "Obtenir de l'aide" est déplacé
         if (c.isEvaluated) {
-             // Bouton d'aide pour DM évalué (DM et exercices évalués)
-             footerHtml += `<button type="button" id="open-aida-help-btn" class="btn btn-secondary"><i class="fa-solid fa-lightbulb"></i> Obtenir de l'aide</button>`;
+             // Bouton d'aide MODAL général pour DM évalué
+             footerHtml += `<button type="button" id="open-aida-help-btn" class="btn btn-secondary" style="margin-right: auto;"><i class="fa-solid fa-lightbulb"></i> Obtenir de l'aide</button>`;
         } else {
-             // Bouton d'aide pour les exercices non évalués (bouton différent)
-             footerHtml += `<a href="playground.html" target="_blank" class="btn btn-secondary" style="margin-right: auto;"><i class="fa-solid fa-rocket"></i> Espace de Travail</a>`;
+             // Bouton Espace de Travail pour les exercices non évalués
+             footerHtml += `<a href="playground.html" target="_blank" class="btn btn-secondary" style="margin-right: auto;"><i class="fa-solid fa-pen-ruler"></i> Espace de Travail</a>`;
         }
         footerHtml += `<button type="submit" class="btn btn-main"><i class="fa-solid fa-paper-plane"></i> Soumettre le devoir</button>`;
     } else { 
@@ -1290,18 +1319,21 @@ function renderContentViewer(c) {
 
     const form = p.querySelector('#content-form');
 
-    // --- Rétablissement des Listeners ---
+    // --- Rétablissement des Listeners (APRÈS injection de p.innerHTML) ---
 
     if (c.type === 'quiz') {
         form.addEventListener('submit', e => { e.preventDefault(); handleSubmitQuiz(c); });
-        // L'ampoule du quiz est cliquable
+        // Ampoule du Quiz : écouteur attaché aux boutons .btn-help générés
         form.querySelectorAll('.btn-help').forEach(b => b.addEventListener('click', handleHelpRequest));
     } else if (isInteractiveHomework) {
         form.addEventListener('submit', e => { e.preventDefault(); handleSubmitNonQuiz(c); });
-        const aidaHelpBtn = p.querySelector('#open-aida-help-btn');
         
-        // Listener pour l'aide DM/Exercice évalué
+        // NOUVEAU LISTENER : Pour les ampoules ajoutées à CHAQUE énoncé d'exercice/DM
+        form.querySelectorAll('.btn-help-exercice').forEach(b => b.addEventListener('click', handleHelpRequest));
+        
+        const aidaHelpBtn = p.querySelector('#open-aida-help-btn');
         if (aidaHelpBtn) {
+            // Listener pour l'aide DM/Exercice évalué (Bouton général du footer)
             aidaHelpBtn.addEventListener('click', () => {
                 helpUsedInHomework = true;
                 showAidaHelpModal(`Aide pour le devoir : ${c.title}`);
@@ -1326,29 +1358,6 @@ function renderContentViewer(c) {
         }
     }
     changePage('content-viewer-page');
-}
-
-async function handleHelpRequest(e) { 
-    e.preventDefault(); 
-    helpUsedInQuiz = true;
-    const q = e.target.closest('button').dataset.question; 
-    // showAidaHelpModal est maintenant importé de utils.js
-    showAidaHelpModal(q);
-}
-
-async function handleSubmitQuiz(c) { 
-    sessionStorage.removeItem('isEvaluatedSession');
-    const answers = c.questions.map((q, i) => { const sel = document.querySelector(`input[name=q${i}]:checked`); return sel ? parseInt(sel.value) : -1; }); 
-    const score = answers.reduce((acc, ans, i) => acc + (ans == c.questions[i].correct_answer_index ? 1 : 0), 0); 
-    try {
-        await apiRequest('/student/submit-quiz', 'POST', { 
-            studentEmail: window.currentUser.email, classId: c.classId, contentId: c.id, title: c.title, 
-            score, totalQuestions: c.questions.length, answers, helpUsed: helpUsedInQuiz, teacherEmail: c.teacherEmail
-        }); 
-        renderStudentDashboard();
-    } catch (error) {
-        alert("Erreur lors de la soumission: " + error.message);
-    }
 }
 
 async function handleSubmitNonQuiz(c) {
