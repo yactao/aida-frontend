@@ -1235,21 +1235,12 @@ async function showAidaHelpModal(prompt) {
         chatHistory.scrollTop = chatHistory.scrollHeight;
     };
     
-    const sendMessage = async (e) => {
-        e.preventDefault();
-        const message = chatInput.value.trim();
-        if (!message) return;
-
-        appendMessage('user', message);
-        chatInput.value = '';
-        spinner.classList.remove('hidden');
-        errorDiv.textContent = '';
-        
-        history.push({ role: 'user', content: message });
+const sendMessage = async (e) => {
+        // ... (Logique de soumission et d'affichage) ...
 
         try {
-            // CORRECTION: Assurer que la route API est correcte
-            const response = await apiRequest('/ai/get-aida-help', 'POST', {
+            // CORRECTION: Assurer que l'endpoint commence bien par /api
+            const response = await apiRequest('/api/ai/get-aida-help', 'POST', {
                 history: history
             });
             
@@ -1264,11 +1255,13 @@ async function showAidaHelpModal(prompt) {
             spinner.classList.add('hidden');
         }
     };
-
+    
     chatForm.addEventListener('submit', sendMessage);
     
     if (prompt) {
-        chatForm.dispatchEvent(new Event('submit'));
+        // Si le prompt existe, déclencher le sendMessage pour lancer la conversation
+        // Ceci reproduit l'événement submit de manière asynchrone
+        setTimeout(() => chatForm.dispatchEvent(new Event('submit')), 10); 
     }
 }
 
@@ -1322,7 +1315,7 @@ function renderContentViewer(c) {
         footerHtml = `<button type="button" id="finish-exercise-btn" class="btn btn-main"><i class="fa-solid fa-check"></i> Marquer comme lu</button>`;
     }
 
-    p.innerHTML = `<button id="back-to-student" class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> Retour</button>
+p.innerHTML = `<button id="back-to-student" class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> Retour</button>
                      <div class="card" style="margin-top:1rem;">
                         <h2>${c.title}</h2>
                         <form id="content-form">
@@ -1330,6 +1323,48 @@ function renderContentViewer(c) {
                             <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 2rem;">${footerHtml}</div>
                         </form>
                      </div>`;
+    
+    const backBtn = p.querySelector('#back-to-student');
+    backBtn.addEventListener('click', () => {
+        sessionStorage.removeItem('isEvaluatedSession');
+        renderStudentDashboard();
+    });
+
+    const form = p.querySelector('#content-form');
+    // Le reste des variables 'helpUsedInQuiz', 'helpUsedInHomework', 'showAidaHelpModal', 'handleHelpRequest'
+    // doit être défini dans le scope ou importé correctement.
+
+    if (c.type === 'quiz') {
+        form.addEventListener('submit', e => { e.preventDefault(); handleSubmitQuiz(c); });
+        // RÉTBLISSEMENT DU LISTENER POUR L'AMPOULE DES QUIZ
+        form.querySelectorAll('.btn-help').forEach(b => b.addEventListener('click', handleHelpRequest));
+    } else if (isInteractiveHomework) {
+        form.addEventListener('submit', e => { e.preventDefault(); handleSubmitNonQuiz(c); });
+        const aidaHelpBtn = p.querySelector('#open-aida-help-btn');
+        if (aidaHelpBtn) {
+            // RÉTBLISSEMENT DU LISTENER POUR LE BOUTON D'AIDE DES DM
+            aidaHelpBtn.addEventListener('click', () => {
+                // Cette variable doit être dans le scope global/module
+                helpUsedInHomework = true; 
+                // showAidaHelpModal doit être importé/défini correctement
+                showAidaHelpModal(`Aide pour le devoir : ${c.title}`);
+            });
+        }
+    } else {
+        const finishBtn = p.querySelector('#finish-exercise-btn');
+        if (finishBtn) {
+            finishBtn.addEventListener('click', async () => {
+                sessionStorage.removeItem('isEvaluatedSession');
+                try {
+                    // ... (Logique de soumission) ...
+                    renderStudentDashboard();
+                } catch (error) {
+                    alert("Erreur lors de la soumission: " + error.message);
+                }
+            });
+        }
+    }
+    changePage('content-viewer-page');
     
     const backBtn = p.querySelector('#back-to-student');
     backBtn.addEventListener('click', () => {
