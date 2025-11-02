@@ -451,7 +451,7 @@ export async function renderAcademyStudentDashboard() {
             });
             const title = (session.report?.summaryTitle || 'Bilan de session');
             const status = session.report?.completionStatus || 'Terminée';
-            const feedbackPreview = session.report?.feedback[0] || 'Cliquez pour les détails.';
+            const feedbackPreview = (session.report?.feedback && session.report.feedback.length > 0) ? session.report.feedback[0] : 'Cliquez pour les détails.';
             
             html += `
                 <div class="dashboard-card clickable-session" data-session-index="${index}" style="cursor: pointer;">
@@ -523,7 +523,7 @@ function renderTeacherStudentDetail(student) {
             });
             const title = (session.report?.summaryTitle || 'Bilan de session');
             const status = session.report?.completionStatus || 'Terminée';
-            const feedbackPreview = session.report?.feedback[0] || 'Cliquez pour les détails.';
+            const feedbackPreview = (session.report?.feedback && session.report.feedback.length > 0) ? session.report.feedback[0] : 'Cliquez pour les détails.';
             
             html += `
                 <div class="dashboard-card clickable-session" data-session-index="${index}" style="cursor: pointer;">
@@ -850,8 +850,7 @@ const appendMessage = (sender, text, canListen = false) => {
 
 
 // --- 6. Dashboard Parent (Utilise la même logique que l'enseignant) ---
-
+// MODIFIÉ : Appelle la fonction Enseignant mise à jour
 export async function renderAcademyParentDashboard() {
     await renderAcademyTeacherDashboard();
 }
-
