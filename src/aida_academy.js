@@ -854,7 +854,4 @@ const appendMessage = (sender, text, canListen = false) => {
 export async function renderAcademyParentDashboard() {
     await renderAcademyTeacherDashboard();
 }
-}
-ok mais on a une erreur Uncaught SyntaxError: missing name after . operator aida_academy.js:611:52, 
 
-je t'ai renvoyé le fichier, mais tu n'as pas pris en compte ma correction
