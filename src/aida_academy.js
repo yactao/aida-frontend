@@ -7,40 +7,8 @@ let recognition;
 let currentAudio = null;
 let currentListenBtn = null; 
 
-// --- SIMULATION DE DONNÉES ÉLÈVES POUR LE DASHBOARD ENSEIGNANT (Maintenu ici pour le test) ---
-const simulatedStudentsData = [
-    { 
-        id: 'student-A', 
-        firstName: 'Youssef', 
-        academyProgress: { 
-            sessions: [
-                {
-                    id: 'sess-y1',
-                    completedAt: new Date(Date.now() - 3600000).toISOString(),
-                    report: { summaryTitle: "Maîtrise de la Salutation", completionStatus: "Réussi", feedback: ["Très bonne prononciation des voyelles."], newVocabulary: [{word: "شكراً", translation: "Merci"}] }
-                }
-            ]
-        }
-    },
-    { 
-        id: 'student-B', 
-        firstName: 'Amira', 
-        academyProgress: { 
-            sessions: [
-                {
-                    id: 'sess-a1',
-                    completedAt: new Date(Date.now() - 7200000).toISOString(),
-                    report: { summaryTitle: "Difficultés de Structure", completionStatus: "Échec", feedback: ["Revoir la structure sujet-prédicat."], newVocabulary: [{word: "أنا", translation: "Je"}] }
-                },
-                {
-                    id: 'sess-a2',
-                    completedAt: new Date(Date.now() - 1800000).toISOString(),
-                    report: { summaryTitle: "Bonne Progression", completionStatus: "En Cours", feedback: ["Amélioration des structures."], newVocabulary: [{word: "تفضل", translation: "Entrez/SVP"}] }
-                }
-            ]
-        }
-    }
-];
+// --- DONNÉES SIMULÉES (SUPPRIMÉES) ---
+// const simulatedStudentsData = [...] // Données simulées supprimées
 
 
 // --- Fonctions de Configuration et d'Aide ---
@@ -247,8 +215,9 @@ async function endScenarioSession(scenario, history) {
 }
 
 function showSessionReportModal(report) {
-    const vocabHtml = report.newVocabulary.map(v => `<li><strong>${v.word}</strong>: ${v.translation}</li>`).join('') || '<li>Aucun nouveau vocabulaire relevé.</li>';
-    const feedbackHtml = report.feedback.map(f => `<li>${f}</li>`).join('') || '<li>Aucun point de feedback majeur.</li>';
+    // Assurer que les tableaux existent avant le .map
+    const vocabHtml = (report.newVocabulary || []).map(v => `<li><strong>${v.word}</strong>: ${v.translation}</li>`).join('') || '<li>Aucun nouveau vocabulaire relevé.</li>';
+    const feedbackHtml = (report.feedback || []).map(f => `<li>${f}</li>`).join('') || '<li>Aucun point de feedback majeur.</li>';
     
     const html = `
         <div style="padding: 1rem;">
@@ -357,7 +326,12 @@ function renderScenarioCreatorModal() {
             
             setTimeout(() => {
                 window.modalContainer.innerHTML = '';
-                renderAcademyStudentDashboard(); 
+                // Rafraîchir le bon dashboard (élève ou enseignant)
+                if (window.currentUser.role === 'academy_student') {
+                    renderAcademyStudentDashboard();
+                } else {
+                    renderAcademyTeacherDashboard();
+                }
             }, 1500);
 
         } catch (err) {
@@ -586,22 +560,12 @@ function renderTeacherStudentDetail(student) {
     });
 }
 
-// Rendu du Dashboard Enseignant (Corrigé pour ne plus lancer le scénario + Ajout de la section gestion)
+// MODIFIÉ : Rendu du Dashboard Enseignant (Appelle l'API)
 export async function renderAcademyTeacherDashboard() {
     const page = document.getElementById('teacher-dashboard-page');
     changePage('teacher-dashboard-page'); 
 
-    const students = [...simulatedStudentsData];
-
-    // Ajouter l'utilisateur courant s'il a des sessions (pour les tests rapides)
-    if (window.currentUser.academyProgress?.sessions?.length > 0 && !students.some(s => s.id === window.currentUser.id)) {
-        students.push({
-            id: window.currentUser.id,
-            firstName: window.currentUser.firstName,
-            academyProgress: window.currentUser.academyProgress
-        });
-    }
-
+    // Affiche le HTML de base (structure + spinner)
     let html = `
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
             <div>
@@ -615,58 +579,78 @@ export async function renderAcademyTeacherDashboard() {
         </div>
         
         <div class="scenario-management-section">
-            </div>
+            ${spinnerHtml} 
+        </div>
 
-        <h3 style="margin-top: 2rem;">Vos Élèves (${students.length})</h3>
-        <div class="dashboard-grid teacher-grid">
+        <h3 style="margin-top: 2rem;">Vos Élèves</h3>
+        <div id="teacher-student-grid" class="dashboard-grid teacher-grid">
+            ${spinnerHtml}
+        </div>
     `;
-
-    students.forEach(student => {
-        const totalSessions = student.academyProgress?.sessions?.length || 0;
-        const lastSession = totalSessions > 0 ? student.academyProgress.sessions.slice().sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt))[0] : null;
-        
-        const lastActivity = lastSession ? new Date(lastSession.completedAt).toLocaleDateString('fr-FR') : 'Aucune';
-        
-        let statusColor = totalSessions > 0 ? 'var(--primary-color)' : 'var(--text-color-secondary)';
-        let statusText = `${totalSessions} Session(s)`;
-        
-        if (lastSession && lastSession.report?.completionStatus === 'Échec') {
-             statusColor = 'var(--incorrect-color)';
-             statusText = `Échec Récent`;
-        }
-
-        html += `
-            <div class="dashboard-card student-card" data-student-id="${student.id}" style="border-left: 5px solid ${statusColor}; cursor: pointer;">
-                <h4>${student.firstName}</h4>
-                <p>Statut : <strong style="color: ${statusColor}">${statusText}</strong></p>
-                <p>Dernière activité : ${lastActivity}</p>
-                <div style="text-align: right; margin-top: 1rem;">
-                    <button class="btn btn-secondary view-student-btn" data-student-id="${student.id}"><i class="fa-solid fa-chart-line"></i> Voir Détail</button>
-                </div>
-            </div>
-        `;
-    });
-    
-    html += '</div>';
     page.innerHTML = html;
-
-    // PLACEMENT CRITIQUE: Charger la section de gestion des scénarios ici
-    await renderTeacherScenarioManagement(page); 
-
-    // Listeners pour voir le détail de l'élève
-    page.querySelectorAll('.view-student-btn, .student-card').forEach(element => {
-        element.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const studentId = e.currentTarget.dataset.studentId;
-            const studentData = students.find(s => s.id === studentId);
-            if (studentData) {
-                renderTeacherStudentDetail(studentData);
-            }
-        });
-    });
-
+    
     // Listener pour le bouton de création de scénario
     document.getElementById('create-scenario-btn').addEventListener('click', renderScenarioCreatorModal);
+    
+    // PLACEMENT CRITIQUE: Charger la section de gestion des scénarios (asynchrone)
+    await renderTeacherScenarioManagement(page); 
+
+    // --- CORRECTION : Appel API pour les élèves ---
+    let students = [];
+    const studentGrid = document.getElementById('teacher-student-grid');
+    
+    try {
+        students = await apiRequest(`/api/academy/teacher/students?teacherEmail=${window.currentUser.email}`);
+        
+        if (students.length === 0) {
+            studentGrid.innerHTML = `<p>Aucun élève de l'académie n'est encore enregistré.</p>`;
+            return;
+        }
+
+        let studentHtml = '';
+        students.forEach(student => {
+            const totalSessions = student.academyProgress?.sessions?.length || 0;
+            const lastSession = totalSessions > 0 ? student.academyProgress.sessions.slice().sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt))[0] : null;
+            
+            const lastActivity = lastSession ? new Date(lastSession.completedAt).toLocaleDateString('fr-FR') : 'Aucune';
+            
+            let statusColor = totalSessions > 0 ? 'var(--primary-color)' : 'var(--text-color-secondary)';
+            let statusText = `${totalSessions} Session(s)`;
+            
+            if (lastSession && lastSession.report?.completionStatus === 'Échec') {
+                 statusColor = 'var(--incorrect-color)';
+                 statusText = `Échec Récent`;
+            }
+
+            studentHtml += `
+                <div class="dashboard-card student-card" data-student-id="${student.id}" style="border-left: 5px solid ${statusColor}; cursor: pointer;">
+                    <h4>${student.firstName}</h4>
+                    <p>Statut : <strong style="color: ${statusColor}">${statusText}</strong></p>
+                    <p>Dernière activité : ${lastActivity}</p>
+                    <div style="text-align: right; margin-top: 1rem;">
+                        <button class="btn btn-secondary view-student-btn" data-student-id="${student.id}"><i class="fa-solid fa-chart-line"></i> Voir Détail</button>
+                    </div>
+                </div>
+            `;
+        });
+        
+        studentGrid.innerHTML = studentHtml;
+
+        // Listeners pour voir le détail de l'élève
+        studentGrid.querySelectorAll('.view-student-btn, .student-card').forEach(element => {
+            element.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const studentId = e.currentTarget.dataset.studentId;
+                const studentData = students.find(s => s.id === studentId);
+                if (studentData) {
+                    renderTeacherStudentDetail(studentData);
+                }
+            });
+        });
+
+    } catch (err) {
+        studentGrid.innerHTML = `<p class="error-message">Erreur lors de la récupération des élèves : ${err.message}</p>`;
+    }
 }
 
 
@@ -870,3 +854,7 @@ const appendMessage = (sender, text, canListen = false) => {
 export async function renderAcademyParentDashboard() {
     await renderAcademyTeacherDashboard();
 }
+}
+ok mais on a une erreur Uncaught SyntaxError: missing name after . operator aida_academy.js:611:52, 
+
+je t'ai renvoyé le fichier, mais tu n'as pas pris en compte ma correction
