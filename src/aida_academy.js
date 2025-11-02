@@ -7,6 +7,41 @@ let recognition;
 let currentAudio = null;
 let currentListenBtn = null; 
 
+// --- SIMULATION DE DONNÉES ÉLÈVES POUR LE DASHBOARD ENSEIGNANT (Maintenu ici pour le test) ---
+const simulatedStudentsData = [
+    { 
+        id: 'student-A', 
+        firstName: 'Youssef', 
+        academyProgress: { 
+            sessions: [
+                {
+                    id: 'sess-y1',
+                    completedAt: new Date(Date.now() - 3600000).toISOString(),
+                    report: { summaryTitle: "Maîtrise de la Salutation", completionStatus: "Réussi", feedback: ["Très bonne prononciation des voyelles."], newVocabulary: [{word: "شكراً", translation: "Merci"}] }
+                }
+            ]
+        }
+    },
+    { 
+        id: 'student-B', 
+        firstName: 'Amira', 
+        academyProgress: { 
+            sessions: [
+                {
+                    id: 'sess-a1',
+                    completedAt: new Date(Date.now() - 7200000).toISOString(),
+                    report: { summaryTitle: "Difficultés de Structure", completionStatus: "Échec", feedback: ["Revoir la structure sujet-prédicat."], newVocabulary: [{word: "أنا", translation: "Je"}] }
+                },
+                {
+                    id: 'sess-a2',
+                    completedAt: new Date(Date.now() - 1800000).toISOString(),
+                    report: { summaryTitle: "Bonne Progression", completionStatus: "En Cours", feedback: ["Amélioration des structures."], newVocabulary: [{word: "تفضل", translation: "Entrez/SVP"}] }
+                }
+            ]
+        }
+    }
+];
+
 
 // --- Fonctions de Configuration et d'Aide ---
 
@@ -212,8 +247,8 @@ async function endScenarioSession(scenario, history) {
 }
 
 function showSessionReportModal(report) {
-    const vocabHtml = (report.newVocabulary || []).map(v => `<li><strong>${v.word}</strong>: ${v.translation}</li>`).join('') || '<li>Aucun nouveau vocabulaire relevé.</li>';
-    const feedbackHtml = (report.feedback || []).map(f => `<li>${f}</li>`).join('') || '<li>Aucun point de feedback majeur.</li>';
+    const vocabHtml = report.newVocabulary.map(v => `<li><strong>${v.word}</strong>: ${v.translation}</li>`).join('') || '<li>Aucun nouveau vocabulaire relevé.</li>';
+    const feedbackHtml = report.feedback.map(f => `<li>${f}</li>`).join('') || '<li>Aucun point de feedback majeur.</li>';
     
     const html = `
         <div style="padding: 1rem;">
@@ -551,12 +586,22 @@ function renderTeacherStudentDetail(student) {
     });
 }
 
-// MODIFIÉ : Rendu du Dashboard Enseignant (Appelle l'API)
+// Rendu du Dashboard Enseignant (Corrigé pour ne plus lancer le scénario + Ajout de la section gestion)
 export async function renderAcademyTeacherDashboard() {
     const page = document.getElementById('teacher-dashboard-page');
     changePage('teacher-dashboard-page'); 
 
-    // Affiche le HTML de base (structure + spinner)
+    const students = [...simulatedStudentsData];
+
+    // Ajouter l'utilisateur courant s'il a des sessions (pour les tests rapides)
+    if (window.currentUser.academyProgress?.sessions?.length > 0 && !students.some(s => s.id === window.currentUser.id)) {
+        students.push({
+            id: window.currentUser.id,
+            firstName: window.currentUser.firstName,
+            academyProgress: window.currentUser.academyProgress
+        });
+    }
+
     let html = `
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
             <div>
@@ -570,42 +615,258 @@ export async function renderAcademyTeacherDashboard() {
         </div>
         
         <div class="scenario-management-section">
-            ${spinnerHtml} 
-        </div>
+            </div>
 
-        <h3 style="margin-top: 2rem;">Vos Élèves</h3>
-        <div id="teacher-student-grid" class="dashboard-grid teacher-grid">
-            ${spinnerHtml}
-        </div>
+        <h3 style="margin-top: 2rem;">Vos Élèves (${students.length})</h3>
+        <div class="dashboard-grid teacher-grid">
     `;
-    page.innerHTML = html;
-    
-    // Listener pour le bouton de création de scénario
-    document.getElementById('create-scenario-btn').addEventListener('click', renderScenarioCreatorModal);
-    
-    // PLACEMENT CRITIQUE: Charger la section de gestion des scénarios (asynchrone)
-    await renderTeacherScenarioManagement(page); 
 
-    // --- CORRECTION : Appel API pour les élèves ---
-    let students = [];
-    const studentGrid = document.getElementById('teacher-student-grid');
-    
-    try {
-        students = await apiRequest(`/api/academy/teacher/students?teacherEmail=${window.currentUser.email}`);
+    students.forEach(student => {
+        const totalSessions = student.academyProgress?.sessions?.length || 0;
+        const lastSession = totalSessions > 0 ? student.academyProgress.sessions.slice().sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt))[0] : null;
         
-        if (students.length === 0) {
-            studentGrid.innerHTML = `<p>Aucun élève de l'académie n'est encore enregistré.</p>`;
-            return;
+        const lastActivity = lastSession ? new Date(lastSession.completedAt).toLocaleDateString('fr-FR') : 'Aucune';
+        
+        let statusColor = totalSessions > 0 ? 'var(--primary-color)' : 'var(--text-color-secondary)';
+        let statusText = `${totalSessions} Session(s)`;
+        
+        if (lastSession && lastSession.report?.completionStatus === 'Échec') {
+             statusColor = 'var(--incorrect-color)';
+             statusText = `Échec Récent`;
         }
 
-        let studentHtml = '';
-        students.forEach(student => {
-            const totalSessions = student.academyProgress?.sessions?.length || 0;
-            const lastSession = totalSessions > 0 ? student.academyProgress.sessions.slice().sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt))[0] : null;
+        html += `
+            <div class="dashboard-card student-card" data-student-id="${student.id}" style="border-left: 5px solid ${statusColor}; cursor: pointer;">
+                <h4>${student.firstName}</h4>
+                <p>Statut : <strong style="color: ${statusColor}">${statusText}</strong></p>
+                <p>Dernière activité : ${lastActivity}</p>
+                <div style="text-align: right; margin-top: 1rem;">
+                    <button class="btn btn-secondary view-student-btn" data-student-id="${student.id}"><i class="fa-solid fa-chart-line"></i> Voir Détail</button>
+                </div>
+            </div>
+        `;
+    });
+    
+    html += '</div>';
+    page.innerHTML = html;
+
+    // PLACEMENT CRITIQUE: Charger la section de gestion des scénarios ici
+    await renderTeacherScenarioManagement(page); 
+
+    // Listeners pour voir le détail de l'élève
+    page.querySelectorAll('.view-student-btn, .student-card').forEach(element => {
+        element.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const studentId = e.currentTarget.dataset.studentId;
+            const studentData = students.find(s => s.id === studentId);
+            if (studentData) {
+                renderTeacherStudentDetail(studentData);
+            }
+        });
+    });
+
+    // Listener pour le bouton de création de scénario
+    document.getElementById('create-scenario-btn').addEventListener('click', renderScenarioCreatorModal);
+}
+
+
+// Vue pour le chat immersif 
+function renderScenarioViewer(scenario) {
+    const p = document.getElementById('content-viewer-page');
+    changePage('content-viewer-page');
+
+    const history = [{ role: "system", content: getAcademySystemPrompt(scenario) }];
+    
+    p.innerHTML = `
+        <button id="back-to-academy-dash" class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> Retour aux scénarios</button>
+        
+        <div class="card" style="margin-top:1rem;">
+            <h2>${scenario.title}</h2>
+            <p class="subtitle">${scenario.context}</p>
+            <p style="font-size: 0.9em; color: var(--primary-color); margin-bottom: 1rem;">
+                <i class="fa-solid fa-microphone-alt"></i> **Mode Vocal Activé.** Appuyez sur le micro pour enregistrer.
+            </p>
+
+            <div id="scenario-chat-window" style="height: 400px; overflow-y: auto; padding: 10px; border: 1px solid #ccc; border-radius: 8px; margin-top: 1.5rem; background-color: var(--aida-chat-bg);">
+                </div>
+
+            <form id="scenario-chat-form" style="display: flex; gap: 0.5rem; margin-top: 1rem;">
+                <textarea id="user-scenario-input" placeholder="Parlez en Arabe ou écrivez votre réponse..." rows="2" style="flex-grow: 1; resize: none;"></textarea>
+                
+                <button type="button" id="mic-btn" class="btn-icon" title="Maintenir enfoncé pour parler">
+                    <i class="fa-solid fa-microphone"></i>
+                </button>
+
+                <button type="submit" class="btn btn-main" style="width: 100px; flex-shrink: 0;"><i class="fa-solid fa-paper-plane"></i></button>
+            </form>
             
-            const lastActivity = lastSession ? new Date(lastSession.completedAt).toLocaleDateString('fr-FR') : 'Aucune';
+            <div style="display: flex; justify-content: flex-end; margin-top: 1rem;">
+                 <button type="button" id="end-session-btn" class="btn" style="background-color: var(--incorrect-color); color: white;">
+                    <i class="fa-solid fa-flag-checkered"></i> Terminer la session
+                 </button>
+            </div>
+
+            <div id="scenario-spinner" class="hidden" style="text-align: right; margin-top: 0.5rem;">${spinnerHtml}</div>
+            <p class="error-message" id="scenario-error"></p>
+        </div>
+    `;
+
+    const chatForm = document.getElementById('scenario-chat-form');
+    const userInput = document.getElementById('user-scenario-input');
+    const micBtn = document.getElementById('mic-btn');
+    const endSessionBtn = document.getElementById('end-session-btn');
+    
+    document.getElementById('back-to-academy-dash').addEventListener('click', () => {
+        if (recognition && micBtn.classList.contains('recording')) recognition.stop();
+        if (currentAudio) currentAudio.pause();
+        renderAcademyStudentDashboard();
+    });
+
+    // Initialisation du Push-to-Talk
+    setupSpeechRecognition(micBtn, userInput, chatForm); 
+    micBtn.addEventListener('mousedown', startListening);
+    micBtn.addEventListener('mouseup', stopListening);
+    micBtn.addEventListener('touchstart', startListening); 
+    micBtn.addEventListener('touchend', stopListening);
+    micBtn.addEventListener('click', (e) => e.preventDefault()); 
+
+
+    endSessionBtn.addEventListener('click', () => endScenarioSession(scenario, history));
+
+
+    // Prompt Initial du Personnage IA
+    appendMessage('aida', scenario.characterIntro, true); 
+    history.push({ role: 'assistant', content: scenario.characterIntro });
+
+
+    // Gestion de l'envoi de message
+    chatForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const message = userInput.value.trim();
+        if (!message) return;
+        
+        if (recognition && micBtn.classList.contains('recording')) recognition.stop();
+
+        appendMessage('user', message);
+        userInput.value = '';
+        document.getElementById('scenario-spinner').classList.remove('hidden');
+        document.getElementById('scenario-error').textContent = '';
+        
+        history.push({ role: 'user', content: message });
+
+        try {
+            const response = await apiRequest('/api/academy/ai/chat', 'POST', { history });
             
-            let statusColor = totalSessions > 0 ? 'var(--primary-color)' : 'var(--text-color-secondary)';
-            let statusText = `${totalSessions} Session(s)`;
+            const aidaResponse = response.reply;
+            appendMessage('aida', aidaResponse, true); 
+            history.push({ role: 'assistant', content: aidaResponse });
+
+        } catch (err) {
+            document.getElementById('scenario-error').textContent = `Erreur: Conversation interrompue. ${err.message}`;
+            history.pop(); 
+        } finally {
+            document.getElementById('scenario-spinner').classList.add('hidden');
+        }
+    });
+}
+
+
+// Fonction appendMessage (Logique de découpage des balises)
+const appendMessage = (sender, text, canListen = false) => {
+    const chatWindow = document.getElementById('scenario-chat-window');
+    
+    const msgDiv = document.createElement('div');
+    msgDiv.className = `chat-message ${sender === 'user' ? 'user' : 'aida'}`;
+    
+    const bubble = document.createElement('div');
+    bubble.className = sender === 'user' ? 'user-message' : 'aida-message';
+    
+    
+    let displayedText = text.replace(/\n/g, '<br>');
+    let helpContent = ''; 
+    let isAidaMessage = sender === 'aida' && (text.includes('<PHONETIQUE>') || text.includes('<TRADUCTION>'));
+
+
+    // --- 1. Détection, Extraction et Remplissage du Contenu ---
+    if (isAidaMessage) {
+        
+        // Trouver la partie Arabe pure (ce qui est avant la première balise)
+        const firstTagIndex = Math.min(
+            text.indexOf('<PHONETIQUE>') > -1 ? text.indexOf('<PHONETIQUE>') : Infinity,
+            text.indexOf('<TRADUCTION>') > -1 ? text.indexOf('<TRADUCTION>') : Infinity
+        );
+        const arabicPart = text.substring(0, firstTagIndex).trim();
+
+        // Extraction de l'aide
+        const phoneticMatch = text.match(/<PHONETIQUE>(.*?)<\/PHONETIQUE>/);
+        const traductionMatch = text.match(/<TRADUCTION>(.*?)<\/TRADUCTION>/);
+        
+        if (phoneticMatch) { helpContent += `<p class="help-phonetic">Phonétique: ${phoneticMatch[1].trim()}</p>`; }
+        if (traductionMatch) { helpContent += `<p class="help-translation">Traduction: ${traductionMatch[1].trim()}</p>`; }
+
+        // Correction de la régression de l'aide
+        displayedText = `<p class="arabic-text-only">${arabicPart}</p>`;
+    } else if (sender === 'user') {
+        // Correction de la régression de la taille de police utilisateur
+        displayedText = `<p>${text}</p>`;
+    }
+    
+    bubble.innerHTML = displayedText;
+    
+    // Aligner le message
+    msgDiv.style.alignSelf = sender === 'user' ? 'flex-end' : 'flex-start';
+    msgDiv.style.marginLeft = sender === 'user' ? 'auto' : 'unset';
+
+
+    // --- 2. AJOUT DES CONTRÔLES (Boutons) à la BUBBLE ---
+    if (sender === 'aida' && canListen) {
+        
+        // 2a. Activation du FLEX pour aligner le texte et les boutons
+        bubble.style.display = 'flex';
+        bubble.style.alignItems = 'center';
+        bubble.style.gap = '10px';
+        
+        // 2b. BOUTON ÉCOUTER (Haut-parleur)
+        const listenBtn = document.createElement('button');
+        listenBtn.className = 'btn-icon';
+        listenBtn.innerHTML = '<i class="fa-solid fa-volume-high"></i>';
+        listenBtn.title = 'Écouter la réponse (Arabe Littéraire)';
+        listenBtn.onclick = () => togglePlayback(text, listenBtn);  
+        bubble.appendChild(listenBtn);
+
+
+        // 2c. BOUTON AIDE (Ampoule) et son Div Masqué
+        if (helpContent) {
+            const helpBtn = document.createElement('button');
+            helpBtn.className = 'btn-icon toggle-help-btn';
+            helpBtn.innerHTML = '<i class="fa-solid fa-lightbulb"></i>';
+            helpBtn.title = 'Afficher l\'aide (Phonétique / Traduction)';
             
-            if (lastSession && lastSession.report?.
+            helpBtn.onclick = () => {
+                const helpDiv = msgDiv.querySelector('.aida-help-div');
+                helpDiv.classList.toggle('hidden');
+                helpBtn.classList.toggle('active');
+            };
+            
+            bubble.appendChild(helpBtn);
+            
+            // Ajout du DIV d'aide masqué au MESSAGE (à la div parente)
+            const helpDiv = document.createElement('div');
+            helpDiv.className = 'aida-help-div hidden'; 
+            helpDiv.innerHTML = helpContent;
+            msgDiv.appendChild(helpDiv);
+        }
+    }
+
+    // 3. ATTACHEMENT FINAL au DOM
+    msgDiv.appendChild(bubble); 
+    chatWindow.appendChild(msgDiv);
+    chatWindow.scrollTop = chatWindow.scrollHeight;
+};
+
+
+// --- 6. Dashboard Parent (Utilise la même logique que l'enseignant) ---
+
+export async function renderAcademyParentDashboard() {
+    await renderAcademyTeacherDashboard();
+}
