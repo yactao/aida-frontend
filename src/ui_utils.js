@@ -51,6 +51,11 @@ export function updateUI() {
             else renderStudentDashboard();
         }
     } else {
+        // CORRECTION AJOUTÉE ICI :
+        // Masquer explicitement les liens lors de la déconnexion
+        if (workspaceLink) workspaceLink.classList.add('hidden');
+        if (libraryLink) libraryLink.classList.add('hidden');
+        
         changePage('home-page');
     }
 }
