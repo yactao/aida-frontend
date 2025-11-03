@@ -1579,7 +1579,7 @@ function renderGradingModulePage() {
     page.querySelector('#grading-form').addEventListener('submit', handleGradingAnalysis);
 }
 
-// Gère l'envoi du formulaire d'analyse
+// Gère l'envoi du formulaire d'analyse (version 1 élève / N pages)
 async function handleGradingAnalysis(e) {
     e.preventDefault();
     const resultsContainer = document.getElementById('grading-results');
@@ -1587,21 +1587,23 @@ async function handleGradingAnalysis(e) {
 
     const sujet = document.getElementById('grading-sujet').value;
     const criteres = document.getElementById('grading-criteres').value;
-    const file = document.getElementById('grading-file').files[0];
+    const files = document.getElementById('grading-file').files; // Utilise .files (au pluriel)
 
-    if (!file || !sujet || !criteres) {
-        resultsContainer.innerHTML = `<p class="error-message">Veuillez remplir tous les champs.</p>`;
+    if (!files || files.length === 0 || !sujet || !criteres) {
+        resultsContainer.innerHTML = `<p class="error-message">Veuillez remplir tous les champs et sélectionner au moins un fichier.</p>`;
         return;
     }
 
     const formData = new FormData();
     formData.append('sujet', sujet);
     formData.append('criteres', criteres);
-    formData.append('copie', file); // 'copie' sera le nom attendu par Multer sur le backend
+    
+    // Boucle pour ajouter tous les fichiers (pages)
+    for (const file of files) {
+        formData.append('copies', file); // 'copies' (au pluriel) doit correspondre au backend
+    }
 
     try {
-        // Nous utilisons fetch() directement ici car apiRequest est conçu pour du JSON,
-        // pas pour du FormData (multi-part).
         const response = await fetch(`${window.backendUrl}/api/ai/grade-upload`, {
             method: 'POST',
             body: formData
@@ -1609,40 +1611,46 @@ async function handleGradingAnalysis(e) {
 
         if (!response.ok) {
             const errText = await response.text();
-            // CORRECTION : Ajout de la parenthèse ouvrante (
-            throw new Error(errText || 'Erreur du serveur lors de analyse');
+            throw new Error(errText || 'Erreur du serveur lors de analyse.');
         }
 
-        const results = await response.json();
+        // MODIFIÉ : Attend un OBJET unique, pas un tableau
+        const results = await response.json(); 
         
-        // --- Affichage formaté des résultats ---
-        // (Nous utiliserons le format JSON du PDF d'exemple)
+        // --- MODIFIÉ : Affichage formaté pour UN SEUL résultat ---
+        
+        // (Utilise 'results' directement, au lieu de 'eval')
         let html = `
-            <div class="card">
-                <h3>Résultat de l'analyse d'AIDA</h3>
+            <div class="card" style="margin-bottom: 1.5rem;">
+                <h3>Résultat de l'analyse AIDA</h3>
+                <p class="subtitle">Pour la copie : ${files[0].name} (et ${files.length - 1} autre(s) page(s))</p>
+                
                 <h4 style="margin-top: 1.5rem;">Analyse Globale</h4>
-                <p>${results.analyseGlobale.replace(/\\n/g, '<br>')}</p>
+                <p>${results.analyseGlobale ? results.analyseGlobale.replace(/\\n/g, '<br>') : 'N/A'}</p>
                 
                 <h4 style="margin-top: 1.5rem;">Évaluation Détaillée</h4>
         `;
         
         // Afficher les critères
-        if (results.criteres) {
+        if (results.criteres && Array.isArray(results.criteres)) {
             html += '<ul>';
             results.criteres.forEach(critere => {
                 html += `<li><strong>${critere.nom} (${critere.note}):</strong> ${critere.commentaire}</li>`;
             });
             html += '</ul>';
+        } else {
+            html += '<p>Aucun critère détaillé fourni.</p>';
         }
 
         html += `
                 <h4 style="margin-top: 1.5rem;">Note Finale Suggérée</h4>
-                <p style="font-size: 1.5rem; font-weight: 700; color: var(--primary-color);">${results.noteFinale}</p>
+                <p style="font-size: 1.5rem; font-weight: 700; color: var(--primary-color);">${results.noteFinale || 'N/A'}</p>
                 
                 <h4 style="margin-top: 1.5rem;">Commentaire pour l'élève</h4>
-                <div class="student-answer-box">${results.commentaireEleve.replace(/\\n/g, '<br>')}</div>
+                <div class="student-answer-box">${results.commentaireEleve ? results.commentaireEleve.replace(/\\n/g, '<br>') : 'N/A'}</div>
             </div>
         `;
+        
         resultsContainer.innerHTML = html;
 
     } catch (err) {
