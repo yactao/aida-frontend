@@ -1605,12 +1605,12 @@ async function handleGradingAnalysis(e) {
         const response = await fetch(`${window.backendUrl}/api/ai/grade-upload`, {
             method: 'POST',
             body: formData
-            // Pas de 'Content-Type' ici, le navigateur le définit automatiquement pour FormData
+            // Le commentaire problématique a été SUPPRIMÉ d'ici
         });
 
         if (!response.ok) {
             const errText = await response.text();
-            throw new Error(errText || 'Erreur du serveur lors de l'analyse.');
+            throw new Error(errText || 'Erreur du serveur lors de l'analyse);
         }
 
         const results = await response.json();
