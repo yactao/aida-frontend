@@ -1547,7 +1547,7 @@ function renderGradingModulePage() {
         </div>
         
         <div class="card">
-            <p class="subtitle" style="margin-bottom: 1.5rem;">Uploadez la copie d'un élève (PDF ou image) et fournissez le sujet ainsi que vos critères pour qu'AIDA génère une proposition d'évaluation.</p>
+            <p class="subtitle" style="margin-bottom: 1.5rem;">Uploadez une ou plusieurs copies d'élèves (PDF ou image) et fournissez le sujet ainsi que vos critères pour qu'AIDA génère des propositions d'évaluation.</p>
             
             <form id="grading-form">
                 <div class="form-group">
@@ -1561,8 +1561,8 @@ function renderGradingModulePage() {
                 </div>
                 
                 <div class="form-group">
-                    <label for="grading-file"><strong>3. Copie de l'élève</strong> (PDF, JPG, PNG)</label>
-                    <input type="file" id="grading-file" accept=".pdf,.jpg,.jpeg,.png" required>
+                    <label for="grading-file"><strong>3. Copies des élèves</strong> (PDF, JPG, PNG)</label>
+                    <input type="file" id="grading-file" accept=".pdf,.jpg,.jpeg,.png" required multiple>
                 </div>
                 
                 <button type="submit" class="btn btn-main" style="width: 100%;">
