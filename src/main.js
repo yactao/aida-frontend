@@ -26,6 +26,40 @@ const themeToggleHeaderBtn = document.getElementById('theme-toggle-header-btn');
 const themeToggleDropdownBtn = document.getElementById('theme-toggle-dropdown-btn');
 
 
+// --- NOUVEAU : Logique pour les fonds d'écran dynamiques ---
+const backgrounds = {
+    light: [
+        'assets/backgrounds/clouds-light.png',
+        'assets/backgrounds/trees-light.png',
+        'assets/backgrounds/mountains.png'
+    ],
+    dark: [
+        'assets/backgrounds/clouds-dark.png',
+        'assets/backgrounds/trees-dark.png',
+        'assets/backgrounds/moon.png',
+        'assets/backgrounds/mountains.png'
+    ]
+};
+
+function setRandomBackgroundImage() {
+    const isDarkMode = document.body.classList.contains('dark-mode');
+    const bgList = isDarkMode ? backgrounds.dark : backgrounds.light;
+    
+    // S'assure qu'il y a des images à choisir
+    if (!bgList || bgList.length === 0) return;
+
+    const randomIndex = Math.floor(Math.random() * bgList.length);
+    const selectedImage = bgList[randomIndex];
+
+    const dynamicBgDiv = document.getElementById('dynamic-background-image');
+    if (dynamicBgDiv) {
+        // Utilise le chemin relatif correct depuis index.html
+        dynamicBgDiv.style.backgroundImage = `url('${selectedImage}')`;
+    }
+}
+// --- Fin de la logique de fond d'écran ---
+
+
 // --- Fonctions du Flux d'Application ---
 
 // Fonction qui déclenche le choix de plateforme (AIDA Éducation vs Académie MRE)
@@ -66,6 +100,9 @@ function toggleTheme() {
     const newTheme = document.body.classList.contains('dark-mode') ? 'light' : 'dark';
     localStorage.setItem('theme', newTheme);
     applyTheme(newTheme);
+    
+    // MODIFIÉ : Appelle la fonction de fond d'écran lors du changement de thème
+    setRandomBackgroundImage();
 }
 
 // Fonction d'initialisation de l'application
@@ -82,6 +119,9 @@ async function init() {
     
     // Mise à jour de l'interface en fonction de l'utilisateur
     updateUI(); 
+
+    // MODIFIÉ : Appelle la fonction de fond d'écran au chargement initial
+    setRandomBackgroundImage();
 
     // --- Écouteurs de navigation et d'état ---
     loginNavBtn.addEventListener('click', showLoginChoiceModal);

@@ -19,6 +19,10 @@
     --incorrect-color: #dc3545;
     --warning-color: #F5A623;
     --aida-chat-bg: #E9F2FF; /* Couleur pour le chat AIDA */
+    
+    /* NOUVEAU : Couleurs pour les blobs (basé sur le user-file) */
+    --card-bg-darker: #F0F4FA; /* Pour l'aide en mode clair */
+    --border-color: #E0E8F3;
 }
 body.dark-mode {
     /* MODIFIÉ : Palette sombre (ajustée) */
@@ -29,70 +33,39 @@ body.dark-mode {
     --card-bg-color: #1E1E1E;
     --shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
     --aida-chat-bg: #2a3a50; 
+    
+    /* NOUVEAU : Couleurs pour les blobs (basé sur le user-file) */
+    --card-bg-darker: #2C2C2C;
+    --border-color: #3A3A3A;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html { scroll-behavior: smooth; }
 
-/* MODIFIÉ : Ajout des propriétés de fond */
+/* MODIFIÉ : Suppression des propriétés de fond (background-image, opacity, etc.) */
 body { 
     font-family: 'Inter', sans-serif; 
     background-color: var(--background-color); 
     color: var(--text-color); 
     line-height: 1.6; 
     transition: background-color 0.3s ease, color 0.3s ease; 
-    
-    /* Paramètres de base pour les fonds discrets */
-    background-size: cover; 
-    background-repeat: no-repeat; 
-    background-attachment: fixed; 
-    transition: background-image 0.5s ease; 
 }
 
-/* --- NOUVEAU : Effets de fond discrets (Nuages, Arbres, Lune, Montagnes) --- */
-
-/* --- Fonds en mode CLAIR --- */
-body:not(.dark-mode) {
-    background-image: 
-        url('assets/backgrounds/clouds-light.png'), /* Nuages subtils en haut */
-        url('assets/backgrounds/trees-light.png'),   /* Arbres en bas */
-        url('assets/backgrounds/mountains.png');     /* Montagnes en bas */
-    
-    background-position: 
-        top 5% left 10%, /* Position des nuages */
-        bottom 0px right 0px, /* Position des arbres (en bas à droite) */
-        bottom 0px center; /* Position des montagnes (centrées en bas) */
-
-    background-size: 
-        30% auto, /* Taille des nuages (30% de la largeur, hauteur auto) */
-        40% auto, /* Taille des arbres (40% de la largeur, hauteur auto) */
-        70% auto; /* Taille des montagnes (70% de la largeur, hauteur auto) */
-    
-    /* Opacité générale pour rendre le fond très discret */
-    opacity: 0.15; /* Très faible opacité pour un effet "en filigrane" */
+/* --- NOUVEAU : Conteneur pour l'image de fond dynamique --- */
+#dynamic-background-image {
+    position: fixed; /* Fixe l'image par rapport à la fenêtre */
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background-size: cover; /* L'image couvrira tout l'espace */
+    background-repeat: no-repeat;
+    background-position: center center; /* Centre l'image */
+    opacity: 0.15; /* Opacité appliquée SEULEMENT à l'image de fond */
+    z-index: -2; /* Encore plus en arrière que les blobs */
+    transition: background-image 1s ease-in-out, opacity 0.5s ease; /* Transition douce */
 }
 
-/* --- Fonds en mode SOMBRE --- */
-body.dark-mode {
-    background-image: 
-        url('assets/backgrounds/clouds-dark.png'),   /* Nuages sombres */
-        url('assets/backgrounds/trees-dark.png'),     /* Arbres sombres */
-        url('assets/backgrounds/moon.png'),          /* Lune */
-        url('assets/backgrounds/mountains.png');     /* Montagnes */
-    
-    background-position: 
-        top 8% right 15%, /* Nuages en haut à droite */
-        bottom 0px left 0px,  /* Arbres en bas à gauche */
-        top 5% left 5%,       /* Lune en haut à gauche */
-        bottom 0px center;    /* Montagnes centrées en bas */
-
-    background-size: 
-        35% auto, /* Taille des nuages */
-        45% auto, /* Taille des arbres */
-        15% auto, /* Taille de la lune */
-        75% auto; /* Taille des montagnes */
-    
-    opacity: 0.12; /* Légèrement moins opaque en mode sombre pour ne pas surcharger */
+body.dark-mode #dynamic-background-image {
+    opacity: 0.12; /* Légèrement moins opaque en mode sombre */
 }
 
 /* --- NOUVEAU : Effet type "blobs" / formes abstraites --- */
@@ -101,7 +74,7 @@ body.dark-mode {
     border-radius: 50%; 
     filter: blur(80px); 
     opacity: 0.2; 
-    z-index: -1; 
+    z-index: -1; /* Les blobs sont entre le contenu et l'image de fond */
     pointer-events: none; 
     transition: background-color 0.3s ease, transform 0.8s ease;
 }
@@ -129,8 +102,7 @@ body.dark-mode .abstract-blob-2 {
     background-color: rgba(76, 81, 191, 0.4);
     opacity: 0.1;
 }
-
-/* --- Fin des nouveaux fonds --- */
+/* --- Fin des nouveaux styles de fond --- */
 
 
 .page { display: none; padding: 2rem 5%; }
@@ -594,18 +566,6 @@ body.dark-mode #chat-history {
     direction: rtl; /* Pour forcer l'alignement à droite de l'Arabe */
     text-align: right;
     flex-grow: 1; /* Permet au texte de prendre toute la place */
-}
-
-/* MODIFIÉ : Couleurs pour les blobs (basé sur le user-file) */
-:root {
-    /* ... (variables existantes) ... */
-    --card-bg-darker: #F0F4FA; /* Pour l'aide en mode clair */
-    --border-color: #E0E8F3;
-}
-body.dark-mode {
-    /* ... (variables existantes) ... */
-    --card-bg-darker: #2C2C2C;
-    --border-color: #3A3A3A;
 }
 
 
