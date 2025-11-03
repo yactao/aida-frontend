@@ -1,21 +1,29 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
 :root {
-    --primary-color: #4A90E2;
-    --secondary-color: #50E3C2;
-    --gradient-start-color: #4A90E2; /* Couleur fixe pour le dégradé */
-    --gradient-end-color: #50E3C2;   /* Couleur fixe pour le dégradé */
+    /* MODIFIÉ : Nouvelle Palette (Indigo / Lavande) */
+    --primary-color: #4C51BF; /* Indigo profond (pour les boutons) */
+    --secondary-color: #A78BFA; /* Lavande (pour les accents) */
+    
+    /* Dégradé mis à jour (pour les éléments comme la home page) */
+    --gradient-start-color: #4C51BF; 
+    --gradient-end-color: #A78BFA;   
+    
+    /* Couleurs de base (proches de l'exemple) */
     --background-color: #F4F7FC;
     --text-color: #333;
     --card-bg-color: #FFFFFF;
     --shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+    
+    /* Couleurs sémantiques (inchangées) */
     --correct-color: #28a745;
     --incorrect-color: #dc3545;
     --warning-color: #F5A623;
-    --aida-chat-bg: #E9F2FF; /* Nouvelle couleur pour le chat AIDA */
+    --aida-chat-bg: #E9F2FF; /* Couleur pour le chat AIDA */
 }
 body.dark-mode {
-    --primary-color: #58a6ff;
-    --secondary-color: #50E3C2;
+    /* MODIFIÉ : Palette sombre (ajustée) */
+    --primary-color: #7E82E6; /* Indigo clair */
+    --secondary-color: #A78BFA;
     --background-color: #121212;
     --text-color: #E0E0E0;
     --card-bg-color: #1E1E1E;
@@ -25,7 +33,106 @@ body.dark-mode {
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html { scroll-behavior: smooth; }
-body { font-family: 'Inter', sans-serif; background-color: var(--background-color); color: var(--text-color); line-height: 1.6; transition: background-color 0.3s ease, color 0.3s ease; }
+
+/* MODIFIÉ : Ajout des propriétés de fond */
+body { 
+    font-family: 'Inter', sans-serif; 
+    background-color: var(--background-color); 
+    color: var(--text-color); 
+    line-height: 1.6; 
+    transition: background-color 0.3s ease, color 0.3s ease; 
+    
+    /* Paramètres de base pour les fonds discrets */
+    background-size: cover; 
+    background-repeat: no-repeat; 
+    background-attachment: fixed; 
+    transition: background-image 0.5s ease; 
+}
+
+/* --- NOUVEAU : Effets de fond discrets (Nuages, Arbres, Lune, Montagnes) --- */
+
+/* --- Fonds en mode CLAIR --- */
+body:not(.dark-mode) {
+    background-image: 
+        url('assets/backgrounds/clouds-light.png'), /* Nuages subtils en haut */
+        url('assets/backgrounds/trees-light.png'),   /* Arbres en bas */
+        url('assets/backgrounds/mountains.png');     /* Montagnes en bas */
+    
+    background-position: 
+        top 5% left 10%, /* Position des nuages */
+        bottom 0px right 0px, /* Position des arbres (en bas à droite) */
+        bottom 0px center; /* Position des montagnes (centrées en bas) */
+
+    background-size: 
+        30% auto, /* Taille des nuages (30% de la largeur, hauteur auto) */
+        40% auto, /* Taille des arbres (40% de la largeur, hauteur auto) */
+        70% auto; /* Taille des montagnes (70% de la largeur, hauteur auto) */
+    
+    /* Opacité générale pour rendre le fond très discret */
+    opacity: 0.15; /* Très faible opacité pour un effet "en filigrane" */
+}
+
+/* --- Fonds en mode SOMBRE --- */
+body.dark-mode {
+    background-image: 
+        url('assets/backgrounds/clouds-dark.png'),   /* Nuages sombres */
+        url('assets/backgrounds/trees-dark.png'),     /* Arbres sombres */
+        url('assets/backgrounds/moon.png'),          /* Lune */
+        url('assets/backgrounds/mountains.png');     /* Montagnes */
+    
+    background-position: 
+        top 8% right 15%, /* Nuages en haut à droite */
+        bottom 0px left 0px,  /* Arbres en bas à gauche */
+        top 5% left 5%,       /* Lune en haut à gauche */
+        bottom 0px center;    /* Montagnes centrées en bas */
+
+    background-size: 
+        35% auto, /* Taille des nuages */
+        45% auto, /* Taille des arbres */
+        15% auto, /* Taille de la lune */
+        75% auto; /* Taille des montagnes */
+    
+    opacity: 0.12; /* Légèrement moins opaque en mode sombre pour ne pas surcharger */
+}
+
+/* --- NOUVEAU : Effet type "blobs" / formes abstraites --- */
+.abstract-blob-1, .abstract-blob-2 {
+    position: fixed;
+    border-radius: 50%; 
+    filter: blur(80px); 
+    opacity: 0.2; 
+    z-index: -1; 
+    pointer-events: none; 
+    transition: background-color 0.3s ease, transform 0.8s ease;
+}
+
+.abstract-blob-1 {
+    width: 200px; height: 200px;
+    top: 10%; left: -5%;
+    background-color: var(--secondary-color); /* Lavande */
+    transform: rotate(30deg); 
+}
+
+.abstract-blob-2 {
+    width: 300px; height: 300px;
+    bottom: 5%; right: -10%;
+    background-color: var(--primary-color); /* Indigo */
+    transform: rotate(-20deg);
+}
+
+/* Ajustements pour le mode sombre */
+body.dark-mode .abstract-blob-1 {
+    background-color: rgba(167, 139, 250, 0.4); 
+    opacity: 0.15;
+}
+body.dark-mode .abstract-blob-2 {
+    background-color: rgba(76, 81, 191, 0.4);
+    opacity: 0.1;
+}
+
+/* --- Fin des nouveaux fonds --- */
+
+
 .page { display: none; padding: 2rem 5%; }
 .page.active { display: block; animation: fadeIn 0.5s; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
@@ -46,8 +153,20 @@ body.dark-mode .logo-icon {
 
 .btn { padding: 10px 20px; border: none; border-radius: 8px; font-weight: 700; cursor: pointer; transition: all 0.3s ease; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; }
 .btn:disabled { background: #D1D5DB !important; color: #666 !important; cursor: not-allowed; }
-.btn-main { background: linear-gradient(45deg, var(--gradient-start-color), var(--gradient-end-color)); color: #FFF; }
-.btn-main:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(74, 144, 226, 0.4); }
+
+/* MODIFIÉ : Bouton principal solide (style Indigo) */
+.btn-main { 
+    background-color: var(--primary-color); 
+    color: #FFF; 
+    border-radius: 20px; /* Plus arrondi, comme l'exemple */
+}
+
+/* MODIFIÉ : Hover simple pour le bouton solide */
+.btn-main:hover:not(:disabled) { 
+    transform: translateY(-2px); 
+    box-shadow: 0 6px 20px rgba(76, 81, 191, 0.4); /* Ombre indigo */
+}
+
 .btn-secondary { background-color: #E9F2FF; color: var(--primary-color); }
 body.dark-mode .btn-secondary { background-color: #333; color: var(--primary-color); }
 .btn-icon { background: none; border: none; color: #aaa; padding: 5px; border-radius: 50%; width: 32px; height: 32px; flex-shrink: 0; }
@@ -73,7 +192,7 @@ body.dark-mode .dropdown-section:not(:last-child) { border-color: #333; }
     box-shadow: var(--shadow); 
     transition: transform 0.3s, box-shadow 0.3s; 
     cursor: grab; 
-    border-top: 4px solid var(--primary-color);
+    border-top: 4px solid var(--primary-color); /* Conservé, mais utilise la nouvelle couleur indigo */
 }
 .dashboard-card:hover { transform: translateY(-5px); box-shadow: 0 8px 25px rgba(0,0,0,0.1); }
 body.dark-mode .dashboard-card:hover { box-shadow: 0 8px 25px rgba(0,0,0,0.3); }
@@ -115,6 +234,7 @@ body.dark-mode input, body.dark-mode select, body.dark-mode textarea { border-co
 
 .progress-bar { width: 100%; background-color: #eee; border-radius: 5px; height: 10px; overflow: hidden; }
 body.dark-mode .progress-bar { background-color: #333; }
+/* MODIFIÉ : Le dégradé utilise la nouvelle palette */
 .progress-bar-fill { height: 100%; background: linear-gradient(90deg, var(--primary-color), var(--secondary-color)); border-radius: 5px; }
 
 #edit-form .form-group { border-left: 3px solid #eee; padding-left: 1rem; margin-top: 1.5rem; }
@@ -177,7 +297,7 @@ body.dark-mode .quiz-option .option-label { border-color: #333; }
 .quiz-option input[type="radio"]:checked + .option-label {
     border-color: var(--primary-color);
     background-color: #E9F2FF;
-    box-shadow: 0 6px 20px rgba(74, 144, 226, 0.3);
+    box-shadow: 0 6px 20px rgba(76, 81, 191, 0.3); /* Ombre indigo */
 }
 body.dark-mode .quiz-option input[type="radio"]:checked + .option-label { background-color: #2a3a50; }
 
@@ -194,17 +314,20 @@ body.dark-mode .btn-help:hover { background-color: #333; }
 .rotating-text-inner { animation: slide-up 10s forwards ease-in-out; }
 .rotating-text-inner span { display: block; height: 80px; line-height: 80px; -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
 @keyframes slide-up { 0%, 19% { transform: translateY(0); } 20%, 39% { transform: translateY(-80px); } 40%, 59% { transform: translateY(-160px); } 60%, 79% { transform: translateY(-240px); } 80%, 100% { transform: translateY(-320px); } }
-.word-1 { background-image: linear-gradient(45deg, #4A90E2, #50E3C2); }
-.word-2 { background-image: linear-gradient(45deg, #50E3C2, #B8E986); }
-.word-3 { background-image: linear-gradient(45deg, #B8E986, #F8E71C); }
-.word-4 { background-image: linear-gradient(45deg, #F8E71C, #F5A623); }
-.word-5 { background-image: linear-gradient(45deg, #F5A623, #D0021B); }
+/* MODIFIÉ : Dégradés de la page d'accueil (nouvelle palette) */
+.word-1 { background-image: linear-gradient(45deg, #4C51BF, #6E72F1); }
+.word-2 { background-image: linear-gradient(45deg, #6E72F1, #A78BFA); }
+.word-3 { background-image: linear-gradient(45deg, #A78BFA, #D6C3FC); }
+.word-4 { background-image: linear-gradient(45deg, #D6C3FC, #F8E71C); }
+.word-5 { background-image: linear-gradient(45deg, #F8E71C, #F5A623); }
+
 #aida-final-text { display: none; opacity: 0; animation: fade-in-final 1s forwards; animation-delay: 1s; }
 @keyframes fade-in-final { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 #home-page .subtitle, #start-app-btn { opacity: 0; animation: fade-in-subtitle 1s ease-out forwards; animation-delay: 1.5s; }
 @keyframes fade-in-subtitle { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 #home-page .subtitle { font-size: 1.5rem; color: #666; margin-bottom: 2.5rem; }
 body.dark-mode #home-page .subtitle { color: #aaa; }
+/* MODIFIÉ : Dégradé du mot "plateforme" (nouvelle palette) */
 .highlight-word { background: linear-gradient(45deg, var(--primary-color), var(--secondary-color)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 700; }
 .dots span { animation: color-pulse 1.5s infinite; }
 .dots span:nth-child(2) { animation-delay: 0.2s; }
@@ -246,7 +369,7 @@ body.dark-mode .appreciation-option label { border-color: #444; }
     border-color: var(--primary-color);
     background-color: #E9F2FF;
     color: var(--primary-color);
-    box-shadow: 0 4px 15px rgba(74, 144, 226, 0.2);
+    box-shadow: 0 4px 15px rgba(76, 81, 191, 0.2); /* Ombre indigo */
 }
  body.dark-mode .appreciation-option input[type="radio"]:checked + label {
     background-color: #2a3a50;
@@ -442,7 +565,7 @@ body.dark-mode #chat-history {
 
 .btn-generate-planner:hover {
     transform: translateY(-1px);
-    box-shadow: 0 4px 10px rgba(74, 144, 226, 0.3);
+    box-shadow: 0 4px 10px rgba(76, 81, 191, 0.3); /* Ombre indigo */
 }
 
 .btn-generate-planner i {
@@ -472,6 +595,19 @@ body.dark-mode #chat-history {
     text-align: right;
     flex-grow: 1; /* Permet au texte de prendre toute la place */
 }
+
+/* MODIFIÉ : Couleurs pour les blobs (basé sur le user-file) */
+:root {
+    /* ... (variables existantes) ... */
+    --card-bg-darker: #F0F4FA; /* Pour l'aide en mode clair */
+    --border-color: #E0E8F3;
+}
+body.dark-mode {
+    /* ... (variables existantes) ... */
+    --card-bg-darker: #2C2C2C;
+    --border-color: #3A3A3A;
+}
+
 
 .aida-help-div {
     background-color: var(--card-bg-darker);
