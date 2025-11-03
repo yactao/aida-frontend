@@ -1,5 +1,5 @@
-
 // src/aida_education.js - Logique complète de l'environnement AIDA Éducation
+// VERSION DE CACHE : V2 (pour forcer le rechargement)
 
 import { 
     apiRequest, 
@@ -53,7 +53,8 @@ export async function renderTeacherDashboard() {
         <div class="page-header">
             <h2>Bonjour ${window.currentUser.firstName}!</h2>
             <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
-                <button class="btn btn-secondary" id="open-grading-module-btn"><i class="fa-solid fa-magic-sparkles"></i> Aide à la Correction (Beta)</button>       
+                <button class="btn btn-secondary" id="open-grading-module-btn"><i class="fa-solid fa-magic-sparkles"></i> Aide à la Correction (Beta)</button>
+                
                 <button class="btn btn-secondary" id="open-planner-btn"><i class="fa-solid fa-calendar-days"></i> Planificateur de Cours</button>
                 <button class="btn btn-main" id="open-gen-modal"><i class="fa-solid fa-plus"></i> Nouveau Contenu</button> 
                 <button class="btn btn-secondary" id="open-class-modal"><i class="fa-solid fa-users"></i> Nouvelle Classe</button>
@@ -62,7 +63,9 @@ export async function renderTeacherDashboard() {
         <div id="class-grid" class="dashboard-grid">${spinnerHtml}</div>`;
     changePage('teacher-dashboard-page');
     
+    // NOUVEL ÉCOUTEUR AJOUTÉ ICI
     p.querySelector('#open-grading-module-btn').addEventListener('click', renderGradingModulePage);
+
     p.querySelector('#open-class-modal').addEventListener('click', showCreateClassModal);
     p.querySelector('#open-gen-modal').addEventListener('click', () => showGenerationModal());
     p.querySelector('#open-planner-btn').addEventListener('click', renderPlannerPage);
@@ -1240,7 +1243,7 @@ async function handleHelpRequest(e) {
 
 // MODIFIÉ : Ajout de la restauration du lien header
 async function handleSubmitQuiz(c) { 
-    sessionStorage.removeItem('isEvaluATEDSession');
+    sessionStorage.removeItem('isEvaluatedSession');
     const answers = c.questions.map((q, i) => { const sel = document.querySelector(`input[name=q${i}]:checked`); return sel ? parseInt(sel.value) : -1; }); 
     const score = answers.reduce((acc, ans, i) => acc + (ans == c.questions[i].correct_answer_index ? 1 : 0), 0); 
     try {
@@ -1494,9 +1497,8 @@ async function loadLibraryContents() {
     const subject = document.getElementById('library-subject-filter').value;
     
     try {
-        // CORRECTION : Vous devez utiliser des BACKTICKS (``) ici, PAS des guillemets ("")
+        // CORRECTION: Utilisation de backticks (``)
         const results = await apiRequest(`/library?searchTerm=${searchTerm}&subject=${subject}`);
-        
         grid.innerHTML = '';
         if (results.length === 0) {
             grid.innerHTML = '<p>Aucun contenu trouvé. Essayez d\'autres mots-clés ou partagez le vôtre !</p>';
@@ -1530,8 +1532,6 @@ async function loadLibraryContents() {
         grid.innerHTML = `<p class="error-message">Impossible de charger la bibliothèque: ${error.message}</p>`;
     }
 }
-
-// ... (à la fin de aida_education.js)
 
 // --- NOUVEAU MODULE : AIDE À LA CORRECTION ---
 
@@ -1605,12 +1605,12 @@ async function handleGradingAnalysis(e) {
         const response = await fetch(`${window.backendUrl}/api/ai/grade-upload`, {
             method: 'POST',
             body: formData
-            // Le commentaire qui causait l'erreur a été supprimé.
         });
 
         if (!response.ok) {
             const errText = await response.text();
-            throw new Error(errText || 'Erreur du serveur lors de l'analyse.');
+            // CORRECTION : Ajout de la parenthèse ouvrante (
+            throw new Error(errText || 'Erreur du serveur lors de analyse');
         }
 
         const results = await response.json();
