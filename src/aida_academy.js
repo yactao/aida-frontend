@@ -534,8 +534,7 @@ async function loadCustomScenarios() {
     }
 }
 
-
-// NOUVEAU : Affiche la page de cours (style image_46eeed.jpg)
+// NOUVEAU : Affiche la page de cours
 function renderAcademyCoursePlayer(selectedActivityId = null) {
     const page = document.getElementById('content-viewer-page'); // Réutilise la page viewer
     changePage('content-viewer-page');
@@ -545,11 +544,20 @@ function renderAcademyCoursePlayer(selectedActivityId = null) {
         selectedActivityId = courseData.episodes[0].activities[0].id;
     }
 
+    // NOUVEAU : Trouver l'épisode actif pour le laisser ouvert
+    let activeEpisode = courseData.episodes.find(ep => ep.activities.some(a => a.id === selectedActivityId));
+    const activeEpisodeId = activeEpisode ? activeEpisode.id : courseData.episodes[0].id;
+
     // --- Construction de la barre de navigation de gauche ---
     let navHtml = '';
     courseData.episodes.forEach(episode => {
-        navHtml += `<div class="episode-group">
-                        <h4 class="episode-title">${episode.title}</h4>
+        const isEpisodeOpen = episode.id === activeEpisodeId; // L'épisode actif est ouvert
+
+        navHtml += `<div class="episode-group ${isEpisodeOpen ? 'open' : ''}">
+                        <h4 class="episode-title" data-episode-id="${episode.id}">
+                            <span>${episode.title}</span>
+                            <i class="fa-solid fa-chevron-right"></i>
+                        </h4>
                         <ul class="activity-list">`;
         
         episode.activities.forEach(activity => {
@@ -599,6 +607,23 @@ function renderAcademyCoursePlayer(selectedActivityId = null) {
     // --- Ajout des Listeners ---
     page.querySelector('#back-to-academy-dash').addEventListener('click', renderAcademyStudentDashboard);
     
+    // NOUVEAU : Listener pour l'accordéon
+    page.querySelectorAll('.episode-title').forEach(title => {
+        title.addEventListener('click', (e) => {
+            const clickedGroup = e.currentTarget.closest('.episode-group');
+            
+            // Ferme tous les autres groupes
+            page.querySelectorAll('.episode-group.open').forEach(group => {
+                if (group !== clickedGroup) {
+                    group.classList.remove('open');
+                }
+            });
+            
+            // Ouvre ou ferme le groupe cliqué
+            clickedGroup.classList.toggle('open');
+        });
+    });
+
     page.querySelectorAll('.activity-item').forEach(item => {
         item.addEventListener('click', (e) => {
             const activityId = e.currentTarget.dataset.activityId;
@@ -609,8 +634,10 @@ function renderAcademyCoursePlayer(selectedActivityId = null) {
     });
     
     // --- Chargement du contenu de l'activité ---
-    loadActivityContent(activityId);
+    // CORRECTION DU BUG : Utilisation de 'selectedActivityId' (l'argument) au lieu de 'activityId'
+    loadActivityContent(selectedActivityId);
 }
+
 
 // MODIFIÉ : Charge le contenu (Série ou Scénario Perso)
 async function loadActivityContent(activityId) {
