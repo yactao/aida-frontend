@@ -1198,8 +1198,9 @@ function createStudentCard(c, status) {
             break;
     }
 
+    // MODIFIÉ : Ajout de la classe dynamique "card-type-${c.type}"
     return `
-        <div class="dashboard-card-student">
+        <div class="dashboard-card-student card-type-${c.type}">
             <div class="card-header">
                 <span class="subject-tag ${subjectInfo.cssClass}">${c.type.charAt(0).toUpperCase() + c.type.slice(1)}</span>
                 ${dateInfoHtml}
