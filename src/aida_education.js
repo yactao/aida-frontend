@@ -1605,12 +1605,12 @@ async function handleGradingAnalysis(e) {
         const response = await fetch(`${window.backendUrl}/api/ai/grade-upload`, {
             method: 'POST',
             body: formData
-            // Le commentaire problématique a été SUPPRIMÉ d'ici
+            // Le commentaire qui causait l'erreur a été supprimé.
         });
 
         if (!response.ok) {
             const errText = await response.text();
-            throw new Error(errText || 'Erreur du serveur lors de l'analyse);
+            throw new Error(errText || 'Erreur du serveur lors de l'analyse.');
         }
 
         const results = await response.json();
