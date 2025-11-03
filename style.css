@@ -805,6 +805,171 @@ body.dark-mode #narrator-box {
     line-height: 1.5;
 }
 
+/* --- NOUVEAU : Styles pour le Lecteur de Cours (style Netflix/LMS) --- */
+
+/* Conteneur principal qui sépare la NAV du CONTENU */
+.course-player-container {
+    display: flex;
+    /* Calcule la hauteur pour remplir l'écran moins le header principal */
+    height: calc(100vh - 75px); /* Ajustez 75px si la hauteur de votre header est différente */
+    width: 100%;
+}
+
+/* Barre de navigation de gauche */
+.course-player-nav {
+    width: 320px;
+    flex-shrink: 0;
+    background-color: var(--card-bg-color);
+    border-right: 1px solid var(--border-color);
+    padding: 1.5rem;
+    overflow-y: auto;
+    height: 100%;
+}
+body.dark-mode .course-player-nav {
+    border-right-color: #333;
+}
+
+.course-player-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+    margin-bottom: 1rem;
+}
+body.dark-mode .course-player-header {
+    border-bottom-color: #333;
+}
+/* Assure que le logo dans le player n'est pas inversé en mode sombre */
+.course-player-header .logo-icon {
+    filter: none !important;
+}
+
+.episode-group {
+    margin-bottom: 0.5rem; /* Réduit l'espace entre les groupes */
+}
+
+/* MODIFIÉ : Rendu cliquable pour l'accordéon */
+.episode-title {
+    font-size: 1.1rem;
+    color: var(--text-color);
+    margin-bottom: 0.75rem;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0;
+    transition: color 0.3s ease;
+}
+.episode-title:hover {
+    color: var(--primary-color);
+}
+.episode-title i {
+    transition: transform 0.3s ease;
+    font-size: 0.9rem;
+}
+/* Fait pivoter le chevron quand le groupe est ouvert */
+.episode-group.open .episode-title i {
+    transform: rotate(90deg);
+}
+
+/* MODIFIÉ : Liste d'activités (cachée par défaut) */
+.activity-list {
+    list-style: none;
+    padding-left: 1rem; /* Indentation pour les activités */
+    max-height: 0; /* Caché par défaut */
+    overflow: hidden;
+    transition: max-height 0.4s ease-out;
+}
+/* Déplie la liste quand le groupe est ouvert */
+.episode-group.open .activity-list {
+    max-height: 500px; /* Hauteur max pour l'animation (ajustez si nécessaire) */
+    transition: max-height 0.4s ease-in;
+    margin-bottom: 1rem; /* Espace après une liste ouverte */
+}
+
+.activity-item {
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-weight: 600;
+    color: #666; /* Couleur par défaut (plus claire) */
+}
+body.dark-mode .activity-item {
+    color: #999;
+}
+.activity-item i {
+    width: 15px; /* Aligne les icônes */
+}
+.activity-item:hover {
+    background-color: var(--background-color);
+}
+body.dark-mode .activity-item:hover {
+    background-color: #2c2c2c;
+}
+
+/* Style de l'activité sélectionnée */
+.activity-item.active {
+    background-color: var(--primary-color);
+    color: white;
+}
+body.dark-mode .activity-item.active {
+    color: white;
+}
+
+
+/* Contenu principal de droite */
+.course-player-content {
+    flex-grow: 1;
+    padding: 2rem;
+    overflow-y: auto;
+    height: 100%;
+}
+.content-header {
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 1rem;
+    margin-bottom: 2rem;
+}
+body.dark-mode .content-header {
+    border-bottom-color: #333;
+}
+
+/* NOUVEAU : Boîte du Narrateur */
+#narrator-box {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1.5rem;
+    background-color: var(--aida-chat-bg); /* Fond bleu très clair */
+    border-radius: 12px;
+    margin-bottom: 2rem;
+    border: 1px solid var(--border-color);
+}
+body.dark-mode #narrator-box {
+    background-color: #2a3a50;
+    border-color: #444;
+}
+#narrator-box .btn-icon {
+    flex-shrink: 0;
+    width: 44px;
+    height: 44px;
+    background-color: var(--primary-color);
+    color: white;
+    border-radius: 50%;
+}
+#narrator-box .btn-icon:hover {
+    background-color: var(--secondary-color);
+}
+#narrator-text {
+    font-family: 'Georgia', serif;
+    font-style: italic;
+    font-size: 1.1rem;
+    line-height: 1.5;
+}
+
 
 /* Styles pour la fiche de mémorisation (style Fichervision1.pdf) */
 .styled-table {

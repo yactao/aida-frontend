@@ -1,575 +1,51 @@
-// src/aida_academy.js - Logique complète pour l'Académie (Mode Série "Zayd et Yasmina")
+// src/aida_academy.js - Logique complète pour l'Académie (Mode Série Hybride)
 
 import { changePage, spinnerHtml, apiRequest, renderModal, getModalTemplate } from './utils.js';
+// NOUVEAU : Importe les données de la série depuis le fichier séparé
+import { courseData, memorizationData } from './series_data.js';
 
 // --- Variables d'état vocal pour le module ---
 let recognition;
 let currentAudio = null;
 let currentListenBtn = null; 
-let narratorAudio = null; // NOUVEAU : Audio distinct pour le narrateur
+let narratorAudio = null; // Audio distinct pour le narrateur
 
-
-//======================================================================
-// 1. STRUCTURE DE LA SÉRIE (LES 20 ÉPISODES)
-//======================================================================
-const courseData = {
-    title: "Zayd et Yasmina : Les Gardiens de l'Astrolabe",
-    description: "Apprends les bases de l'arabe en suivant les aventures de Zayd et Yasmina pour retrouver les 100 Mots de Pouvoir.",
-    episodes: [
-        // --- ARC 1 : LA DÉCOUVERTE (1-4) ---
-        {
-            id: "ep1",
-            title: "Épisode 1 : L'Astrolabe Perdu",
-            narratorIntro: "Ah, jeune Gardien ! Bienvenue dans le premier souvenir. C'est ici que tout a commencé... Zayd et Yasmina ne savaient pas encore ce qu'ils allaient découvrir. Regarde bien la vidéo.",
-            activities: [
-                { id: "ep1-vid", title: "Épisode principal N°1 (Vidéo)", type: "video", url: "https://player.vimeo.com/video/YOUR_ID_HERE" },
-                { id: "ep1-mem", title: "Mots de Pouvoir N°1", type: "memorization", data: "ep1-data" },
-                { id: "ep1-quiz", title: "Quiz N°1", type: "quiz", data: {} },
-                { id: "ep1-dialogue", title: "Dialogue : Parler à Fahim", type: "dialogue", scenarioId: "scen-ep1" }
-            ]
-        },
-        {
-            id: "ep2",
-            title: "Épisode 2 : Le Premier Mot de Pouvoir",
-            narratorIntro: "Le souk ! Un endroit incroyable, rempli de Mots de Pouvoir. Mais fais attention aux marchands, ils sont rusés... Il est temps de pratiquer ta politesse.",
-            activities: [
-                { id: "ep2-vid", title: "Épisode principal N°2 (Vidéo)", type: "video", url: "https://player.vimeo.com/video/YOUR_ID_HERE" },
-                { id: "ep2-mem", title: "Mots de Pouvoir N°2", type: "memorization", data: "ep2-data" },
-                { id: "ep2-quiz", title: "Quiz N°2", type: "quiz", data: {} },
-                { id: "ep2-dialogue", title: "Dialogue : Le Gardien du Souk", type: "dialogue", scenarioId: "scen-ep2" }
-            ]
-        },
-        {
-            id: "ep3",
-            title: "Épisode 3 : Le Marchand de Couleurs",
-            narratorIntro: "Al-Nissyan a volé les couleurs ! Pour les ramener, tu dois les nommer. Regarde bien cette pomme et dis-moi ce que tu vois.",
-            activities: [
-                { id: "ep3-vid", title: "Épisode principal N°3 (Vidéo)", type: "video", url: "https://player.vimeo.com/video/YOUR_ID_HERE" },
-                { id: "ep3-mem", title: "Mots de Pouvoir N°3", type: "memorization", data: "ep3-data" },
-                { id: "ep3-quiz", title: "Quiz N°3", type: "quiz", data: {} },
-                { id: "ep3-dialogue", title: "Dialogue : Le Marchand", type: "dialogue", scenarioId: "scen-ep3" }
-            ]
-        },
-        {
-            id: "ep4",
-            title: "Épisode 4 : L'Album de Famille",
-            narratorIntro: "Le Virus de l'Oubli a attaqué les souvenirs de Zayd et Yasmina ! Les visages de leur famille ont disparu. Aide-les à se souvenir !",
-            activities: [
-                { id: "ep4-vid", title: "Épisode principal N°4 (Vidéo)", type: "video", url: "https://player.vimeo.com/video/YOUR_ID_HERE" },
-                { id: "ep4-mem", title: "Mots de Pouvoir N°4", type: "memorization", data: "ep4-data" },
-                { id: "ep4-quiz", title: "Quiz N°4", type: "quiz", data: {} },
-                { id: "ep4-dialogue", title: "Dialogue : Restaurer l'album", type: "dialogue", scenarioId: "scen-ep4" }
-            ]
-        },
-        // --- ARC 2 : LES ÉPREUVES DE FAHIM (5-10) ---
-        {
-            id: "ep5",
-            title: "Épisode 5 : La Cuisine Fantôme",
-            narratorIntro: "J'ai faim ! Mais... toute la nourriture est devenue invisible ! Nomme les aliments pour les faire réapparaître. Vite !",
-            activities: [
-                { id: "ep5-vid", title: "Épisode principal N°5 (Vidéo)", type: "video", url: "https://player.vimeo.com/video/YOUR_ID_HERE" },
-                { id: "ep5-mem", title: "Mots de Pouvoir N°5", type: "memorization", data: "ep5-data" },
-                { id: "ep5-quiz", title: "Quiz N°5", type: "quiz", data: {} },
-                { id: "ep5-dialogue", title: "Dialogue : Le Festin de Fahim", type: "dialogue", scenarioId: "scen-ep5" }
-            ]
-        },
-        {
-            id: "ep6",
-            title: "Épisode 6 : La Mémoire de la Maison",
-            narratorIntro: "Le grand-père de Zayd et Yasmina a caché le prochain Mot de Pouvoir quelque part dans la maison. Mais où ? Sur ? Ou dans ?",
-            activities: [
-                { id: "ep6-vid", title: "Épisode principal N°6 (Vidéo)", type: "video", url: "https://player.vimeo.com/video/YOUR_ID_HERE" },
-                { id: "ep6-mem", title: "Mots de Pouvoir N°6", type: "memorization", data: "ep6-data" },
-                { id: "ep6-quiz", title: "Quiz N°6", type: "quiz", data: {} },
-                { id: "ep6-dialogue", title: "Dialogue : Où est le Mot ?", type: "dialogue", scenarioId: "scen-ep6" }
-            ]
-        },
-        {
-            id: "ep7",
-            title: "Épisode 7 : L'École du Silence",
-            narratorIntro: "Silence total... Al-Nissyan a volé les mots de l'école. Rends-leur la parole en nommant les objets de la classe.",
-            activities: [
-                { id: "ep7-vid", title: "Épisode principal N°7 (Vidéo)", type: "video", url: "https://player.vimeo.com/video/YOUR_ID_HERE" },
-                { id: "ep7-mem", title: "Mots de Pouvoir N°7", type: "memorization", data: "ep7-data" },
-                { id: "ep7-quiz", title: "Quiz N°7", type: "quiz", data: {} },
-                { id: "ep7-dialogue", title: "Dialogue : Le Professeur Silencieux", type: "dialogue", scenarioId: "scen-ep7" }
-            ]
-        },
-        {
-            id: "ep8",
-            title: "Épisode 8 : La Tour de l'Horloge",
-            narratorIntro: "Le temps est arrêté ! L'Astrolabe nous a menés à la Grande Horloge. Nous devons lui dire quel jour nous sommes pour la redémarrer.",
-            activities: [
-                { id: "ep8-vid", title: "Épisode principal N°8 (Vidéo)", type: "video", url: "https://player.vimeo.com/video/YOUR_ID_HERE" },
-                { id: "ep8-mem", title: "Mots de Pouvoir N°8", type: "memorization", data: "ep8-data" },
-                { id: "ep8-quiz", title: "Quiz N°8", type: "quiz", data: {} },
-                { id: "ep8-dialogue", title: "Dialogue : Le Gardien du Temps", type: "dialogue", scenarioId: "scen-ep8" }
-            ]
-        },
-        {
-            id: "ep9",
-            title: "Épisode 9 : La Veste Perdue",
-            narratorIntro: "Brrr... il fait froid ici. L'Astrolabe nous a menés au sommet d'une montagne. Mais où est la veste de Zayd ? Il faut la trouver !",
-            activities: [
-                { id: "ep9-vid", title: "Épisode principal N°9 (Vidéo)", type: "video", url: "https://player.vimeo.com/video/YOUR_ID_HERE" },
-                { id: "ep9-mem", title: "Mots de Pouvoir N°9", type: "memorization", data: "ep9-data" },
-                { id: "ep9-quiz", title: "Quiz N°9", type: "quiz", data: {} },
-                { id: "ep9-dialogue", title: "Dialogue : Où est ma veste ?", type: "dialogue", scenarioId: "scen-ep9" }
-            ]
-        },
-        {
-            id: "ep10",
-            title: "Épisode 10 : La Révélation d'Al-Nissyan",
-            narratorIntro: "Le Virus... ce n'est pas un drone ! C'est Al-Nissyan, le Djinn de l'Oubli ! Il s'enfuit vers la Forteresse des Verbes. Nous devons apprendre à *agir* !",
-            activities: [
-                { id: "ep10-vid", title: "Épisode principal N°10 (Vidéo)", type: "video", url: "https://player.vimeo.com/video/YOUR_ID_HERE" },
-                { id: "ep10-mem", title: "Mots de Pouvoir N°10", type: "memorization", data: "ep10-data" },
-                { id: "ep10-quiz", title: "Quiz N°10", type: "quiz", data: {} },
-                { id: "ep10-dialogue", title: "Dialogue : Je dois agir", type: "dialogue", scenarioId: "scen-ep10" }
-            ]
-        },
-        // --- ARC 3 : LA FORTERESSE DES VERBES (11-15) ---
-        {
-            id: "ep11",
-            title: "Épisode 11 : Le Gardien du Passé",
-            narratorIntro: "La porte de la Forteresse est bloquée par un Sphinx. Il ne nous laissera passer que si nous pouvons lui raconter ce que nous avons *fait*.",
-            activities: [
-                { id: "ep11-vid", title: "Épisode principal N°11 (Vidéo)", type: "video", url: "https://player.vimeo.com/video/YOUR_ID_HERE" },
-                { id: "ep11-mem", title: "Mots de Pouvoir N°11", type: "memorization", data: "ep11-data" },
-                { id: "ep11-quiz", title: "Quiz N°11", type: "quiz", data: {} },
-                { id: "ep11-dialogue", title: "Dialogue : L'Énigme du Sphinx", type: "dialogue", scenarioId: "scen-ep11" }
-            ]
-        },
-        {
-            id: "ep12",
-            title: "Épisode 12 : La Bibliothèque des Futurs",
-            narratorIntro: "Al-Nissyan essaie d'effacer le futur ! Nous devons agir. Que *ferons*-nous ? L'Astrolabe a besoin de savoir ce que tu vas faire.",
-            activities: [
-                { id: "ep12-vid", title: "Épisode principal N°12 (Vidéo)", type: "video", url: "https://player.vimeo.com/video/YOUR_ID_HERE" },
-                { id: "ep12-mem", title: "Mots de Pouvoir N°12", type: "memorization", data: "ep12-data" },
-                { id: "ep12-quiz", title: "Quiz N°12", type: "quiz", data: {} },
-                { id: "ep12-dialogue", title: "Dialogue : Je le ferai !", type: "dialogue", scenarioId: "scen-ep12" }
-            ]
-        },
-        {
-            id: "ep13",
-            title: "Épisode 13 : La Voix de Yasmina",
-            narratorIntro: "La salle de calligraphie... les mots s'effacent. C'est le carnet de Yasmina ! Rends-lui ses souvenirs. Dis-moi, à qui est ce stylo ?",
-            activities: [
-                { id: "ep13-vid", title: "Épisode principal N°13 (Vidéo)", type: "video", url: "https://player.vimeo.com/video/YOUR_ID_HERE" },
-                { id: "ep13-mem", title: "Mots de Pouvoir N°13", type: "memorization", data: "ep13-data" },
-                { id: "ep13-quiz", title: "Quiz N°13", type: "quiz", data: {} },
-                { id: "ep13-dialogue", title: "Dialogue : C'est son livre", type: "dialogue", scenarioId: "scen-ep13" }
-            ]
-        },
-        {
-            id: "ep14",
-            title: "Épisode 14 : Le Duel des Énigmes",
-            narratorIntro: "Al-Nissyan t'a piégé ! Pour t'échapper, tu dois décrire le monde qui t'entoure. Est-ce grand ou petit ? Rapide ou lent ?",
-            activities: [
-                { id: "ep14-vid", title: "Épisode principal N°14 (Vidéo)", type: "video", url: "https://player.vimeo.com/video/YOUR_ID_HERE" },
-                { id: "ep14-mem", title: "Mots de Pouvoir N°14", type: "memorization", data: "ep14-data" },
-                { id: "ep14-quiz", title: "Quiz N°14", type: "quiz", data: {} },
-                { id: "ep14-dialogue", title: "Dialogue : Le point faible d'Al-Nissyan", type: "dialogue", scenarioId: "scen-ep14" }
-            ]
-        },
-        {
-            id: "ep15",
-            title: "Épisode 15 : Le Cœur de la Forteresse",
-            narratorIntro: "Nous y sommes ! Al-Nissyan est là, drainant le pouvoir de l'Astrolabe. C'est le moment de tout utiliser. Révision générale !",
-            activities: [
-                { id: "ep15-vid", title: "Épisode principal N°15 (Vidéo)", type: "video", url: "https://player.vimeo.com/video/YOUR_ID_HERE" },
-                { id: "ep15-mem", title: "Mots de Pouvoir N°15 (Révision)", type: "memorization", data: "ep15-data" },
-                { id: "ep15-quiz", title: "Quiz N°15 (Révision)", type: "quiz", data: {} },
-                { id: "ep15-dialogue", title: "Dialogue : Le Piège", type: "dialogue", scenarioId: "scen-ep15" }
-            ]
-        },
-        // --- ARC 4 : LE SENS DES MOTS (16-20) ---
-        {
-            id: "ep16",
-            title: "Épisode 16 : L'Illusion du Marché",
-            narratorIntro: "Un piège ! Nous sommes de retour au souk, mais tout est gris et cher. Pour briser l'illusion, tu dois acheter la 'Clé de Vérité' au marchand.",
-            activities: [
-                { id: "ep16-vid", title: "Épisode principal N°16 (Vidéo)", type: "video", url: "https://player.vimeo.com/video/YOUR_ID_HERE" },
-                { id: "ep16-mem", title: "Mots de Pouvoir N°16", type: "memorization", data: "ep16-data" },
-                { id: "ep16-quiz", title: "Quiz N°16", type: "quiz", data: {} },
-                { id: "ep16-dialogue", title: "Dialogue : Négocier la clé", type: "dialogue", scenarioId: "scen-ep16" }
-            ]
-        },
-        {
-            id: "ep17",
-            title: "Épisode 17 : Le Désert des Émotions",
-            narratorIntro: "Le monde est vide... Al-Nissyan se nourrit de notre désespoir. Pour le vaincre, nous devons lui montrer nos émotions. Dis-moi ce que tu ressens.",
-            activities: [
-                { id: "ep17-vid", title: "Épisode principal N°17 (Vidéo)", type: "video", url: "https://player.vimeo.com/video/YOUR_ID_HERE" },
-                { id: "ep17-mem", title: "Mots de Pouvoir N°17", type: "memorization", data: "ep17-data" },
-                { id: "ep17-quiz", title: "Quiz N°17", type: "quiz", data: {} },
-                { id: "ep17-dialogue", title: "Dialogue : Je ressens...", type: "dialogue", scenarioId: "scen-ep17" }
-            ]
-        },
-        {
-            id: "ep18",
-            title: "Épisode 18 : Le Pardon d'Al-Nissyan",
-            narratorIntro: "Al-Nissyan est faible. Il n'est pas méchant, il a juste été... oublié. Il a besoin de mots gentils, pas de combat. C'est la seule façon.",
-            activities: [
-                { id: "ep18-vid", title: "Épisode principal N°18 (Vidéo)", type: "video", url: "https://player.vimeo.com/video/YOUR_ID_HERE" },
-                { id: "ep18-mem", title: "Mots de Pouvoir N°18", type: "memorization", data: "ep18-data" },
-                { id: "ep18-quiz", title: "Quiz N°18", type: "quiz", data: {} },
-                { id: "ep18-dialogue", title: "Dialogue : Parler à Al-Nissyan", type: "dialogue", scenarioId: "scen-ep18" }
-            ]
-        },
-        {
-            id: "ep19",
-            title: "Épisode 19 : Le 100ème Mot",
-            narratorIntro: "L'Astrolabe est à 99% ! Il manque un seul Mot de Pouvoir... mais lequel ? L'Astrolabe lui-même te pose la question !",
-            activities: [
-                { id: "ep19-vid", title: "Épisode principal N°19 (Vidéo)", type: "video", url: "https://player.vimeo.com/video/YOUR_ID_HERE" },
-                { id: "ep19-mem", title: "Mots de Pouvoir N°19", type: "memorization", data: "ep19-data" },
-                { id: "ep19-quiz", title: "Quiz N°19", type: "quiz", data: {} },
-                { id: "ep19-dialogue", title: "Dialogue : L'énigme finale", type: "dialogue", scenarioId: "scen-ep19" }
-            ]
-        },
-        {
-            id: "ep20",
-            title: "Épisode 20 : Les Nouveaux Gardiens",
-            narratorIntro: "Ça y est ! L'Astrolabe est chargé ! Fahim est libre, et vous êtes les nouveaux Gardiens. Al-Nissyan est guéri. Mission accomplie... pour l'instant.",
-            activities: [
-                { id: "ep20-vid", title: "Épisode principal N°20 (Vidéo)", type: "video", url: "https://player.vimeo.com/video/YOUR_ID_HERE" },
-                { id: "ep20-mem", title: "Mots de Pouvoir N°20 (Adieux)", type: "memorization", data: "ep20-data" },
-                { id: "ep20-quiz", title: "Quiz Final", type: "quiz", data: {} },
-                { id: "ep20-dialogue", title: "Dialogue : Au revoir, Fahim !", type: "dialogue", scenarioId: "scen-ep20" }
-            ]
-        }
-    ]
-};
-
-
-//======================================================================
-// 2. DONNÉES DE MÉMORISATION (POUR CHAQUE ÉPISODE)
-//======================================================================
-const memorizationData = {
-    // Épisode 1: Identité (Basé sur Fichervision1.pdf)
-    "ep1-data": {
-        phrases: [
-            { arabe: "ما اسْمُك؟", phonetique: "MASMOUKA?", francais: "QUEL EST ΤΟΝ ΝΟΜ ?" },
-            { arabe: "أَنَا اسْمِي...", phonetique: "ANA ISMI...", francais: "ΜΟΙ ΜΟΝ NOM EST..." },
-            { arabe: "مِنْ أَيْنَ أَنْتَ؟", phonetique: "ΜΙΝ ΑΥΝΑ ΑΝΤΑ?", francais: "D'OÙ VIENS-TU ?" },
-            { arabe: "أَنَا مِنْ فَرَنْسَا", phonetique: "ANA MIN FARANÇA", francais: "MOI JE SUIS DE FRANCE" },
-            { arabe: "لَا أَفَهَمْ", phonetique: "LAA AFHAM", francais: "JE NE COMPRENDS PAS" },
-            { arabe: "السَّلَامُ عَلَيْكُمْ", phonetique: "SALAMOU 3ALAYKOUM", francais: "QUE LA PAIX SOIT SUR VOUS" }
-        ],
-        mots: [
-            { arabe: "اسم", phonetique: "ISM", francais: "NOM" },
-            { arabe: "أنا", phonetique: "ANA", francais: "ΜΟΙ" },
-            { arabe: "انت", phonetique: "ANTA", francais: "ΤΟΙ (M)" },
-            { arabe: "من", phonetique: "MIN", francais: "DE (PROVENANCE)" },
-            { arabe: "لا", phonetique: "LAA", francais: "NON" },
-            { arabe: "أَيْنَ", phonetique: "AYNA", francais: "OÙ" },
-            { arabe: "نعَمْ", phonetique: "NA3AM", francais: "OUI" }
-        ]
-    },
-    // Épisode 2: Politesse
-    "ep2-data": {
-        phrases: [
-            { arabe: "شُكْراً جَزِيلاً", phonetique: "CHOUKRAN JAZILAN", francais: "MERCI BEAUCOUP" },
-            { arabe: "مِنْ فَضْلِكَ", phonetique: "MIN FADLIKA", francais: "S'IL TE PLAÎT (M)" },
-            { arabe: "مَاذَا تُرِيدُ؟", phonetique: "MAZA TOURIDOU?", francais: "QUE VEUX-TU ?" },
-            { arabe: "أُرِيدُ هَذَا", phonetique: "URIDU HADHA", francais: "JE VEUX CECI" }
-        ],
-        mots: [
-            { arabe: "شُكْراً", phonetique: "CHOUKRAN", francais: "MERCI" },
-            { arabe: "مِنْ فَضْلِك", phonetique: "MIN FADLIK", francais: "S'IL VOUS PLAÎT" },
-            { arabe: "مَاذَا", phonetique: "MAZA", francais: "QUOI / QUE" },
-            { arabe: "سُوق", phonetique: "SOUK", francais: "MARCHÉ" },
-            { arabe: "تَفَضَّلْ", phonetique: "TAFADDAL", francais: "TIENS / JE T'EN PRIE" }
-        ]
-    },
-    // Épisode 3: Couleurs & Chiffres 1-5
-    "ep3-data": {
-        phrases: [
-            { arabe: "أُرِيدُ تُفَّاحَة حَمْرَاء", phonetique: "URIDU TUFFAHA HAMRA", francais: "JE VEUX UNE POMME ROUGE" },
-            { arabe: "بِكَمْ هَذَا؟", phonetique: "BIKAM HADHA?", francais: "COMBIEN COÛTE CECI ?" },
-            { arabe: "وَاحِد, اِثْنَان, ثَلَاثَة", phonetique: "WAHID, ITHNAN, THALATHA", francais: "UN, DEUX, TROIS" }
-        ],
-        mots: [
-            { arabe: "أَحْمَر", phonetique: "AHMAR", francais: "ROUGE" },
-            { arabe: "أَخْضَر", phonetique: "AKHDAR", francais: "VERT" },
-            { arabe: "أَزْرَق", phonetique: "AZRAQ", francais: "BLEU" },
-            { arabe: "وَاحِد", phonetique: "WAHID", francais: "UN (1)" },
-            { arabe: "اِثْنَان", phonetique: "ITHNAN", francais: "DEUX (2)" },
-            { arabe: "ثَلَاثَة", phonetique: "THALATHA", francais: "TROIS (3)" },
-            { arabe: "أَرْبَعَة", phonetique: "ARBA'A", francais: "QUATRE (4)" },
-            { arabe: "خَمْسَة", phonetique: "KHAMSA", francais: "CINQ (5)" }
-        ]
-    },
-    // Épisode 4: Famille
-    "ep4-data": {
-        phrases: [
-            { arabe: "هَذَا أَبِي", phonetique: "HADHA ABI", francais: "VOICI MON PÈRE" },
-            { arabe: "هَذِهِ أُمِّي", phonetique: "HADHIHI UMMI", francais: "VOICI MA MÈRE" },
-            { arabe: "أَنَا أُحِبُّ عَائِلَتِي", phonetique: "ANA UHIBBU A'ILATI", francais: "J'AIME MA FAMILLE" }
-        ],
-        mots: [
-            { arabe: "أَب", phonetique: "AB", francais: "PÈRE" },
-            { arabe: "أُم", phonetique: "UMM", francais: "MÈRE" },
-            { arabe: "أَخ", phonetique: "AKH", francais: "FRÈRE" },
-            { arabe: "أُخْت", phonetique: "UKHT", francais: "SŒUR" },
-            { arabe: "عَائِلَة", phonetique: "A'ILA", francais: "FAMILLE" },
-            { arabe: "هَذَا", phonetique: "HADHA", francais: "CECI (M)" },
-            { arabe: "هَذِهِ", phonetique: "HADHIHI", francais: "CECI (F)" }
-        ]
-    },
-    // Épisode 5: Nourriture
-    "ep5-data": {
-        phrases: [
-            { arabe: "أَنَا آكُلُ خُبْز", phonetique: "ANA AKULU KHOBZ", francais: "JE MANGE DU PAIN" },
-            { arabe: "أَنَا أَشْرَبُ مَاء", phonetique: "ANA ACHRABU MA'A", francais: "JE BOIS DE L'EAU" },
-            { arabe: "أَنَا جَائِع", phonetique: "ANA JA'I", francais: "J'AI FAIM" }
-        ],
-        mots: [
-            { arabe: "خُبْز", phonetique: "KHOBZ", francais: "PAIN" },
-            { arabe: "مَاء", phonetique: "MA'A", francais: "EAU" },
-            { arabe: "تَمْر", phonetique: "TAMR", francais: "DATTES" },
-            { arabe: "بُرْتُقَال", phonetique: "BOURTOUQAL", francais: "ORANGE" },
-            { arabe: "تُفَّاح", phonetique: "TUFFAH", francais: "POMME" }
-        ]
-    },
-    // Épisode 6: Maison & Prépositions
-    "ep6-data": {
-        phrases: [
-            { arabe: "القَلَمُ عَلَى المَكْتَب", phonetique: "AL-QALAMU 'ALA AL-MAKTAB", francais: "LE STYLO EST SUR LE BUREAU" },
-            { arabe: "أَنَا فِي البَيْت", phonetique: "ANA FI AL-BAYT", francais: "JE SUIS DANS LA MAISON" },
-            { arabe: "الكِتَابُ تَحْتَ الكُرْسِي", phonetique: "AL-KITABU TAHTA AL-KURSI", francais: "LE LIVRE EST SOUS LA CHAISE" }
-        ],
-        mots: [
-            { arabe: "بَيْت", phonetique: "BAYT", francais: "MAISON" },
-            { arabe: "غُرْفَة", phonetique: "GHURFA", francais: "CHAMBRE" },
-            { arabe: "فِي", phonetique: "FI", francais: "DANS" },
-            { arabe: "عَلَى", phonetique: "ALA", francais: "SUR" },
-            { arabe: "تَحْت", phonetique: "TAHT", francais: "SOUS" },
-            { arabe: "كُرْسِي", phonetique: "KURSI", francais: "CHAISE" },
-            { arabe: "مَكْتَب", phonetique: "MAKTAB", francais: "BUREAU" }
-        ]
-    },
-    // Épisode 7: École
-    "ep7-data": {
-        phrases: [
-            { arabe: "أَفْتَحُ الكِتَاب", phonetique: "AFTAHU AL-KITAB", francais: "J'OUVRE LE LIVRE" },
-            { arabe: "أُرِيدُ قَلَم", phonetique: "URIDU QALAM", francais: "JE VEUX UN STYLO" },
-            { arabe: "أَنَا فِي المَدْرَسَة", phonetique: "ANA FI AL-MADRASA", francais: "JE SUIS À L'ÉCOLE" }
-        ],
-        mots: [
-            { arabe: "كِتَاب", phonetique: "KITAB", francais: "LIVRE" },
-            { arabe: "قَلَم", phonetique: "QALAM", francais: "STYLO" },
-            { arabe: "دَفْتَر", phonetique: "DAFTAR", francais: "CAHIER" },
-            { arabe: "مَدْرَسَة", phonetique: "MADRASA", francais: "ÉCOLE" },
-            { arabe: "مُدَرِّس", phonetique: "MUDARRIS", francais: "PROFESSEUR" }
-        ]
-    },
-    // Épisode 8: Temps
-    "ep8-data": {
-        phrases: [
-            { arabe: "كَمْ السَّاعَة؟", phonetique: "KAM AL-SA'A?", francais: "QUELLE HEURE EST-IL ?" },
-            { arabe: "اليَوْم يَوْمُ الاِثْنَيْن", phonetique: "AL-YAWM YAWM AL-ITHNAYN", francais: "AUJOURD'HUI C'EST LUNDI" },
-            { arabe: "مَعَ السَّلَامَة, إِلَى الغَد!", phonetique: "MA'A SALAMA, ILA AL-GHAD!", francais: "AU REVOIR, À DEMAIN !" }
-        ],
-        mots: [
-            { arabe: "سَاعَة", phonetique: "SA'A", francais: "HEURE / MONTRE" },
-            { arabe: "اليَوْم", phonetique: "AL-YAWM", francais: "AUJOURD'HUI" },
-            { arabe: "غَداً", phonetique: "GHADAN", francais: "DEMAIN" },
-            { arabe: "أَمْس", phonetique: "AMS", francais: "HIER" },
-            { arabe: "يَوْم", phonetique: "YAWM", francais: "JOUR" },
-            { arabe: "أُسْبُوع", phonetique: "USBU'", francais: "SEMAINE" }
-        ]
-    },
-    // Épisode 9: Vêtements & Météo
-    "ep9-data": {
-        phrases: [
-            { arabe: "الجَوُّ بَارِد", phonetique: "AL-JAWW BARID", francais: "IL FAIT FROID" },
-            { arabe: "الجَوُّ حَارّ", phonetique: "AL-JAWW HARR", francais: "IL FAIT CHAUD" },
-            { arabe: "أَيْنَ مِعْطَفِي؟", phonetique: "AYNA MI'TAFI?", francais: "OÙ EST MON MANTEAU ?" },
-            { arabe: "أَلْبَسُ الحِذَاء", phonetique: "ALBASU AL-HIZA'", francais: "JE PORTE LES CHAUSSURES" }
-        ],
-        mots: [
-            { arabe: "بَارِد", phonetique: "BARID", francais: "FROID" },
-            { arabe: "حَارّ", phonetique: "HARR", francais: "CHAUD" },
-            { arabe: "مِعْطَف", phonetique: "MI'TAF", francais: "MANTEAU" },
-            { arabe: "قَمِيص", phonetique: "QAMIS", francais: "CHEMISE" },
-            { arabe: "حِذَاء", phonetique: "HIZA'", francais: "CHAUSSURES" }
-        ]
-    },
-    // Épisode 10: Verbes d'action (Présent)
-    "ep10-data": {
-        phrases: [
-            { arabe: "أَنَا أَكْتُبُ رِسَالَة", phonetique: "ANA AKTUBU RISALA", francais: "J'ÉCRIS UNE LETTRE" },
-            { arabe: "أَنَا أَقْرَأُ كِتَاب", phonetique: "ANA AQRA'U KITAB", francais: "JE LIS UN LIVRE" },
-            { arabe: "أَذْهَبُ إِلَى المَدْرَسَة", phonetique: "ADH-HABU ILA AL-MADRASA", francais: "JE VAIS À L'ÉCOLE" }
-        ],
-        mots: [
-            { arabe: "أَكْتُبُ", phonetique: "AKTUBU", francais: "J'ÉCRIS" },
-            { arabe: "أَقْرَأُ", phonetique: "AQRA'U", francais: "JE LIS" },
-            { arabe: "آكُلُ", phonetique: "AKULU", francais: "JE MANGE" },
-            { arabe: "أَشْرَبُ", phonetique: "ACHRABU", francais: "JE BOIS" },
-            { arabe: "أَذْهَبُ", phonetique: "ADH-HABU", francais: "JE VAIS" }
-        ]
-    },
-    // Épisode 11: Verbes (Passé)
-    "ep11-data": {
-        phrases: [
-            { arabe: "أَكَلْتُ الخُبْز", phonetique: "AKALTU AL-KHOBZ", francais: "J'AI MANGÉ LE PAIN" },
-            { arabe: "ذَهَبْتُ إِلَى السُّوق", phonetique: "DHAHABTU ILA AL-SOUK", francais: "JE SUIS ALLÉ AU MARCHÉ" },
-            { arabe: "هَلْ قَرَأْتَ الكِتَاب؟", phonetique: "HAL QARA'TA AL-KITAB?", francais: "AS-TU LU LE LIVRE ?" }
-        ],
-        mots: [
-            { arabe: "أَكَلْتُ", phonetique: "AKALTU", francais: "J'AI MANGÉ" },
-            { arabe: "شَرِبْتُ", phonetique: "CHARIBTU", francais: "J'AI BU" },
-            { arabe: "ذَهَبْتُ", phonetique: "DHAHABTU", francais: "JE SUIS ALLÉ(E)" },
-            { arabe: "كَتَبْتُ", phonetique: "KATABTU", francais: "J'AI ÉCRIT" },
-            { arabe: "قَرَأْتُ", phonetique: "QARA'TU", francais: "J'AI LU" }
-        ]
-    },
-    // Épisode 12: Verbes (Futur)
-    "ep12-data": {
-        phrases: [
-            { arabe: "غَداً سَأَذْهَبُ إِلَى البَيْت", phonetique: "GHADAN SA-ADH-HABU ILA AL-BAYT", francais: "DEMAIN J'IRAI À LA MAISON" },
-            { arabe: "مَاذَا سَتَفْعَلُ؟", phonetique: "MAZA SA-TAF'ALU?", francais: "QUE VAS-TU FAIRE ?" },
-            { arabe: "سَأَقْرَأُ الكِتَاب", phonetique: "SA-AQRA'U AL-KITAB", francais: "JE LIRAI LE LIVRE" }
-        ],
-        mots: [
-            { arabe: "سَآكُلُ", phonetique: "SA-AKULU", francais: "JE MANGERAI" },
-            { arabe: "سَأَشْرَبُ", phonetique: "SA-ACHRABU", francais: "JE BOIRAI" },
-            { arabe: "سَأَذْهَبُ", phonetique: "SA-ADH-HABU", francais: "J'IRAI" },
-            { arabe: "سَأَقْرَأُ", phonetique: "SA-AQRA'U", francais: "JE LIRAI" },
-            { arabe: "سَأَكْتُبُ", phonetique: "SA-AKTUBU", francais: "J'ÉCRIRAI" }
-        ]
-    },
-    // Épisode 13: Possessifs
-    "ep13-data": {
-        phrases: [
-            { arabe: "هَذَا قَلَمِي", phonetique: "HADHA QALAMI", francais: "C'EST MON STYLO" },
-            { arabe: "مَا اسْمُهَا؟", phonetique: "MA-SMUHA?", francais: "QUEL EST SON NOM (ELLE) ?" },
-            { arabe: "بَيْتُهُ كَبِير", phonetique: "BAYTUHU KABIR", francais: "SA MAISON (À LUI) EST GRANDE" }
-        ],
-        mots: [
-            { arabe: "كِتَابِي", phonetique: "KITABI", francais: "MON LIVRE" },
-            { arabe: "كِتَابُكَ", phonetique: "KITABUKA", francais: "TON LIVRE (M)" },
-            { arabe: "كِتَابُكِ", phonetique: "KITABUKI", francais: "TON LIVRE (F)" },
-            { arabe: "اِسْمُهُ", phonetique: "ISMUHU", francais: "SON NOM (À LUI)" },
-            { arabe: "اِسْمُهَا", phonetique: "ISMUHA", francais: "SON NOM (À ELLE)" }
-        ]
-    },
-    // Épisode 14: Adjectifs
-    "ep14-data": {
-        phrases: [
-            { arabe: "البَيْتُ كَبِير", phonetique: "AL-BAYTU KABIR", francais: "LA MAISON EST GRANDE" },
-            { arabe: "الوَلَدُ سَرِيع", phonetique: "AL-WALADU SARI'", francais: "LE GARÇON EST RAPIDE" },
-            { arabe: "الزَّهْرَةُ جَمِيلَة", phonetique: "AL-ZAHRATU JAMILA", francais: "LA FLEUR EST BELLE" }
-        ],
-        mots: [
-            { arabe: "كَبِير", phonetique: "KABIR", francais: "GRAND" },
-            { arabe: "صَغِير", phonetique: "SAGHIR", francais: "PETIT" },
-            { arabe: "جَمِيل", phonetique: "JAMIL", francais: "BEAU" },
-            { arabe: "قَبِيح", phonetique: "QABIH", francais: "LAID" },
-            { arabe: "سَرِيع", phonetique: "SARI'", francais: "RAPIDE" },
-            { arabe: "بَطِيء", phonetique: "BATI'", francais: "LENT" }
-        ]
-    },
-    // Épisode 15: Révision 1 (Verbes)
-    "ep15-data": {
-        phrases: [
-            { arabe: "أَمْس ذَهَبْتُ, اليَوْم أَذْهَبُ, غَداً سَأَذْهَبُ", phonetique: "AMS DHAHABTU, AL-YAWM ADH-HABU, GHADAN SA-ADH-HABU", francais: "HIER JE SUIS ALLÉ, AUJOURD'HUI JE VAIS, DEMAIN J'IRAI" },
-            { arabe: "أَنَا أَكَلْتُ تُفَّاحَة", phonetique: "ANA AKALTU TUFFAHA", francais: "J'AI MANGÉ UNE POMME" }
-        ],
-        mots: [
-            { arabe: "فَعَلَ", phonetique: "FA'ALA", francais: "FAIRE (IL A FAIT)" },
-            { arabe: "يَفْعَلُ", phonetique: "YAF'ALU", francais: "IL FAIT" },
-            { arabe: "سَيَفْعَلُ", phonetique: "SA-YAF'ALU", francais: "IL FERA" },
-            { arabe: "كَتَبَ", phonetique: "KATABA", francais: "IL A ÉCRIT" },
-            { arabe: "يَكْتُبُ", phonetique: "YAKTUBU", francais: "IL ÉCRIT" }
-        ]
-    },
-    // Épisode 16: Négociation
-    "ep16-data": {
-        phrases: [
-            { arabe: "بِكَمْ هَذَا؟", phonetique: "BIKAM HADHA?", francais: "C'EST COMBIEN ?" },
-            { arabe: "هَذَا غَالِي جِدّاً!", phonetique: "HADHA GHALI JIDDAN!", francais: "C'EST TRÈS CHER !" },
-            { arabe: "أُرِيدُ هَذَا, مِنْ فَضْلِكَ", phonetique: "URIDU HADHA, MIN FADLIKA", francais: "JE VEUX CECI, S'IL VOUS PLAÎT" }
-        ],
-        mots: [
-            { arabe: "بِكَمْ", phonetique: "BIKAM", francais: "COMBIEN (PRIX)" },
-            { arabe: "غَالِي", phonetique: "GHALI", francais: "CHER" },
-            { arabe: "رَخِيص", phonetique: "RAKHIS", francais: "BON MARCHÉ" },
-            { arabe: "دِينَار", phonetique: "DINAR", francais: "DINAR (MONNAIE)" },
-            { arabe: "أُرِيدُ", phonetique: "URIDU", francais: "JE VEUX" }
-        ]
-    },
-    // Épisode 17: Émotions
-    "ep17-data": {
-        phrases: [
-            { arabe: "أَنَا سَعِيدٌ اليَوْم", phonetique: "ANA SA'IDUN AL-YAWM", francais: "JE SUIS HEUREUX AUJOURD'HUI" },
-            { arabe: "لِمَاذَا أَنْتَ حَزِين؟", phonetique: "LIMAZA ANTA HAZIN?", francais: "POURQUOI ES-TU TRISTE ?" },
-            { arabe: "أَنَا لَسْتُ خَائِف", phonetique: "ANA LASTU KHA'IF", francais: "JE N'AI PAS PEUR" }
-        ],
-        mots: [
-            { arabe: "سَعِيد", phonetique: "SA'ID", francais: "HEUREUX" },
-            { arabe: "حَزِين", phonetique: "HAZIN", francais: "TRISTE" },
-            { arabe: "غَضْبَان", phonetique: "GHADBAN", francais: "EN COLÈRE" },
-            { arabe: "خَائِف", phonetique: "KHA'IF", francais: "EFFRAYÉ" },
-            { arabe: "لِمَاذَا", phonetique: "LIMAZA", francais: "POURQUOI" }
-        ]
-    },
-    // Épisode 18: Concepts Abstraits
-    "ep18-data": {
-        phrases: [
-            { arabe: "أُرِيدُ السَّلَام", phonetique: "URIDU AL-SALAM", francais: "JE VEUX LA PAIX" },
-            { arabe: "عَفْواً", phonetique: "AFWAN", francais: "PARDON / DE RIEN" },
-            { arabe: "أَنْتَ صَدِيقِي", phonetique: "ANTA SADIQI", francais: "TU ES MON AMI" }
-        ],
-        mots: [
-            { arabe: "حُبّ", phonetique: "HOBB", francais: "AMOUR" },
-            { arabe: "سَلَام", phonetique: "SALAM", francais: "PAIX" },
-            { arabe: "عَفْواً", phonetique: "AFWAN", francais: "PARDON / DE RIEN" },
-            { arabe: "صَدَاقَة", phonetique: "SADAQA", francais: "AMITIÉ" },
-            { arabe: "صَدِيق", phonetique: "SADIQ", francais: "AMI" }
-        ]
-    },
-    // Épisode 19: Langue
-    "ep19-data": {
-        phrases: [
-            { arabe: "أَنَا أَتَكَلَّمُ العَرَبِيَّة", phonetique: "ANA ATAKALLAMU AL-'ARABIYA", francais: "JE PARLE ARABE" },
-            { arabe: "هَلْ تَتَكَلَّمُ الفَرَنْسِيَّة؟", phonetique: "HAL TATAKALLAMU AL-FARANSIYA?", francais: "PARLES-TU FRANÇAIS ?" },
-            { arabe: "مَا هِيَ لُغَتُكَ؟", phonetique: "MA HIYA LUGHATUK?", francais: "QUELLE EST TA LANGUE ?" }
-        ],
-        mots: [
-            { arabe: "لُغَة", phonetique: "LUGHA", francais: "LANGUE" },
-            { arabe: "أَتَكَلَّمُ", phonetique: "ATAKALLAMU", francais: "JE PARLE" },
-            { arabe: "العَرَبِيَّة", phonetique: "AL-'ARABIYA", francais: "L'ARABE" },
-            { arabe: "فَرَنْسِيَّة", phonetique: "FARANSIYA", francais: "FRANÇAIS" },
-            { arabe: "هَلْ", phonetique: "HAL...?", francais: "EST-CE QUE... ?" }
-        ]
-    },
-    // Épisode 20: Conclusion
-    "ep20-data": {
-        phrases: [
-            { arabe: "مَعَ السَّلَامَة, يَا فَهِيم!", phonetique: "MA'A SALAMA, YA FAHIM!", francais: "AU REVOIR, FAHIM !" },
-            { arabe: "إِلَى اللِّقَاء فِي المَدْرَسَة", phonetique: "ILA LIQA' FI AL-MADRASA", francais: "À BIENTÔT À L'ÉCOLE" },
-            { arabe: "شُكْراً جَزِيلاً عَلَى المُسَاعَدَة", phonetique: "CHOUKRAN JAZILAN 'ALA AL-MUSA'ADA", francais: "MERCI BEAUCOUP POUR L'AIDE" }
-        ],
-        mots: [
-            { arabe: "مَعَ السَّلَامَة", phonetique: "MA'A SALAMA", francais: "AU REVOIR (AVEC LA PAIX)" },
-            { arabe: "إِلَى اللِّقَاء", phonetique: "ILA LIQA'", francais: "À BIENTÔT" },
-            { arabe: "يَوْم سَعِيد", phonetique: "YAWM SA'ID", francais: "BONNE JOURNÉE" },
-            { arabe: "مُسَاعَدَة", phonetique: "MUSA'ADA", francais: "AIDE" },
-            { arabe: "مُغَامَرَة", phonetique: "MUGHAMARA", francais: "AVENTURE" }
-        ]
-    }
-};
+// --- SUPPRIMÉ ---
+// Les objets 'courseData' et 'memorizationData' qui étaient ici sont maintenant importés.
 
 
 // --- Fonctions de Configuration et d'Aide (Inchangées) ---
-function getAcademySystemPrompt(scenario) {
-    // ... (votre fonction existante est inchangée) ...
+
+// MODIFIÉ : Accepte un objet 'scenarioData' (plus léger) au lieu d'un 'scenario' complet
+function getAcademySystemPrompt(scenarioData) {
+    
+    // NOTE: Le mode Répétiteur n'est pas dans la série principale,
+    // mais pourrait être dans un scénario personnalisé.
+    const isRepeaterMode = scenarioData.id === 'scen-0'; 
+
+    return `Tu es un tuteur expert en immersion linguistique. Ton rôle actuel est celui de "${scenarioData.characterName}" dans le contexte suivant : "${scenarioData.context}". La conversation doit se dérouler **UNIQUEMENT en Arabe Littéraire (Al-Fusha)**. 
+    
+    // Instructions spécifiques au mode Répétiteur
+    ${isRepeaterMode ? 
+        "TON OBJECTIF PRINCIPAL est de fournir une phrase ou un mot, puis d'attendre que l'élève le **répète le plus fidèlement possible**. Tu dois féliciter pour la réussite ('ممتاز!') et encourager pour l'échec ('حاول مجدداً.'). Passe à la phrase cible suivante seulement après la réussite." 
+        : 
+        "Tes objectifs sont de converser et de guider l'élève vers l'accomplissement des objectifs du scénario."
+    }
+
+    // INSTRUCTIONS CLÉS POUR LE FORMATAGE et l'IA :
+    // 1. Ton message doit commencer par la phrase en Arabe Littéraire.
+    // 2. À la suite de la phrase (sur la même ligne), tu dois ajouter la phonétique et la traduction, EN UTILISANT CE FORMAT STRICT:
+    //    <PHONETIQUE>Ta transcription phonétique</PHONETIQUE> <TRADUCTION>Ta traduction française</TRADUCTION>
+    // 3. N'utilise pas d'autres balises dans ta réponse.
+    
+    Tes objectifs clés sont :
+    1.  **Incarnation du Personnage** : Maintiens le rôle.
+    2.  **Pédagogie et Soutien** : Les corrections doivent se concentrer sur la **Grammaire et Vocabulaire de l'Arabe Littéraire**.
+    3.  **Suivi des Objectifs** : ${scenarioData.objectives.join(', ')}.
+    4.  **Focalisation Fusha** : Concentre les interactions sur l'usage pratique de l'**Arabe Littéraire**.
+    5.  **Format de Réponse** : Réponds toujours en tant que le personnage.`;
 }
+
 
 // --- 2. Fonctions Vocales (Push-to-Talk et TTS) ---
 
@@ -612,30 +88,301 @@ async function playNarratorAudio(text, buttonEl) {
     }
 }
 
-
+// Fonctions vocales inchangées
 function setupSpeechRecognition(micBtn, userInput, chatForm) {
-    // ... (votre fonction existante est inchangée) ...
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+        micBtn.disabled = true;
+        micBtn.title = "La reconnaissance vocale n'est pas supportée par votre navigateur.";
+        return;
+    }
+    recognition = new SpeechRecognition();
+    recognition.lang = 'ar-SA'; 
+    recognition.interimResults = false;
+    recognition.continuous = false; 
+    
+    recognition.onresult = (event) => {
+        const transcript = event.results[0][0].transcript;
+        userInput.value = transcript;
+    };
+    
+    recognition.onstart = () => {
+        micBtn.classList.add('recording');
+        micBtn.innerHTML = '<i class="fa-solid fa-square"></i>'; 
+    };
+    
+    recognition.onend = () => {
+        micBtn.classList.remove('recording');
+        micBtn.innerHTML = '<i class="fa-solid fa-microphone"></i>'; 
+    };
+    
+    recognition.onerror = (event) => {
+        console.error("Erreur de reconnaissance vocale:", event.error);
+        micBtn.classList.remove('recording');
+        micBtn.innerHTML = '<i class="fa-solid fa-microphone"></i>';
+    };
 }
-function startListening() { /* ... */ }
-function stopListening() { /* ... */ }
+function startListening() {
+    if (recognition && !recognition.recognizing) {
+        recognition.start();
+    }
+}
+function stopListening() {
+    if (recognition) {
+        recognition.stop();
+    }
+}
 async function togglePlayback(text, buttonEl) {
-    // ... (votre fonction existante est inchangée) ...
+    let textToRead = text;
+    const firstTagIndex = Math.min(
+        text.indexOf('<PHONETIQUE>') > -1 ? text.indexOf('<PHONETIQUE>') : Infinity,
+        text.indexOf('<TRADUCTION>') > -1 ? text.indexOf('<TRADUCTION>') : Infinity
+    );
+    if (firstTagIndex !== Infinity) {
+        textToRead = text.substring(0, firstTagIndex).trim();
+    }
+    
+    if (currentListenBtn === buttonEl) {
+        if(currentAudio) currentAudio.pause();
+        buttonEl.innerHTML = '<i class="fa-solid fa-volume-high"></i>';
+        buttonEl.classList.remove('active-speaker');
+        currentAudio = null;
+        currentListenBtn = null;
+        return;
+    }
+
+    if (currentAudio) {
+        currentAudio.pause();
+        if (currentListenBtn) {
+            currentListenBtn.innerHTML = '<i class="fa-solid fa-volume-high"></i>';
+            currentListenBtn.classList.remove('active-speaker');
+        }
+    }
+
+    currentListenBtn = buttonEl;
+    buttonEl.innerHTML = `<div class="spinner-dots" style="transform: scale(0.6);"><span></span><span></span><span></span></div>`;
+
+    try {
+        const voice = 'ar-XA-Wavenet-B'; 
+        const rate = 1.0;
+        const pitch = 0.0;
+
+        const response = await apiRequest('/api/ai/synthesize-speech', 'POST', { text: textToRead, voice, rate, pitch });
+        
+        const audioBlob = await (await fetch(`data:audio/mp3;base64,${response.audioContent}`)).blob(); 
+        const audioUrl = URL.createObjectURL(audioBlob);
+        
+        currentAudio = new Audio(audioUrl);
+        currentAudio.play();
+        
+        buttonEl.innerHTML = '<i class="fa-solid fa-stop"></i>';
+        buttonEl.classList.add('active-speaker');
+
+        currentAudio.onended = () => {
+            buttonEl.innerHTML = '<i class="fa-solid fa-volume-high"></i>';
+            buttonEl.classList.remove('active-speaker');
+            currentAudio = null;
+            currentListenBtn = null;
+        };
+
+    } catch (error) {
+        console.error("Erreur lors de la lecture de l'audio neuronal:", error);
+        buttonEl.innerHTML = '<i class="fa-solid fa-volume-high"></i>';
+        currentListenBtn = null;
+        alert(`Impossible de jouer la voix du Serveur. Erreur: ${error.message}`);
+    }
 }
+
 
 // --- 3. Logique de Bilan et de Sauvegarde (Inchangée) ---
-async function endScenarioSession(scenario, history) {
-    // ... (votre fonction existante est inchangée) ...
-}
-function showSessionReportModal(report) {
-    // ... (votre fonction existante est inchangée) ...
+
+// MODIFIÉ : Accepte 'scenarioData' et un 'id' pour la sauvegarde
+async function endScenarioSession(scenarioData, history, scenarioId = 'custom') {
+    const spinner = document.getElementById('scenario-spinner');
+    const errorDisplay = document.getElementById('scenario-error');
+    const chatForm = document.getElementById('scenario-chat-form');
+    
+    chatForm.style.pointerEvents = 'none';
+    spinner.classList.remove('hidden');
+    
+    const finalPrompt = { 
+        role: 'user', 
+        content: `La session est terminée. Votre dernière réponse doit être un **JSON valide** contenant le bilan de l'élève. Le JSON doit avoir la structure suivante : 
+        { "summaryTitle": "Bilan de Session", "score": "N/A", "completionStatus": "Completed", "feedback": ["..."], "newVocabulary": [{"word": "...", "translation": "..."}] }
+        Le feedback doit se concentrer sur les erreurs de Grammaire/Vocabulaire Arabe Littéraire observées dans notre conversation. Ne donnez aucune autre réponse que le JSON.`
+    };
+    
+    history.push(finalPrompt);
+
+    try {
+        const response = await apiRequest('/api/academy/ai/chat', 'POST', { history, response_format: { type: "json_object" } });
+        
+        history.pop(); 
+        
+        let report;
+        try {
+            const jsonString = response.reply.match(/\{[\s\S]*\}/)?.[0];
+            if (!jsonString) {
+                throw new Error("Aucun objet JSON structuré n'a pu être détecté.");
+            }
+            report = JSON.parse(jsonString); 
+        } catch(e) {
+            console.error("Erreur critique de parsing JSON du rapport IA:", e, "Réponse brute:", response.reply);
+            report = { summaryTitle: "Bilan Indisponible (Erreur Critique)", completionStatus: "Erreur", feedback: [`L'IA n'a pas pu générer le rapport structuré. Détails: ${e.message}`], newVocabulary: [] };
+        }
+        
+        // Sauvegarde de la session (Backend)
+        try {
+             await apiRequest('/api/academy/session/save', 'POST', {
+                userId: window.currentUser.id,
+                scenarioId: scenarioId, // Utilise l'ID (ex: "ep1-dialogue" ou "scen-12345")
+                report: report,
+                fullHistory: history 
+            });
+        } catch (e) {
+            console.warn("Erreur lors de la sauvegarde du bilan (Vérifiez server.js):", e.message);
+        }
+
+        // Afficher le Bilan à l'élève
+        showSessionReportModal(report);
+
+    } catch (err) {
+        errorDisplay.textContent = `Erreur lors de la génération du bilan: ${err.message}`;
+    } finally {
+        spinner.classList.add('hidden');
+    }
 }
 
+function showSessionReportModal(report) {
+    const vocabHtml = (report.newVocabulary || []).map(v => `<li><strong>${v.word}</strong>: ${v.translation}</li>`).join('') || '<li>Aucun nouveau vocabulaire relevé.</li>';
+    const feedbackHtml = (report.feedback || []).map(f => `<li>${f}</li>`).join('') || '<li>Aucun point de feedback majeur.</li>';
+    
+    const html = `
+        <div style="padding: 1rem;">
+            <h3 style="color: var(--primary-color); margin-bottom: 1rem;">${report.summaryTitle}</h3>
+            <p><strong>Statut :</strong> ${report.completionStatus}</p>
+            
+            <h4 style="margin-top: 1.5rem;">Points de Feedback Pédagogique :</h4>
+            <ul style="list-style-type: disc; padding-left: 20px;">${feedbackHtml}</ul>
+            
+            <h4 style="margin-top: 1.5rem;">Vocabulaire Arabe Littéraire Relevé :</h4>
+            <ul style="list-style-type: none; padding-left: 0;">${vocabHtml}</ul>
+            
+            <button class="btn btn-main" style="width: 100%; margin-top: 2rem;" onclick="window.modalContainer.innerHTML=''; renderAcademyStudentDashboard();">
+                <i class="fa-solid fa-arrow-right"></i> Retour au tableau de bord
+            </button>
+        </div>
+    `;
+
+    renderModal(getModalTemplate('session-report-modal', 'Bilan de votre Session', html));
+}
+
+
 // --- 4. Outil de Création de Scénarios (Inchangé) ---
+// (L'enseignant peut toujours créer des scénarios personnalisés)
 function getScenarioCreatorTemplate() {
-    // ... (votre fonction existante est inchangée) ...
+    return `
+        <form id="scenario-creator-form">
+            <div class="form-group">
+                <label for="scen-title">Titre du Scénario</label>
+                <input type="text" id="scen-title" required placeholder="Ex: Commander des légumes au marché">
+            </div>
+            
+            <div class="form-group">
+                <label for="scen-image-url">URL de l'Image (Optionnel)</label>
+                <input type="text" id="scen-image-url" placeholder="Ex: https://exemple.com/image.jpg">
+            </div>
+            
+            <div class="form-group">
+                <label for="scen-context">Contexte (Pour l'IA)</label>
+                <textarea id="scen-context" rows="2" required placeholder="Ex: Tu montres une image d'un marché. Demande à l'élève ce qu'il voit..."></textarea>
+            </div>
+            <div class="form-group">
+                <label for="scen-objectives">Objectifs de l'Élève (Séparés par une virgule)</label>
+                <input type="text" id="scen-objectives" required placeholder="Ex: Saluer, Demander le prix, Négocier un peu, Dire au revoir">
+            </div>
+            <div class="form-group">
+                <label for="scen-intro">Phrase d'Introduction de l'IA (Doit contenir les balises d'aide)</label>
+                <textarea id="scen-intro" rows="4" required 
+                    placeholder="Ex: أهلاً، ماذا تريد؟ <PHONETIQUE>Ahlan, mādhā turīd?</PHONETIQUE> <TRADUCTION>Bonjour, que voulez-vous ?</TRADUCTION>"></textarea>
+                <small id="intro-warning" style="color: var(--incorrect-color);">**ATTENTION :** La phrase d'introduction doit contenir les balises &lt;PHONETIQUE&gt; et &lt;TRADUCTION&gt;.</small>
+            </div>
+            
+            <button type="submit" class="btn btn-main" style="width: 100%; margin-top: 1rem;">
+                <i class="fa-solid fa-save"></i> Enregistrer le Scénario
+            </button>
+            <p id="creator-error" class="error-message" style="margin-top: 10px;"></p>
+        </form>
+    `;
 }
 function renderScenarioCreatorModal() {
-    // ... (votre fonction existante est inchangée) ...
+    const title = "Créer un Nouveau Scénario d'Immersion";
+    const content = getScenarioCreatorTemplate();
+    renderModal(getModalTemplate('scenario-creator-modal', title, content));
+    
+    const form = document.getElementById('scenario-creator-form');
+    const errorDisplay = document.getElementById('creator-error');
+    const introField = document.getElementById('scen-intro');
+    const warningText = document.getElementById('intro-warning');
+    const submitBtn = form.querySelector('button[type="submit"]');
+
+    function validateIntroFormat() {
+        const text = introField.value;
+        const hasPhonetic = text.includes('<PHONETIQUE>') && text.includes('</PHONETIQUE>');
+        const hasTranslation = text.includes('<TRADUCTION>') && text.includes('</TRADUCTION>');
+        
+        if (hasPhonetic && hasTranslation) {
+            warningText.textContent = "Format du message d'introduction validé. 👍";
+            warningText.style.color = 'var(--success-color)';
+            submitBtn.disabled = false;
+        } else {
+            warningText.textContent = "**ATTENTION :** La phrase d'introduction doit contenir les balises <PHONETIQUE> et <TRADUCTION>.";
+            warningText.style.color = 'var(--incorrect-color)'; 
+        }
+    }
+
+    introField.addEventListener('input', validateIntroFormat);
+    validateIntroFormat();
+
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        errorDisplay.textContent = '';
+        submitBtn.disabled = true;
+
+        const objectivesArray = document.getElementById('scen-objectives').value
+            .split(',').map(o => o.trim()).filter(o => o.length > 0);
+
+        const newScenarioData = {
+            title: document.getElementById('scen-title').value,
+            imageUrl: document.getElementById('scen-image-url').value, 
+            context: document.getElementById('scen-context').value,
+            characterIntro: document.getElementById('scen-intro').value,
+            objectives: objectivesArray,
+            language: "Arabe Littéraire (Al-Fusha)", 
+            level: "Personnalisé"
+        };
+        
+        try {
+            const response = await apiRequest('/api/academy/scenarios/create', 'POST', newScenarioData);
+            
+            errorDisplay.style.color = 'var(--success-color)';
+            errorDisplay.textContent = `Scénario "${response.scenario.title}" créé! Actualisation...`;
+            
+            setTimeout(() => {
+                window.modalContainer.innerHTML = '';
+                if (window.currentUser.role === 'academy_student') {
+                    renderAcademyStudentDashboard();
+                } else {
+                    renderAcademyTeacherDashboard();
+                }
+            }, 1500);
+
+        } catch (err) {
+            errorDisplay.style.color = 'var(--incorrect-color)';
+            errorDisplay.textContent = `Erreur de création: ${err.message}`;
+            submitBtn.disabled = false;
+        }
+    });
 }
 async function renderTeacherScenarioManagement(page) {
     // ... (votre fonction existante est inchangée) ...
@@ -644,11 +391,12 @@ async function renderTeacherScenarioManagement(page) {
 
 // --- 5. NOUVELLES Fonctions de Rendu du Dashboard (Élève et Enseignant) ---
 
-// MODIFIÉ : Affiche la "Série" au lieu des scénarios
+// MODIFIÉ : Affiche la "Série" ET les scénarios personnalisés (Modèle Hybride)
 export async function renderAcademyStudentDashboard() {
     const page = document.getElementById('student-dashboard-page');
     changePage('student-dashboard-page'); 
 
+    // --- SECTION 1 : LA SÉRIE "ZAYD ET YASMINA" ---
     let html = `
         <h2>Bienvenue ${window.currentUser.firstName} sur l'Académie ! 📚</h2>
         <p class="subtitle">Prêt à commencer ton aventure ?</p>
@@ -668,6 +416,11 @@ export async function renderAcademyStudentDashboard() {
             </div>
         </div>
         
+        <h3 style="margin-top: 3rem;">Scénarios Supplémentaires</h3>
+        <div id="custom-scenarios-grid" class="dashboard-grid">
+            ${spinnerHtml}
+        </div>
+
         `;
     
     // Ajout de l'historique des sessions (logique existante)
@@ -701,13 +454,15 @@ export async function renderAcademyStudentDashboard() {
 
     page.innerHTML = html;
 
-    // NOUVEAU : Listener pour démarrer le lecteur de cours
+    // --- Listeners ---
+
+    // Listener pour la Série
     page.querySelector('#start-series-btn').addEventListener('click', (e) => {
         e.stopPropagation();
         renderAcademyCoursePlayer(); // Lance la nouvelle page de cours
     });
 
-    // Listeners de l'historique des sessions (inchangés)
+    // Listeners de l'historique des sessions
     page.querySelectorAll('.clickable-session, .view-report-btn').forEach(element => {
         element.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -718,9 +473,69 @@ export async function renderAcademyStudentDashboard() {
             }
         });
     });
+
+    // Appel API pour charger les scénarios personnalisés
+    loadCustomScenarios();
 }
 
-// MODIFIÉ : Affiche la page de cours AVEC LE NARRATEUR
+// NOUVEAU : Fonction pour charger les scénarios personnalisés dans le dashboard élève
+async function loadCustomScenarios() {
+    const grid = document.getElementById('custom-scenarios-grid');
+    let customScenarios = [];
+    
+    try {
+        const allScenarios = await apiRequest('/api/academy/scenarios', 'GET');
+        // Filtre pour n'afficher que les scénarios créés par l'enseignant (non-prototypés)
+        customScenarios = allScenarios.filter(s => s.id !== 'scen-0' && s.id !== 'scen-1');
+        
+        if (customScenarios.length === 0) {
+            grid.innerHTML = `<p>Aucun scénario supplémentaire assigné par votre enseignant pour le moment.</p>`;
+            return;
+        }
+
+        let html = '';
+        customScenarios.forEach(scen => {
+            let imageHtml = '';
+            if (scen.imageUrl) {
+                imageHtml = `<img src="${scen.imageUrl}" alt="${scen.title}" class="scenario-card-image">`;
+            }
+            html += `
+                <div class="dashboard-card primary-card" data-scenario-id="${scen.id}" style="cursor: pointer; padding: 0;">
+                    ${imageHtml}
+                    <div class="scenario-card-content">
+                        <h4>${scen.title}</h4>
+                        <p>Niveau : ${scen.level}</p>
+                        <p style="margin-top: 1rem;">Objectif: ${scen.objectives?.[0] || 'Objectif non spécifié'}...</p>
+                        <div style="text-align: right; margin-top: 1rem;">
+                            <button class="btn btn-main start-scenario-btn" data-scenario-id="${scen.id}"><i class="fa-solid fa-play"></i> Commencer</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+        grid.innerHTML = html;
+
+        // Listeners pour les scénarios personnalisés
+        grid.querySelectorAll('.start-scenario-btn, .dashboard-card.primary-card').forEach(element => {
+            element.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const scenarioId = e.currentTarget.dataset.scenarioId;
+                const selectedScenario = customScenarios.find(s => s.id === scenarioId);
+                if (selectedScenario) {
+                    // Lance le visualiseur de dialogue IA
+                    renderScenarioViewer(document.getElementById('content-viewer-page'), selectedScenario, true);
+                }
+            });
+        });
+
+    } catch (e) {
+        console.error("Erreur lors du chargement des scénarios personnalisés:", e);
+        grid.innerHTML = `<p class="error-message">Impossible de charger les scénarios supplémentaires.</p>`;
+    }
+}
+
+
+// NOUVEAU : Affiche la page de cours (style image_46eeed.jpg)
 function renderAcademyCoursePlayer(selectedActivityId = null) {
     const page = document.getElementById('content-viewer-page'); // Réutilise la page viewer
     changePage('content-viewer-page');
@@ -797,7 +612,7 @@ function renderAcademyCoursePlayer(selectedActivityId = null) {
     loadActivityContent(activityId);
 }
 
-// MODIFIÉ : Charge le contenu ET le narrateur
+// MODIFIÉ : Charge le contenu (Série ou Scénario Perso)
 async function loadActivityContent(activityId) {
     const contentArea = document.getElementById('activity-content-area');
     const narratorBox = document.getElementById('narrator-box');
@@ -807,7 +622,7 @@ async function loadActivityContent(activityId) {
     let activity = null;
     let episode = null;
     
-    // Trouver l'activité ET l'épisode parent
+    // Trouver l'activité ET l'épisode parent dans la SÉRIE
     for (const ep of courseData.episodes) {
         activity = ep.activities.find(a => a.id === activityId);
         if (activity) {
@@ -837,17 +652,11 @@ async function loadActivityContent(activityId) {
             renderMemorizationPage(contentArea, activity);
             break;
         case 'dialogue':
-            // Récupère les scénarios IA (on suppose qu'ils existent)
-            try {
-                const scenarios = await apiRequest('/api/academy/scenarios', 'GET');
-                const scenario = scenarios.find(s => s.id === activity.scenarioId);
-                if (scenario) {
-                    renderScenarioViewer(contentArea, scenario); // Affiche le chat IA
-                } else {
-                    contentArea.innerHTML = `<p class="error-message">Erreur : Scénario de dialogue (ID: ${activity.scenarioId}) non trouvé.</p>`;
-                }
-            } catch (err) {
-                contentArea.innerHTML = `<p class="error-message">Erreur de chargement du dialogue : ${err.message}</p>`;
+            // MODIFIÉ : Le 'scenarioData' est maintenant DANS l'activité
+            if (activity.scenarioData) {
+                renderScenarioViewer(contentArea, activity.scenarioData, activity.id); // Affiche le chat IA
+            } else {
+                contentArea.innerHTML = `<p class="error-message">Erreur : Données de dialogue non trouvées pour cette activité.</p>`;
             }
             break;
         case 'quiz':
@@ -921,7 +730,8 @@ function renderMemorizationPage(container, activity) {
 }
 
 
-// MODIFIÉ : Le dashboard enseignant est inchangé pour l'instant
+// --- Fonctions de Rendu (Enseignant/Parent) ---
+// (Celles-ci restent inchangées, elles gèrent le suivi et la création de scénarios personnalisés)
 export async function renderAcademyTeacherDashboard() {
     const page = document.getElementById('teacher-dashboard-page');
     changePage('teacher-dashboard-page'); 
@@ -1013,9 +823,6 @@ export async function renderAcademyTeacherDashboard() {
         studentGrid.innerHTML = `<p class="error-message">Erreur lors de la récupération des élèves : ${err.message}</p>`;
     }
 }
-
-
-// Fonction pour afficher le détail d'un élève (utilisée par le dashboard Enseignant)
 function renderTeacherStudentDetail(student) {
     const page = document.getElementById('teacher-dashboard-page');
     changePage('teacher-dashboard-page'); 
@@ -1076,20 +883,41 @@ function renderTeacherStudentDetail(student) {
         });
     });
 }
+export async function renderAcademyParentDashboard() {
+    await renderAcademyTeacherDashboard();
+}
 
 
 // MODIFIÉ : La vue du chat IA est maintenant injectée dans une 'div'
-function renderScenarioViewer(container, scenario) {
+// Accepte 'scenarioData' (pour la série) OU 'scenario' (pour les scénarios personnalisés)
+// Accepte 'isCustomScenario' pour savoir s'il faut afficher le bouton 'Retour'
+function renderScenarioViewer(container, scenarioOrData, isCustomScenario = false) {
     // Au lieu de 'changePage', nous injectons dans le conteneur
     container.innerHTML = ''; // Vide la zone d'activité
 
-    const history = [{ role: "system", content: getAcademySystemPrompt(scenario) }];
+    // Gère les deux types de données (Série ou Scénario Perso)
+    const scenarioData = isCustomScenario ? scenarioOrData : scenarioOrData.scenarioData;
+    const scenarioId = isCustomScenario ? scenarioOrData.id : scenarioOrData.id;
+    const title = isCustomScenario ? scenarioOrData.title : scenarioData.title;
+    const context = isCustomScenario ? scenarioOrData.context : scenarioData.context;
+    const intro = isCustomScenario ? scenarioOrData.characterIntro : scenarioData.characterIntro;
+    const imageUrl = isCustomScenario ? scenarioOrData.imageUrl : null; // Les dialogues de série n'ont pas d'image
+
+    const history = [{ role: "system", content: getAcademySystemPrompt(scenarioData) }];
+    
+    let imageHtml = '';
+    if (imageUrl) {
+        imageHtml = `<img src="${imageUrl}" alt="${title}" class="scenario-main-image">`;
+    }
     
     // Crée la structure du chat
     const chatWrapper = document.createElement('div');
     chatWrapper.innerHTML = `
-        <h3>${scenario.title}</h3>
-        <p class="subtitle">${scenario.context}</p>
+        ${isCustomScenario ? `<button id="back-to-academy-dash" class="btn btn-secondary" style="margin-bottom: 1rem;"><i class="fa-solid fa-arrow-left"></i> Retour</button>` : ''}
+        
+        <h3>${title}</h3>
+        ${imageHtml}
+        <p class="subtitle">${context}</p>
         <p style="font-size: 0.9em; color: var(--primary-color); margin-bottom: 1rem;">
             <i class="fa-solid fa-microphone-alt"></i> **Mode Vocal Activé.** Appuyez sur le micro pour enregistrer.
         </p>
@@ -1122,6 +950,16 @@ function renderScenarioViewer(container, scenario) {
     const micBtn = chatWrapper.querySelector('#mic-btn');
     const endSessionBtn = chatWrapper.querySelector('#end-session-btn');
     
+    // Attache le bouton Retour (s'il existe)
+    const backBtn = chatWrapper.querySelector('#back-to-academy-dash');
+    if (backBtn) {
+        backBtn.addEventListener('click', () => {
+            if (recognition && micBtn.classList.contains('recording')) recognition.stop();
+            if (currentAudio) currentAudio.pause();
+            renderAcademyStudentDashboard();
+        });
+    }
+
     // Initialisation du Push-to-Talk
     setupSpeechRecognition(micBtn, userInput, chatForm); 
     micBtn.addEventListener('mousedown', startListening);
@@ -1130,7 +968,7 @@ function renderScenarioViewer(container, scenario) {
     micBtn.addEventListener('touchend', stopListening);
     micBtn.addEventListener('click', (e) => e.preventDefault()); 
 
-    endSessionBtn.addEventListener('click', () => endScenarioSession(scenario, history));
+    endSessionBtn.addEventListener('click', () => endScenarioSession(scenarioData, history, scenarioId));
 
     // Gestion de l'envoi de message
     chatForm.addEventListener('submit', async (e) => {
@@ -1163,8 +1001,8 @@ function renderScenarioViewer(container, scenario) {
     });
 
     // Prompt Initial du Personnage IA
-    appendMessage('aida', scenario.characterIntro, true); 
-    history.push({ role: 'assistant', content: aidaResponse });
+    appendMessage('aida', intro, true); 
+    history.push({ role: 'assistant', content: intro });
 }
 
 
@@ -1263,9 +1101,3 @@ const appendMessage = (sender, text, canListen = false) => {
     chatWindow.appendChild(msgDiv);
     chatWindow.scrollTop = chatWindow.scrollHeight;
 };
-
-
-// --- 6. Dashboard Parent (Inchangé) ---
-export async function renderAcademyParentDashboard() {
-    await renderAcademyTeacherDashboard();
-}
