@@ -405,7 +405,9 @@ export async function renderAcademyStudentDashboard() {
             
             <div class="scenario-card card" id="start-series-btn" style="cursor: pointer;">
                 <div class="scenario-card-image-wrapper">
-                    <img src="https://images.unsplash.com/photo-1577717903212-eb7e559551c6?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1770&q=80" alt="Zayd et Yasmina" class="scenario-card-image">
+                    
+                    <img src="assets/images/zayd_yasmina_cover.png" alt="Zayd et Yasmina" class="scenario-card-image">
+
                 </div>
                 <div class="scenario-card-content">
                     <h3 class="scenario-card-title">${courseData.title}</h3>
@@ -455,7 +457,7 @@ export async function renderAcademyStudentDashboard() {
 
     // --- Listeners ---
 
-    // MODIFIÉ : Ce listener que vous avez trouvé va maintenant s'attacher à la NOUVELLE carte
+    // Ce listener s'attache à la nouvelle carte
     page.querySelector('#start-series-btn').addEventListener('click', (e) => {
         e.stopPropagation();
         renderAcademyCoursePlayer(); // Lance la nouvelle page de cours
