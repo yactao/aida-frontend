@@ -402,19 +402,18 @@ export async function renderAcademyStudentDashboard() {
         <p class="subtitle">Prêt à commencer ton aventure ?</p>
 
         <div class="dashboard-grid" style="grid-template-columns: 1fr;">
-            <div class="dashboard-card primary-card" id="start-series-btn" style="cursor: pointer; background: linear-gradient(45deg, var(--primary-color), var(--secondary-color)); color: white; padding: 0;">
-                
-                <img src="https://i.imgur.com/g0Q8eJg.png" alt="Zayd et Yasmina" class="scenario-card-image" style="height: 250px; margin-bottom: 0;">
-                
+            
+            <div class="scenario-card card" id="start-series-btn" style="cursor: pointer;">
+                <div class="scenario-card-image-wrapper">
+                    <img src="https://images.unsplash.com/photo-1577717903212-eb7e559551c6?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1770&q=80" alt="Zayd et Yasmina" class="scenario-card-image">
+                </div>
                 <div class="scenario-card-content">
-                    <h3 style="color: white;">${courseData.title}</h3>
-                    <p>${courseData.description}</p>
-                    <div style="text-align: right; margin-top: 1rem;">
-                        <button class="btn btn-main" style="background-color: white; color: var(--primary-color);"><i class="fa-solid fa-play"></i> Commencer la Série</button>
-                    </div>
+                    <h3 class="scenario-card-title">${courseData.title}</h3>
+                    <p class="scenario-card-description">${courseData.description}</p>
+                    <button class="btn btn-primary btn-play"><i class="fa-solid fa-play-circle"></i> Commencer la Série</button>
                 </div>
             </div>
-        </div>
+            </div>
         
         <h3 style="margin-top: 3rem;">Scénarios Supplémentaires</h3>
         <div id="custom-scenarios-grid" class="dashboard-grid">
@@ -456,7 +455,7 @@ export async function renderAcademyStudentDashboard() {
 
     // --- Listeners ---
 
-    // Listener pour la Série
+    // MODIFIÉ : Ce listener que vous avez trouvé va maintenant s'attacher à la NOUVELLE carte
     page.querySelector('#start-series-btn').addEventListener('click', (e) => {
         e.stopPropagation();
         renderAcademyCoursePlayer(); // Lance la nouvelle page de cours

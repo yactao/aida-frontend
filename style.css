@@ -1008,3 +1008,123 @@ body.dark-mode .styled-table tbody tr:nth-of-type(even) {
     font-size: 1.25rem;
     font-weight: 600;
 }
+
+/* --- NOUVEAU/MODIFIÉ : Styles pour la carte de présentation de la série --- */
+
+/* Conteneur principal de la carte de la série */
+.scenario-card {
+    display: flex;
+    align-items: center;
+    background: linear-gradient(135deg, var(--card-bg-color), var(--primary-color-light)); /* Dégradé de fond */
+    padding: 1.5rem;
+    border-radius: 12px;
+    box-shadow: var(--shadow-small);
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    min-height: 250px; /* Hauteur minimale pour que ça ait de la prestance */
+    position: relative; /* Pour le pseudo-élément de fond */
+    overflow: hidden; /* Cache les débordements du pseudo-élément */
+}
+body.dark-mode .scenario-card {
+    background: linear-gradient(135deg, #2a2a2a, #3a4a60); /* Dégradé en mode sombre */
+}
+.scenario-card:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--shadow-medium);
+}
+
+/* Pseudo-élément pour un fond plus riche (points, motifs légers) */
+.scenario-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: radial-gradient(var(--text-color-light) 1px, transparent 1px);
+    background-size: 8px 8px; /* Taille des points */
+    opacity: 0.1; /* Très subtil */
+    z-index: 0;
+}
+body.dark-mode .scenario-card::before {
+    background-image: radial-gradient(#666 1px, transparent 1px);
+}
+
+/* Wrapper pour l'image (pour la gérer indépendamment) */
+.scenario-card-image-wrapper {
+    flex-shrink: 0; /* Empêche l'image de rétrécir */
+    width: 250px; /* Largeur fixe pour l'image */
+    height: 200px; /* Hauteur fixe */
+    margin-right: 1.5rem;
+    border-radius: 8px;
+    overflow: hidden; /* Pour que l'image ne dépasse pas */
+    box-shadow: var(--shadow-small);
+    background-color: var(--background-color); /* Fond de secours si image absente */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+body.dark-mode .scenario-card-image-wrapper {
+    background-color: #333;
+}
+
+
+.scenario-card-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover; /* Recadre l'image pour remplir le wrapper sans la déformer */
+}
+
+.scenario-card-content {
+    flex-grow: 1;
+    position: relative; /* Pour que le contenu soit au-dessus du pseudo-élément de fond */
+    z-index: 1;
+}
+
+.scenario-card-title {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: var(--heading-color);
+    margin-bottom: 0.5rem;
+}
+body.dark-mode .scenario-card-title {
+    color: white; /* Plus blanc en mode sombre */
+}
+
+.scenario-card-description {
+    font-size: 1rem;
+    color: var(--text-color);
+    line-height: 1.5;
+    margin-bottom: 1.5rem;
+    max-width: 80%; /* Pour éviter que le texte ne soit trop large */
+}
+body.dark-mode .scenario-card-description {
+    color: #eee;
+}
+
+.scenario-card .btn-play {
+    padding: 0.8rem 1.5rem;
+    font-size: 1rem;
+    font-weight: 600;
+    border-radius: 50px; /* Bouton pill */
+}
+.scenario-card .btn-play i {
+    margin-right: 0.5rem;
+}
+
+/* RESPONSIVE : Pour les petits écrans */
+@media (max-width: 768px) {
+    .scenario-card {
+        flex-direction: column; /* Image au-dessus du texte */
+        text-align: center;
+    }
+    .scenario-card-image-wrapper {
+        width: 100%;
+        height: 180px;
+        margin-right: 0;
+        margin-bottom: 1rem;
+    }
+    .scenario-card-description {
+        max-width: 100%;
+    }
+}
