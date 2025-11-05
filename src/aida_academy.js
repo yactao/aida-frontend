@@ -10,11 +10,7 @@ let currentAudio = null;
 let currentListenBtn = null; 
 let narratorAudio = null; // Audio distinct pour le narrateur
 
-// --- SUPPRIMÉ ---
-// Les objets 'courseData' et 'memorizationData' qui étaient ici sont maintenant importés.
-
-
-// --- Fonctions de Configuration et d'Aide (Inchangées) ---
+// --- Fonctions de Configuration et d'Aide ---
 
 // MODIFIÉ : Accepte un objet 'scenarioData' (plus léger) au lieu d'un 'scenario' complet
 function getAcademySystemPrompt(scenarioData) {
@@ -194,7 +190,7 @@ async function togglePlayback(text, buttonEl) {
 }
 
 
-// --- 3. Logique de Bilan et de Sauvegarde (Inchangée) ---
+// --- 3. Logique de Bilan et de Sauvegarde ---
 
 // MODIFIÉ : Accepte 'scenarioData' et un 'id' pour la sauvegarde
 async function endScenarioSession(scenarioData, history, scenarioId = 'custom') {
@@ -384,13 +380,152 @@ function renderScenarioCreatorModal() {
         }
     });
 }
+
+// MODIFIÉ : Corrige le bug du spinner
 async function renderTeacherScenarioManagement(page) {
-    // ... (votre fonction existante est inchangée) ...
+    const managementSection = page.querySelector('.scenario-management-section');
+    if (!managementSection) return; // Sécurité
+    
+    let availableScenarios = [];
+    try {
+        // Récupérer tous les scénarios
+        availableScenarios = await apiRequest('/api/academy/scenarios', 'GET'); 
+    } catch (e) {
+        managementSection.innerHTML = `<h3 class="error-message">Erreur : Impossible de charger les scénarios.</h3>`;
+        return;
+    }
+    
+    // Filtrage: Ne montrer que les scénarios custom créés par l'enseignant
+    const customScenarios = availableScenarios.filter(s => s.id !== 'scen-0' && s.id !== 'scen-1');
+
+    let html = `
+        <h3>Gestion des Scénarios Personnalisés (${customScenarios.length})</h3>
+        <p class="subtitle">Assignez ces scénarios à vos élèves pour les rendre disponibles sur leur tableau de bord.</p>
+        
+        <div class="dashboard-grid scenario-management-grid" style="margin-top: 1rem;">
+    `;
+
+    if (customScenarios.length === 0) {
+        // CORRECTION : Affiche ce message si la liste est vide (corrige le bug du spinner)
+        html += `<p style="margin-top: 1rem; color: var(--text-color-secondary);">Aucun scénario créé. Utilisez le bouton "Créer un Scénario" ci-dessus.</p>`;
+    } else {
+        customScenarios.forEach(scen => {
+            // Affichage de l'aperçu du scénario (sans bouton "Commencer" pour le prof)
+            const introPreview = scen.characterIntro.replace(/<PHONETIQUE>.*?<\/PHONETIQUE>|<TRADUCTION>.*?<\/TRADUCTION>/g, '').trim();
+            
+            html += `
+                <div class="dashboard-card" data-scenario-id="${scen.id}" style="border-left: 5px solid var(--warning-color);">
+                    <h4>${scen.title}</h4>
+                    <p>Niveau: <strong>${scen.level}</strong></p>
+                    <p style="font-size: 0.9em; margin-top: 10px;">Intro: ${introPreview.substring(0, 50)}...</p>
+                    <div style="text-align: right; margin-top: 1rem;">
+                        <button class="btn btn-secondary view-scenario-details-btn" data-scenario-id="${scen.id}">
+                            <i class="fa-solid fa-user-plus"></i> Détails / Assignation
+                        </button>
+                    </div>
+                </div>
+            `;
+        });
+    }
+    
+    html += '</div>';
+    
+    // Remplace le spinner par le contenu HTML
+    managementSection.innerHTML = html;
+    
+    // NOTE: Ajouter ici les listeners pour l'assignation si vous créez cette fonctionnalité.
 }
 
 
 // --- 5. NOUVELLES Fonctions de Rendu du Dashboard (Élève et Enseignant) ---
 
+// MODIFIÉ : Affiche la "Série" ET les scénarios personnalisés (Modèle Hybride)
+export async function renderAcademyStudentDashboard() {
+    const page = document.getElementById('student-dashboard-page');
+    changePage('student-dashboard-page'); 
+
+    // --- SECTION 1 : LA SÉRIE "ZAYD ET YASMINA" ---
+    let html = `
+        <h2>Bienvenue ${window.currentUser.firstName} sur l'Académie ! 📚</h2>
+        <p class="subtitle">Prêt à commencer ton aventure ?</p>
+
+        <div class="dashboard-grid" style="grid-template-columns: 1fr;">
+            
+            <div class="scenario-card card" id="start-series-btn" style="cursor: pointer;">
+                <div class="scenario-card-image-wrapper">
+                    
+                    <img src="assets/images/zayd_yasmina_cover.png" alt="Zayd et Yasmina" class="scenario-card-image">
+
+                </div>
+                <div class="scenario-card-content">
+                    <h3 class="scenario-card-title">${courseData.title}</h3>
+                    <p class="scenario-card-description">${courseData.description}</p>
+                    <button class="btn btn-primary btn-play"><i class="fa-solid fa-play-circle"></i> Commencer la Série</button>
+                </div>
+            </div>
+        </div>
+        
+        <h3 style="margin-top: 3rem;">Scénarios Supplémentaires</h3>
+        <div id="custom-scenarios-grid" class="dashboard-grid">
+            ${spinnerHtml}
+        </div>
+
+        `;
+    
+    // Ajout de l'historique des sessions (logique existante)
+    const sessions = window.currentUser.academyProgress?.sessions || []; 
+    sessions.sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt)); 
+    if (sessions.length > 0) {
+        html += `<h3 style="margin-top: 3rem;">Historique de vos Sessions (${sessions.length})</h3>
+                 <div class="dashboard-grid sessions-grid">`;
+        sessions.forEach((session, index) => {
+            const date = new Date(session.completedAt).toLocaleDateString('fr-FR', {
+                day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
+            });
+            const title = (session.report?.summaryTitle || 'Bilan de session');
+            const status = session.report?.completionStatus || 'Terminée';
+            const feedbackPreview = (session.report?.feedback && session.report.feedback.length > 0) ? session.report.feedback[0] : 'Cliquez pour les détails.';
+            
+            html += `
+                <div class="dashboard-card clickable-session" data-session-index="${index}" style="cursor: pointer;">
+                    <p style="font-size: 0.9em; color: var(--text-color-secondary); margin-bottom: 5px;">${date}</p>
+                    <h5 style="color: var(--primary-color);">${title}</h5>
+                    <p style="font-size: 0.9em;">Statut : <strong>${status}</strong></p>
+                    <p style="font-style: italic; margin-top: 10px;">Feedback : ${feedbackPreview}</p>
+                    <div style="text-align: right; margin-top: 1rem;">
+                        <button class="btn btn-secondary view-report-btn" data-session-index="${index}"><i class="fa-solid fa-eye"></i> Voir Rapport</button>
+                    </div>
+                </div>
+            `;
+        });
+        html += '</div>';
+    }
+
+    page.innerHTML = html;
+
+    // --- Listeners ---
+
+    // Listener pour la Série
+    page.querySelector('#start-series-btn').addEventListener('click', (e) => {
+        e.stopPropagation();
+        renderAcademyCoursePlayer(); // Lance la nouvelle page de cours
+    });
+
+    // Listeners de l'historique des sessions
+    page.querySelectorAll('.clickable-session, .view-report-btn').forEach(element => {
+        element.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const index = e.currentTarget.dataset.sessionIndex;
+            if (index !== undefined) {
+                const sessionReport = sessions[index].report;
+                showSessionReportModal(sessionReport);
+            }
+        });
+    });
+
+    // Appel API pour charger les scénarios personnalisés
+    loadCustomScenarios();
+}
 
 // NOUVEAU : Fonction pour charger les scénarios personnalisés dans le dashboard élève
 async function loadCustomScenarios() {
@@ -448,7 +583,8 @@ async function loadCustomScenarios() {
     }
 }
 
-// NOUVEAU : Affiche la page de cours
+
+// MODIFIÉ : Affiche la page de cours (style image_46eeed.jpg)
 function renderAcademyCoursePlayer(selectedActivityId = null) {
     const page = document.getElementById('content-viewer-page'); // Réutilise la page viewer
     changePage('content-viewer-page');
@@ -548,10 +684,9 @@ function renderAcademyCoursePlayer(selectedActivityId = null) {
     });
     
     // --- Chargement du contenu de l'activité ---
-    // CORRECTION DU BUG : Utilisation de 'selectedActivityId' (l'argument) au lieu de 'activityId'
+    // CORRIGÉ : Utilise 'selectedActivityId'
     loadActivityContent(selectedActivityId);
 }
-
 
 // MODIFIÉ : Charge le contenu (Série ou Scénario Perso)
 async function loadActivityContent(activityId) {
@@ -595,7 +730,7 @@ async function loadActivityContent(activityId) {
         case 'dialogue':
             // MODIFIÉ : Le 'scenarioData' est maintenant DANS l'activité
             if (activity.scenarioData) {
-                renderScenarioViewer(contentArea, activity.scenarioData, activity.id); // Affiche le chat IA
+                renderScenarioViewer(contentArea, activity, false); // Affiche le chat IA (false = n'est pas un scénario personnalisé)
             } else {
                 contentArea.innerHTML = `<p class="error-message">Erreur : Données de dialogue non trouvées pour cette activité.</p>`;
             }
