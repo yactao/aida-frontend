@@ -14,7 +14,7 @@ export const courseData = {
             title: "Épisode 1 : L'Astrolabe Perdu",
             narratorIntro: "Ah, jeune Gardien ! Bienvenue dans le premier souvenir. C'est ici que tout a commencé... Zayd et Yasmina ne savaient pas encore ce qu'ils allaient découvrir. Regarde bien la vidéo.",
             activities: [
-                { id: "ep1-vid", title: "Épisode principal N°1 (Vidéo)", type: "video", url: "https://player.vimeo.com/video/YOUR_ID_HERE" },
+                { id: "ep1-vid", title: "Épisode principal N°1 (Vidéo)", type: "video", url: "https://player.vimeo.com/video/1133827184" },
                 { id: "ep1-mem", title: "Mots de Pouvoir N°1", type: "memorization", data: "ep1-data" },
                 { id: "ep1-quiz", title: "Quiz N°1", type: "quiz", data: {} },
                 { 
