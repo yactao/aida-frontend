@@ -32,5 +32,23 @@
     "roleTeacher": "Enseignant",
     "signupButton": "S'inscrire",
     "hasAccount": "Déjà un compte ? <a href=\"#\" id=\"show-login\">Connectez-vous</a>"
+  },
+ "teacherDashboard": {
+    "greeting": "Bonjour {{name}}!",
+    "plannerButton": "Planificateur de Cours",
+    "newContentButton": "Nouveau Contenu",
+    "newClassButton": "Nouvelle Classe",
+    "noClasses": "Aucune classe pour le moment. Créez-en une pour commencer !",
+    "studentsCount_one": "{{count}} élève",
+    "studentsCount_other": "{{count}} élèves",
+    "contentCount_one": "{{count}} contenu assigné",
+    "contentCount_other": "{{count}} contenus assignés",
+    "completionRate": "Taux de complétion"
+  },
+  "createClassModal": {
+    "title": "Nouvelle Classe",
+    "label": "Nom",
+    "button": "Créer"
   }
+
 }

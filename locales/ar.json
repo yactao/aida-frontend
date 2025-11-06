@@ -32,5 +32,30 @@
     "roleTeacher": "معلم",
     "signupButton": "التسجيل",
     "hasAccount": "لديك حساب بالفعل؟ <a href=\"#\" id=\"show-login\">سجل الدخول</a>"
+  },
+  "teacherDashboard": {
+    "greeting": "أهلاً {{name}}!",
+    "plannerButton": "مخطط الدروس",
+    "newContentButton": "محتوى جديد",
+    "newClassButton": "فصل جديد",
+    "noClasses": "لا توجد فصول دراسية حتى الآن. قم بإنشاء فصل للبدء!",
+    "studentsCount_zero": "{{count}} طالب",
+    "studentsCount_one": "{{count}} طالب",
+    "studentsCount_two": "{{count}} طالبان",
+    "studentsCount_few": "{{count}} طلاب",
+    "studentsCount_many": "{{count}} طالب",
+    "studentsCount_other": "{{count}} طلاب",
+    "contentCount_zero": "{{count}} محتوى معين",
+    "contentCount_one": "{{count}} محتوى معين",
+    "contentCount_two": "{{count}} محتويان معينان",
+    "contentCount_few": "{{count}} محتويات معينة",
+    "contentCount_many": "{{count}} محتوى معين",
+    "contentCount_other": "{{count}} محتويات معينة",
+    "completionRate": "معدل الإنجاز"
+  },
+  "createClassModal": {
+    "title": "فصل جديد",
+    "label": "الاسم",
+    "button": "إنشاء"
   }
 }

@@ -32,5 +32,22 @@
     "roleTeacher": "Teacher",
     "signupButton": "Sign Up",
     "hasAccount": "Already have an account? <a href=\"#\" id=\"show-login\">Log in</a>"
+  },
+  "teacherDashboard": {
+    "greeting": "Hello {{name}}!",
+    "plannerButton": "Lesson Planner",
+    "newContentButton": "New Content",
+    "newClassButton": "New Class",
+    "noClasses": "No classes yet. Create one to get started!",
+    "studentsCount_one": "{{count}} student",
+    "studentsCount_other": "{{count}} students",
+    "contentCount_one": "{{count}} assigned content",
+    "contentCount_other": "{{count}} assigned contents",
+    "completionRate": "Completion Rate"
+  },
+  "createClassModal": {
+    "title": "New Class",
+    "label": "Name",
+    "button": "Create"
   }
 }
