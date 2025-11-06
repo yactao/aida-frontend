@@ -21,10 +21,19 @@ export function updateUI() {
     const userNameDisplay = document.getElementById('user-name-display');
     const userAvatarDisplay = document.getElementById('user-avatar-display');
 
+    // NOUVEAU : Récupérer le conteneur du menu de langue
+    const languageMenuContainer = document.querySelector('.language-menu-container');
+
 
     loginNavBtn.classList.toggle('hidden', loggedIn);
     themeToggleHeaderBtn.classList.toggle('hidden', loggedIn);
     userMenuContainer.classList.toggle('hidden', !loggedIn);
+    
+    // NOUVEAU : Gérer la visibilité du menu de langue
+    // Il doit être caché si l'utilisateur est connecté (loggedIn = true)
+    if (languageMenuContainer) {
+        languageMenuContainer.classList.toggle('hidden', loggedIn);
+    }
     
     if (loggedIn) {
         const isAcademyUser = currentUser.role.startsWith('academy_');
@@ -51,11 +60,9 @@ export function updateUI() {
             else renderStudentDashboard();
         }
     } else {
-        // CORRECTION AJOUTÉE ICI :
-        // Masquer explicitement les liens lors de la déconnexion
-        if (workspaceLink) workspaceLink.classList.add('hidden');
-        if (libraryLink) libraryLink.classList.add('hidden');
-        
+        // Logique de déconnexion (inchangée)
+        workspaceLink.classList.add('hidden');
+        libraryLink.classList.add('hidden');
         changePage('home-page');
     }
 }
