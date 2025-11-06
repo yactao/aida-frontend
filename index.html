@@ -22,12 +22,24 @@
         <a href="playground.html" class="btn btn-secondary hidden" id="workspace-link"><i class="fa-solid fa-pen-ruler"></i> Espace de Travail</a>
         <a href="#" class="btn btn-secondary hidden" id="library-link"><i class="fa-solid fa-book-bookmark"></i> Bibliothèque</a>
         
-        <select id="language-switcher" class="btn btn-secondary">
-            <option value="fr">Français</option>
-            <option value="en">English</option>
-            <option value="ar">العربية</option>
-        </select>
-        
+        <div class="language-menu-container">
+            <button class="btn btn-main" id="language-switcher-btn">
+                <i class="fa-solid fa-globe"></i>
+                <span id="current-language-display" data-i18n="nav.lang_fr">Français</span>
+                <i class="fa-solid fa-chevron-down" style="font-size: 0.8em;"></i>
+            </button>
+            <div class="card language-dropdown hidden" id="language-dropdown">
+                <div class="dropdown-section">
+                    <a href="#" class="language-option active" data-lang="fr"><i class="fa-solid fa-check"></i> <span data-i18n="nav.lang_fr">Français</span></a>
+                </div>
+                <div class="dropdown-section">
+                    <a href="#" class="language-option" data-lang="en"><i class="fa-solid fa-check"></i> <span data-i18n="nav.lang_en">English</span></a>
+                </div>
+                <div class="dropdown-section">
+                    <a href="#" class="language-option" data-lang="ar"><i class="fa-solid fa-check"></i> <span data-i18n="nav.lang_ar">العربية</span></a>
+                </div>
+            </div>
+        </div>
         <button class="btn theme-toggle" id="theme-toggle-header-btn"><i class="fa-solid fa-moon"></i></button>
         <div class="user-menu-container hidden">
              <button class="btn" id="user-info-clickable">
@@ -37,24 +49,24 @@
             </button>
             <div class="card user-dropdown hidden" id="user-dropdown">
                 <div class="dropdown-section">
-                    <a href="#"><i class="fa-solid fa-user-circle"></i> Mes infos perso</a>
+                    <a href="#" data-i18n="nav.profile"><i class="fa-solid fa-user-circle"></i> Mes infos perso</a>
                 </div>
                 <div class="dropdown-section">
-                    <a href="#"><i class="fa-solid fa-key"></i> Changer de mot de passe</a>
+                    <a href="#" data-i18n="nav.password"><i class="fa-solid fa-key"></i> Changer de mot de passe</a>
                 </div>
                 <div class="dropdown-section hidden" id="admin-module-link">
-                    <a href="#"><i class="fa-solid fa-user-shield"></i> Module Admin</a>
+                    <a href="#" data-i18n="nav.admin"><i class="fa-solid fa-user-shield"></i> Module Admin</a>
                 </div>
                 <div class="dropdown-section">
-                    <span>Thème</span>
+                    <span data-i18n="nav.theme">Thème</span>
                     <button class="theme-toggle" id="theme-toggle-dropdown-btn"><i class="fa-solid fa-moon"></i></button>
                 </div>
                 <div class="dropdown-section">
-                     <button class="btn" id="logout-btn" style="width: 100%; justify-content: center; background-color: var(--incorrect-color); color: white;"><i class="fa-solid fa-right-from-bracket"></i> Déconnexion</button>
+                     <button class="btn" id="logout-btn" style="width: 100%; justify-content: center; background-color: var(--incorrect-color); color: white;" data-i18n="nav.logout"><i class="fa-solid fa-right-from-bracket"></i> Déconnexion</button>
                 </div>
             </div>
         </div>
-        <button class="btn btn-main" id="login-nav-btn">Connexion</button>
+        <button class="btn btn-main" id="login-nav-btn" data-i18n="nav.login">Connexion</button>
     </nav>
 </header>
 
@@ -73,11 +85,11 @@
                         </div>
                     </div>
                 </div>
-                <h1 class="intro-text-wrapper" id="aida-final-text">
+                <h1 class="intro-text-wrapper" id="aida-final-text" data-i18n="home.title">
                     AÏDA, votre nouvelle expérience
                 </h1>
-                <p class="subtitle">La <span class="highlight-word">plateforme</span> intelligente pour enseignants, élèves et parents.</p>
-                <button class="btn btn-main" id="start-app-btn">Commencer l'aventure</button>
+                <p class="subtitle" data-i18n="home.subtitle">La <span class="highlight-word">plateforme</span> intelligente pour enseignants, élèves et parents.</p>
+                <button class="btn btn-main" id="start-app-btn" data-i18n="home.button">Commencer l'aventure</button>
             </div>
         </div>
         <div class="page" id="auth-page"></div>

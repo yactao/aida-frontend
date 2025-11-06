@@ -8,7 +8,6 @@ import { renderLibraryPage } from './aida_education.js';
 
 
 // --- Configuration Globale (Exposée à window pour l'accessibilité inter-modules) ---
-// Définition de l'URL du backend pour être utilisée par tous les modules via window
 window.backendUrl = 'https://aida-backend-bqd0fnd2a3c7dadf.francecentral-01.azurewebsites.net'; 
 window.currentUser = null;
 window.programmes = {};
@@ -24,10 +23,13 @@ const userMenuContainer = document.querySelector('.user-menu-container');
 const homeLink = document.getElementById('home-link');
 const themeToggleHeaderBtn = document.getElementById('theme-toggle-header-btn');
 const themeToggleDropdownBtn = document.getElementById('theme-toggle-dropdown-btn');
+
 // NOUVEAU : Éléments DOM pour i18n
 const languageSwitcherBtn = document.getElementById('language-switcher-btn');
 const languageDropdown = document.getElementById('language-dropdown');
-const currentLangDisplay = document.getElementById('current-language-display')
+const languageMenuContainer = document.querySelector('.language-menu-container');
+const currentLangDisplay = document.getElementById('current-language-display');
+
 
 // --- NOUVEAU : Logique d'Internationalisation (i18next) ---
 
@@ -36,22 +38,26 @@ async function updateTranslations() {
     const elements = document.querySelectorAll('[data-i18n]');
     elements.forEach(el => {
         const key = el.getAttribute('data-i18n');
+        // Utilise .t() pour obtenir la traduction.
+        // i18next gère les clés imbriquées (ex: "home.title")
         el.innerHTML = i18next.t(key) || el.innerHTML;
     });
 
     // Mettre à jour le texte du bouton principal
     const lang = i18next.language;
     if (currentLangDisplay) {
-        if (lang === 'fr') currentLangDisplay.textContent = 'Français';
-        else if (lang === 'en') currentLangDisplay.textContent = 'English';
-        else if (lang === 'ar') currentLangDisplay.textContent = 'العربية';
+        if (lang === 'fr') currentLangDisplay.textContent = i18next.t('nav.lang_fr');
+        else if (lang === 'en') currentLangDisplay.textContent = i18next.t('nav.lang_en');
+        else if (lang === 'ar') currentLangDisplay.textContent = i18next.t('nav.lang_ar');
     }
 
     // Mettre à jour la classe 'active' dans le dropdown
     document.querySelectorAll('.language-option').forEach(opt => {
-        opt.classList.toggle('active', opt.dataset.lang === lang);
         // Supprime l'icône check de tous...
-        if (opt.querySelector('i')) opt.querySelector('i').style.opacity = 0;
+        const icon = opt.querySelector('i');
+        if (icon) icon.style.opacity = 0;
+        // Ajoute la classe 'active' au bon
+        opt.classList.toggle('active', opt.dataset.lang === lang);
     });
     // ...et l'ajoute au bon
     const activeOption = document.querySelector(`.language-option[data-lang="${lang}"]`);
@@ -61,6 +67,11 @@ async function updateTranslations() {
 
     // Gérer la direction du texte (RTL) pour l'arabe
     document.body.dir = lang === 'ar' ? 'rtl' : 'ltr';
+    // Gérer l'alignement du header pour RTL
+    document.querySelector('header').style.direction = lang === 'ar' ? 'rtl' : 'ltr';
+    document.querySelector('.main-nav').style.direction = lang === 'ar' ? 'rtl' : 'ltr';
+
+    // (Nous devrons peut-être ajouter plus de styles RTL dans style.css plus tard)
 }
 
 // Initialise i18next
@@ -73,7 +84,7 @@ async function initI18n() {
             backend: {
                 loadPath: '/locales/{{lng}}.json', // Chemin vers vos fichiers de traduction
             },
-            debug: true // Affiche les infos dans la console (à retirer en production)
+            debug: false // Mettez à true pour voir les logs
         });
     
     // Applique les traductions au chargement
@@ -97,7 +108,10 @@ async function initI18n() {
         button.addEventListener('click', async (e) => {
             e.preventDefault();
             const lang = e.currentTarget.dataset.lang;
-            if (lang === i18next.language) return; // Ne fait rien si la langue est déjà active
+            if (lang === i18next.language) {
+                languageDropdown.classList.add('hidden');
+                return; 
+            }
             
             await i18next.changeLanguage(lang);
             localStorage.setItem('language', lang);
@@ -108,7 +122,8 @@ async function initI18n() {
 }
 // --- Fin de la logique i18n ---
 
-// --- NOUVEAU : Logique pour les fonds d'écran dynamiques ---
+
+// --- Logique pour les fonds d'écran dynamiques ---
 const backgrounds = {
     light: [
         'assets/backgrounds/clouds-light.png',
@@ -127,7 +142,6 @@ function setRandomBackgroundImage() {
     const isDarkMode = document.body.classList.contains('dark-mode');
     const bgList = isDarkMode ? backgrounds.dark : backgrounds.light;
     
-    // S'assure qu'il y a des images à choisir
     if (!bgList || bgList.length === 0) return;
 
     const randomIndex = Math.floor(Math.random() * bgList.length);
@@ -135,11 +149,9 @@ function setRandomBackgroundImage() {
 
     const dynamicBgDiv = document.getElementById('dynamic-background-image');
     if (dynamicBgDiv) {
-        // Utilise le chemin relatif correct depuis index.html
         dynamicBgDiv.style.backgroundImage = `url('${selectedImage}')`;
     }
 }
-// --- Fin de la logique de fond d'écran ---
 
 
 // --- Fonctions du Flux d'Application ---
@@ -148,18 +160,21 @@ function setRandomBackgroundImage() {
 function showLoginChoiceModal() {
     const modalHtml = `
         <div style="text-align: center;">
-            <h3 style="margin-bottom: 2rem;">Veuillez choisir votre plateforme de connexion</h3>
+            <h3 style="margin-bottom: 2rem;" data-i18n="loginChoice.title">Veuillez choisir votre plateforme de connexion</h3>
             <div style="display: flex; flex-direction: column; gap: 1rem;">
                 <button class="btn btn-main" id="select-aida-education" style="padding: 15px 30px;">
-                    <i class="fa-solid fa-graduation-cap"></i> AÏDA Éducation (Classes & Devoirs)
+                    <i class="fa-solid fa-graduation-cap"></i> <span data-i18n="loginChoice.education">AÏDA Éducation (Classes & Devoirs)</span>
                 </button>
                 <button class="btn btn-secondary" id="select-academie-mre" style="padding: 15px 30px;">
-                    <i class="fa-solid fa-globe"></i> Académie MRE (Immersion Linguistique)
+                    <i class="fa-solid fa-globe"></i> <span data-i18n="loginChoice.academy">Académie MRE (Immersion Linguistique)</span>
                 </button>
             </div>
         </div>
     `;
     renderModal(getModalTemplate('login-choice-modal', 'Bienvenue sur AÏDA', modalHtml));
+
+    // Traduit le contenu de la modale
+    updateTranslations();
 
     document.getElementById('select-aida-education').addEventListener('click', () => {
         modalContainer.innerHTML = '';
@@ -182,8 +197,6 @@ function toggleTheme() {
     const newTheme = document.body.classList.contains('dark-mode') ? 'light' : 'dark';
     localStorage.setItem('theme', newTheme);
     applyTheme(newTheme);
-    
-    // MODIFIÉ : Appelle la fonction de fond d'écran lors du changement de thème
     setRandomBackgroundImage();
 }
 
@@ -197,12 +210,16 @@ async function init() {
     // Chargement du thème et des programmes
     const savedTheme = localStorage.getItem('theme') || 'light';
     applyTheme(savedTheme);
+    
+    // MODIFIÉ : Initialise i18next AVANT de charger le reste
+    await initI18n(); 
+    
     await loadProgrammes(); 
     
     // Mise à jour de l'interface en fonction de l'utilisateur
     updateUI(); 
 
-    // MODIFIÉ : Appelle la fonction de fond d'écran au chargement initial
+    // Appelle la fonction de fond d'écran
     setRandomBackgroundImage();
 
     // --- Écouteurs de navigation et d'état ---
@@ -216,23 +233,26 @@ async function init() {
     });
     
     userInfoClickable.addEventListener('click', () => userDropdown.classList.toggle('hidden'));
+    
+    // MODIFIÉ : Le listener global de clic ferme aussi le dropdown de langue
     window.addEventListener('click', (e) => {
         if (userMenuContainer && !userMenuContainer.contains(e.target)) {
             userDropdown.classList.add('hidden');
+        }
+        // NOUVEAU
+        if (languageMenuContainer && !languageMenuContainer.contains(e.target)) {
+            languageDropdown.classList.add('hidden');
         }
     });
 
     themeToggleHeaderBtn.addEventListener('click', toggleTheme);
     themeToggleDropdownBtn.addEventListener('click', toggleTheme);
     
-    // Ajout du listener de la librairie (doit être importé de aida_education.js)
     const libraryLink = document.getElementById('library-link');
     if (libraryLink) {
         libraryLink.addEventListener('click', (e) => { e.preventDefault(); renderLibraryPage(); }); 
     }
 
-
-    // Redirection de la home page après connexion (la logique des rôles est dans updateUI)
     homeLink.addEventListener('click', () => { 
         if(window.currentUser) {
             updateUI();
@@ -241,7 +261,6 @@ async function init() {
         } 
     });
     
-    // Animation de la home page (restaurée depuis l'ancien script.js)
     const wrapper = document.querySelector('#intro-animation-wrapper');
     const finalWrapper = document.querySelector('#aida-final-text');
     if (wrapper && finalWrapper) {

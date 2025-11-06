@@ -3,11 +3,62 @@
 import { apiRequest, changePage } from './utils.js';
 import { updateUI } from './ui_utils.js';
 
-// --- Authentification AIDA Éducation (EXISTANT) ---
+// --- Authentification AIDA Éducation (MODIFIÉ) ---
 
 export function renderAuthPage() {
-    const t = `<div class="card" style="max-width:400px;margin:2rem auto"><div id="login-form-container"><h3>Connexion - AÏDA Éducation</h3><form id="login-form"><div class=form-group><label for=login-email>Email</label><input type=email id=login-email required></div><div class=form-group><label for=login-password>Mot de passe</label><input type=password id=login-password required></div><button type=submit class="btn btn-main">Se connecter</button><p class=error-message id=login-error></p></form><p>Pas de compte ? <a href=# id=show-signup>Inscrivez-vous</a></p></div><div id=signup-form-container class=hidden><h3>Inscription - AÏDA Éducation</h3><form id=signup-form><div class=form-group><label for=signup-email>Email</label><input type=email id=signup-email required></div><div class=form-group><label for=signup-password>Mot de passe</label><input type=password id=signup-password required></div><div class=form-group><label for=signup-role>Je suis un(e)</label><select id=signup-role><option value=student>Élève</option><option value=teacher>Enseignant</option></select></div><button type=submit class="btn btn-main">S'inscrire</button><p class=error-message id=signup-error></p></form><p>Déjà un compte ? <a href=# id=show-login>Connectez-vous</a></p></div></div>`;
+    const t = `
+    <div class="card" style="max-width:400px;margin:2rem auto">
+        <div id="login-form-container">
+            <h3 data-i18n="auth.loginTitle">Connexion - AÏDA Éducation</h3>
+            <form id="login-form">
+                <div class="form-group">
+                    <label for="login-email" data-i18n="auth.emailLabel">Email</label>
+                    <input type="email" id="login-email" required>
+                </div>
+                <div class="form-group">
+                    <label for="login-password" data-i18n="auth.passwordLabel">Mot de passe</label>
+                    <input type="password" id="login-password" required>
+                </div>
+                <button type="submit" class="btn btn-main" data-i18n="auth.loginButton">Se connecter</button>
+                <p class="error-message" id="login-error"></p>
+            </form>
+            <p data-i18n="auth.noAccount">Pas de compte ? <a href="#" id="show-signup">Inscrivez-vous</a></p>
+        </div>
+        <div id="signup-form-container" class="hidden">
+            <h3 data-i18n="auth.signupTitle">Inscription - AÏDA Éducation</h3>
+            <form id="signup-form">
+                <div class="form-group">
+                    <label for="signup-email" data-i18n="auth.emailLabel">Email</label>
+                    <input type="email" id="signup-email" required>
+                </div>
+                <div class="form-group">
+                    <label for="signup-password" data-i18n="auth.passwordLabel">Mot de passe</label>
+                    <input type="password" id="signup-password" required>
+                </div>
+                <div class="form-group">
+                    <label for="signup-role" data-i18n="auth.roleLabel">Je suis un(e)</label>
+                    <select id="signup-role">
+                        <option value="student" data-i18n="auth.roleStudent">Élève</option>
+                        <option value="teacher" data-i18n="auth.roleTeacher">Enseignant</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-main" data-i18n="auth.signupButton">S'inscrire</button>
+                <p class="error-message" id="signup-error"></p>
+            </form>
+            <p data-i18n="auth.hasAccount">Déjà un compte ? <a href="#" id="show-login">Connectez-vous</a></p>
+        </div>
+    </div>`;
+    
     document.getElementById('auth-page').innerHTML = t;
+    // Appelle i18next pour traduire la modale
+    i18next.loadNamespaces('default', () => {
+        const elements = document.getElementById('auth-page').querySelectorAll('[data-i18n]');
+        elements.forEach(el => {
+            const key = el.getAttribute('data-i18n');
+            el.innerHTML = i18next.t(key) || el.innerHTML;
+        });
+    });
+
     document.getElementById('login-form').addEventListener('submit', handleLogin);
     document.getElementById('signup-form').addEventListener('submit', handleSignup);
     document.getElementById('show-signup').addEventListener('click', toggleAuthForms);
@@ -51,7 +102,7 @@ function toggleAuthForms(e) {
 }
 
 
-// --- Authentification Académie MRE (NOUVEAU) ---
+// --- Authentification Académie MRE (NON MODIFIÉ, RESTE EN FRANÇAIS) ---
 
 export function renderAcademyAuthPage() {
     const t = `<div class="card" style="max-width:400px;margin:2rem auto">

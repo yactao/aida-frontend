@@ -1,0 +1,36 @@
+{
+  "home": {
+    "title": "AÏDA, votre nouvelle expérience",
+    "subtitle": "La <span class=\"highlight-word\">plateforme</span> intelligente pour enseignants, élèves et parents.",
+    "button": "Commencer l'aventure"
+  },
+  "nav": {
+    "login": "Connexion",
+    "logout": "Déconnexion",
+    "profile": "Mes infos perso",
+    "password": "Changer de mot de passe",
+    "admin": "Module Admin",
+    "theme": "Thème",
+    "lang_fr": "Français",
+    "lang_en": "English",
+    "lang_ar": "العربية"
+  },
+  "loginChoice": {
+    "title": "Veuillez choisir votre plateforme de connexion",
+    "education": "AÏDA Éducation (Classes & Devoirs)",
+    "academy": "Académie MRE (Immersion Linguistique)"
+  },
+  "auth": {
+    "loginTitle": "Connexion - AÏDA Éducation",
+    "loginButton": "Se connecter",
+    "noAccount": "Pas de compte ? <a href=\"#\" id=\"show-signup\">Inscrivez-vous</a>",
+    "signupTitle": "Inscription - AÏDA Éducation",
+    "emailLabel": "Email",
+    "passwordLabel": "Mot de passe",
+    "roleLabel": "Je suis un(e)",
+    "roleStudent": "Élève",
+    "roleTeacher": "Enseignant",
+    "signupButton": "S'inscrire",
+    "hasAccount": "Déjà un compte ? <a href=\"#\" id=\"show-login\">Connectez-vous</a>"
+  }
+}

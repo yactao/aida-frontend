@@ -1,0 +1,36 @@
+{
+  "home": {
+    "title": "عايدة، تجربتكم الجديدة",
+    "subtitle": "ال<span class=\"highlight-word\">منصة</span> الذكية للمعلمين والطلاب وأولياء الأمور.",
+    "button": "ابدأ المغامرة"
+  },
+  "nav": {
+    "login": "تسجيل الدخول",
+    "logout": "تسجيل الخروج",
+    "profile": "ملفي الشخصي",
+    "password": "تغيير كلمة المرور",
+    "admin": "وحدة الإدارة",
+    "theme": "المظهر",
+    "lang_fr": "Français",
+    "lang_en": "English",
+    "lang_ar": "العربية"
+  },
+  "loginChoice": {
+    "title": "يرجى اختيار منصة تسجيل الدخول الخاصة بك",
+    "education": "عايدة التعليمية (الفصول والواجبات)",
+    "academy": "أكاديمية MRE (الغمر اللغوي)"
+  },
+  "auth": {
+    "loginTitle": "تسجيل الدخول - عايدة التعليمية",
+    "loginButton": "تسجيل الدخول",
+    "noAccount": "ليس لديك حساب؟ <a href=\"#\" id=\"show-signup\">سجل الآن</a>",
+    "signupTitle": "التسجيل - عايدة التعليمية",
+    "emailLabel": "البريد الإلكتروني",
+    "passwordLabel": "كلمة المرور",
+    "roleLabel": "أنا",
+    "roleStudent": "طالب",
+    "roleTeacher": "معلم",
+    "signupButton": "التسجيل",
+    "hasAccount": "لديك حساب بالفعل؟ <a href=\"#\" id=\"show-login\">سجل الدخول</a>"
+  }
+}
