@@ -49,7 +49,7 @@ function resetSelects(selects) {
 export async function renderTeacherDashboard() {
     const p = document.getElementById('teacher-dashboard-page');
     
-    // MODIFIÉ : Utilise i18next.t() pour le message d'accueil dynamique
+    // Utilise i18next.t() pour le message d'accueil dynamique
     const greeting = i18next.t('teacherDashboard.greeting', { name: window.currentUser.firstName });
 
     p.innerHTML = `
@@ -68,6 +68,13 @@ export async function renderTeacherDashboard() {
     p.querySelector('#open-gen-modal').addEventListener('click', () => showGenerationModal());
     p.querySelector('#open-planner-btn').addEventListener('click', renderPlannerPage);
 
+    // NOUVEAU : Applique les traductions aux boutons statiques
+    const elements = p.querySelectorAll('[data-i18n]');
+    elements.forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        el.innerHTML = i18next.t(key) || el.innerHTML;
+    });
+
     try {
         teacherClasses = await apiRequest(`/teacher/classes?teacherEmail=${window.currentUser.email}`);
         
@@ -82,15 +89,17 @@ export async function renderTeacherDashboard() {
         }
         
         const grid = p.querySelector('#class-grid');
-        // MODIFIÉ : Utilise i18next.t() pour le message "Aucune classe"
+        // Utilise i18next.t() pour le message "Aucune classe"
         grid.innerHTML = teacherClasses.length === 0 ? `<p>${i18next.t('teacherDashboard.noClasses')}</p>` : "";
         
         const classCardsHtml = teacherClasses.map(c => {
             const completionRate = calculateCompletionRate(c);
             
-            // MODIFIÉ : Utilise la traduction avec gestion du pluriel
-            const studentString = i18next.t('teacherDashboard.studentsCount_other', { count: c.students.length });
-            const contentString = i18next.t('teacherDashboard.contentCount_other', { count: (c.content || []).length });
+            // CORRECTION : Utilise la traduction avec gestion du pluriel
+            // 'studentsCount' gère 'élève' vs 'élèves'.
+            const studentString = i18next.t('teacherDashboard.studentsCount', { count: c.students.length });
+            const contentString = i18next.t('teacherDashboard.contentCount', { count: (c.content || []).length });
+            const completionString = i18next.t('teacherDashboard.completionRate');
 
             return `
             <div class="dashboard-card" data-class-id="${c.id}">
@@ -98,7 +107,7 @@ export async function renderTeacherDashboard() {
                 <p style="margin-top: 1rem;"><i class="fa-solid fa-users" style="margin-right: 8px; width: 20px;"></i> ${c.students.length} ${studentString}</p>
                 <p><i class="fa-solid fa-book-open" style="margin-right: 8px; width: 20px;"></i> ${(c.content || []).length} ${contentString}</p>
                 <div style="margin-top: 1rem;">
-                    <p style="font-size: 0.9rem; margin-bottom: 0.25rem;" data-i18n="teacherDashboard.completionRate"><i class="fa-solid fa-check-double" style="margin-right: 8px; width: 20px;"></i> Taux de complétion</p>
+                    <p style="font-size: 0.9rem; margin-bottom: 0.25rem;"><i class="fa-solid fa-check-double" style="margin-right: 8px; width: 20px;"></i> ${completionString}</p>
                     <div class="progress-bar">
                         <div class="progress-bar-fill" style="width: ${completionRate}%;"></div>
                     </div>
@@ -106,24 +115,41 @@ export async function renderTeacherDashboard() {
                 </div>
             </div>`;
         }).join('');
+        
+        // Injecte le HTML
         grid.innerHTML = classCardsHtml;
 
+        // CORRECTION : Le listener est ajouté APRES l'injection du HTML, ce qui corrige le bug de clic
         grid.addEventListener('click', (e) => {
-            // ... (logique de clic inchangée) ...
+            const card = e.target.closest('.dashboard-card');
+            if (card && card.dataset.classId) {
+                if (e.target.closest('button')) return;
+                renderClassDetailsPage(card.dataset.classId);
+            }
         });
 
         if (typeof Sortable !== 'undefined') {
-            // ... (logique Sortable inchangée) ...
+             new Sortable(grid, {
+                animation: 150,
+                onEnd: async function (evt) {
+                    const orderedIds = Array.from(grid.children).map(card => card.dataset.classId);
+                    this.option('disabled', true);
+                    try {
+                        const data = await apiRequest('/teacher/classes/reorder', 'POST', {
+                            teacherEmail: window.currentUser.email,
+                            classOrder: orderedIds
+                        });
+                        window.currentUser.classOrder = data.classOrder;
+                    } catch (error) {
+                        alert("Erreur lors de la sauvegarde de l'ordre des classes.");
+                        renderTeacherDashboard();
+                    } finally {
+                        this.option('disabled', false);
+                    }
+                }
+            });
         }
-
-        // NOUVEAU : Applique les traductions aux éléments data-i18n
-        const elements = p.querySelectorAll('[data-i18n]');
-        elements.forEach(el => {
-            const key = el.getAttribute('data-i18n');
-            el.innerHTML = i18next.t(key) || el.innerHTML;
-        });
-
-
+        
     } catch (error) {
         p.querySelector('#class-grid').innerHTML = `<p class="error-message">Impossible de charger le tableau de bord: ${error.message}</p>`;
     }
