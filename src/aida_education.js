@@ -188,7 +188,6 @@ async function showCreateClassModal() {
 
 export async function renderClassDetailsPage(id) {
     const page = document.getElementById('class-details-page');
-    // MODIFIÉ : Traduction du bouton Retour
     page.innerHTML = `<button id="back-to-teacher" class="btn btn-secondary" data-i18n="classDetails.backButton"><i class="fa-solid fa-arrow-left"></i> Retour</button>${spinnerHtml}`;
     page.querySelector('#back-to-teacher').addEventListener('click', renderTeacherDashboard);
     changePage('class-details-page');
@@ -219,6 +218,7 @@ export async function renderClassDetailsPage(id) {
             </div>
             <div id="corrections-panel" class="tab-panel"></div>`;
         
+        // Exécute les rendus des panneaux (qui vont maintenant gérer leur propre traduction)
         renderStudentListPanel();
         renderContentListPanel();
         renderCorrectionsPanel();
@@ -226,16 +226,25 @@ export async function renderClassDetailsPage(id) {
         const pendingCorrections = (currentClassData.results || []).filter(r => r.status === 'pending_validation');
         const pendingCountSpan = page.querySelector('#pending-count');
         if (pendingCorrections.length > 0) {
-            // MODIFIÉ : Traduction
             pendingCountSpan.textContent = `${pendingCorrections.length} ${i18next.t('classDetails.pendingCount')}`;
             pendingCountSpan.classList.remove('hidden');
-            // Attache le span au bouton
             page.querySelector('[data-tab="corrections-panel"]').appendChild(pendingCountSpan);
         }
         
+        // CORRECTION : Traduit les éléments statiques AVANT d'attacher les listeners
+        const elements = page.querySelectorAll('[data-i18n]');
+        elements.forEach(el => {
+            // Ne pas écraser les panneaux qui ont leur propre contenu
+            if (!el.id.endsWith('-panel') && !el.id.endsWith('-list')) {
+                const key = el.getAttribute('data-i18n');
+                el.innerHTML = i18next.t(key) || el.innerHTML;
+            }
+        });
+
+        // Attache les listeners APRÈS la traduction
         page.querySelector('#back-to-teacher').addEventListener('click', renderTeacherDashboard);
         page.querySelector('#open-add-student-modal-btn').addEventListener('click', () => {
-            // MODIFIÉ : Traduction de la modale
+            // ... (logique de la modale addStudent inchangée) ...
             const title = i18next.t('addStudentModal.title');
             const label = i18next.t('addStudentModal.label');
             const button = i18next.t('addStudentModal.button');
@@ -255,15 +264,16 @@ export async function renderClassDetailsPage(id) {
 
         page.querySelectorAll('.tab-button').forEach(button => {
             button.addEventListener('click', (e) => {
-                // ... (logique des onglets inchangée) ...
-            });
-        });
+                page.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
+                page.querySelectorAll('.tab-panel').forEach(panel => panel.classList.remove('active'));
+                e.target.classList.add('active');
+                const panelId = e.target.dataset.tab;
+                document.getElementById(panelId).classList.add('active');
 
-        // NOUVEAU : Traduire tous les éléments statiques
-        const elements = page.querySelectorAll('[data-i18n]');
-        elements.forEach(el => {
-            const key = el.getAttribute('data-i18n');
-            el.innerHTML = i18next.t(key) || el.innerHTML;
+                if (panelId === 'competencies-panel') {
+                    renderCompetencyReport(id);
+                }
+            });
         });
 
     } catch (error) {
@@ -273,14 +283,13 @@ export async function renderClassDetailsPage(id) {
     }
 }
 
-
 function renderStudentListPanel() {
+    // CORRECTION : Les traductions sont insérées directement dans le HTML
     let studentCardsHtml = (currentClassData.studentsWithDetails || []).map(student => {
         const studentResults = (currentClassData.results || []).filter(r => r.studentEmail === student.email);
         const assignedContentCount = (currentClassData.content || []).length;
         const completionRate = assignedContentCount > 0 ? (studentResults.length / assignedContentCount) * 100 : 0;
         
-        // MODIFIÉ : Traduction
         const completionString = i18next.t('classDetails.completionRate');
         const submissionsString = i18next.t('classDetails.submissionsCount', { count: studentResults.length, total: assignedContentCount });
 
@@ -295,13 +304,14 @@ function renderStudentListPanel() {
     }).join('');
     
     const studentListContainer = document.getElementById('student-list');
-    // MODIFIÉ : Traduction
     studentListContainer.innerHTML = (currentClassData.studentsWithDetails || []).length > 0 ? studentCardsHtml : `<p>${i18next.t('classDetails.noStudents')}</p>`;
     
+    // Les listeners sont attachés APRÈS la création du HTML traduit
     studentListContainer.querySelectorAll('.dashboard-card').forEach(card => {
         card.style.cursor = 'pointer';
         card.addEventListener('click', (e) => {
-            // ... (logique de clic inchangée) ...
+            if (e.target.closest('.delete-student-btn')) return;
+            renderStudentDetailsPage(card.dataset.studentEmail);
         });
     });
     
@@ -311,7 +321,7 @@ function renderStudentListPanel() {
             const studentEmail = button.dataset.studentEmail;
             const student = currentClassData.studentsWithDetails.find(s => s.email === studentEmail);
             
-            // MODIFIÉ : Traduction
+            // Logique de modale traduite (inchangée, car elle est déjà correcte)
             const title = i18next.t('deleteStudentModal.title');
             const confirmText = i18next.t('deleteStudentModal.confirmText', { name: student.firstName, email: student.email });
             const warning = i18next.t('deleteStudentModal.warning');
@@ -394,7 +404,7 @@ function renderContentListPanel() {
     const panel = document.getElementById('contents-panel');
     const contents = currentClassData.content || [];
     if (contents.length === 0) {
-        panel.innerHTML = '<p>Aucun contenu assigné à cette classe pour le moment.</p>';
+        panel.innerHTML = `<p>${i18next.t('classDetails.noContent')}</p>`;
         return;
     }
 
@@ -492,7 +502,7 @@ function renderCorrectionsPanel() {
     const pendingCorrections = (currentClassData.results || []).filter(r => r.status === 'pending_validation');
 
     if (pendingCorrections.length === 0) {
-        panel.innerHTML = '<p>Aucun devoir à corriger pour le moment. Bravo !</p>';
+        panel.innerHTML = `<p>${i18next.t('classDetails.noCorrections')}</p>`;
         return;
     }
 
