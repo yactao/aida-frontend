@@ -72,7 +72,10 @@ export async function renderTeacherDashboard() {
     const elements = p.querySelectorAll('[data-i18n]');
     elements.forEach(el => {
         const key = el.getAttribute('data-i18n');
-        el.innerHTML = i18next.t(key) || el.innerHTML;
+        // Vérifie si l'élément n'est pas le conteneur dupliqué (problème potentiel de récursivité)
+        if (el.id !== 'class-grid' && !el.closest('#class-grid')) {
+             el.innerHTML = i18next.t(key) || el.innerHTML;
+        }
     });
 
     try {
@@ -95,8 +98,8 @@ export async function renderTeacherDashboard() {
         const classCardsHtml = teacherClasses.map(c => {
             const completionRate = calculateCompletionRate(c);
             
-            // CORRECTION : Utilise la traduction avec gestion du pluriel
-            // 'studentsCount' gère 'élève' vs 'élèves'.
+            // CORRECTION : Utilise la clé de base (ex: 'studentsCount')
+            // i18next choisira automatiquement '_one' ou '_other'
             const studentString = i18next.t('teacherDashboard.studentsCount', { count: c.students.length });
             const contentString = i18next.t('teacherDashboard.contentCount', { count: (c.content || []).length });
             const completionString = i18next.t('teacherDashboard.completionRate');
@@ -104,8 +107,8 @@ export async function renderTeacherDashboard() {
             return `
             <div class="dashboard-card" data-class-id="${c.id}">
                 <h4>${c.className}</h4>
-                <p style="margin-top: 1rem;"><i class="fa-solid fa-users" style="margin-right: 8px; width: 20px;"></i> ${c.students.length} ${studentString}</p>
-                <p><i class="fa-solid fa-book-open" style="margin-right: 8px; width: 20px;"></i> ${(c.content || []).length} ${contentString}</p>
+                <p style="margin-top: 1rem;"><i class="fa-solid fa-users" style="margin-right: 8px; width: 20px;"></i> ${studentString}</p>
+                <p><i class="fa-solid fa-book-open" style="margin-right: 8px; width: 20px;"></i> ${contentString}</p>
                 <div style="margin-top: 1rem;">
                     <p style="font-size: 0.9rem; margin-bottom: 0.25rem;"><i class="fa-solid fa-check-double" style="margin-right: 8px; width: 20px;"></i> ${completionString}</p>
                     <div class="progress-bar">
@@ -119,7 +122,7 @@ export async function renderTeacherDashboard() {
         // Injecte le HTML
         grid.innerHTML = classCardsHtml;
 
-        // CORRECTION : Le listener est ajouté APRES l'injection du HTML, ce qui corrige le bug de clic
+        // Le listener est ajouté APRES l'injection du HTML, ce qui corrige le bug de clic
         grid.addEventListener('click', (e) => {
             const card = e.target.closest('.dashboard-card');
             if (card && card.dataset.classId) {
@@ -149,12 +152,11 @@ export async function renderTeacherDashboard() {
                 }
             });
         }
-        
+
     } catch (error) {
         p.querySelector('#class-grid').innerHTML = `<p class="error-message">Impossible de charger le tableau de bord: ${error.message}</p>`;
     }
 }
-
 async function showCreateClassModal() { 
     // MODIFIÉ : Récupère les traductions avant de générer le HTML
     const title = i18next.t('createClassModal.title');
