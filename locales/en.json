@@ -49,5 +49,32 @@
     "title": "New Class",
     "label": "Name",
     "button": "Create"
+  },
+  "classDetails": {
+    "backButton": "Back",
+    "tabStudents": "Students",
+    "tabContent": "Content",
+    "tabCompetencies": "Competency Analysis",
+    "tabCorrections": "Pending Corrections",
+    "studentsTitle": "Enrolled Students",
+    "addStudentButton": "Add Student",
+    "noStudents": "No students in this class yet.",
+    "noContent": "No content assigned to this class yet.",
+    "noCorrections": "No assignments to grade for now. Well done!",
+    "completionRate": "Completion Rate",
+    "submissionsCount": "{{count}} / {{total}} assignment(s) done",
+    "pendingCount": "pending"
+  },
+  "addStudentModal": {
+    "title": "Add Student",
+    "label": "Student's Email",
+    "button": "Add"
+  },
+  "deleteStudentModal": {
+    "title": "Confirm Deletion",
+    "confirmText": "Are you sure you want to remove <strong>{{name}} ({{email}})</strong> from this class?",
+    "warning": "This action is irreversible and will also delete all their results associated with this class.",
+    "cancelButton": "Cancel",
+    "deleteButton": "Confirm Deletion"
   }
 }

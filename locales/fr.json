@@ -49,6 +49,33 @@
     "title": "Nouvelle Classe",
     "label": "Nom",
     "button": "Créer"
+  },
+  "classDetails": {
+    "backButton": "Retour",
+    "tabStudents": "Élèves",
+    "tabContent": "Contenus",
+    "tabCompetencies": "Analyse par Compétence",
+    "tabCorrections": "Corrections en attente",
+    "studentsTitle": "Élèves inscrits",
+    "addStudentButton": "Ajouter un élève",
+    "noStudents": "Aucun élève dans cette classe pour le moment.",
+    "noContent": "Aucun contenu assigné à cette classe pour le moment.",
+    "noCorrections": "Aucun devoir à corriger pour le moment. Bravo !",
+    "completionRate": "Taux de complétion",
+    "submissionsCount": "{{count}} / {{total}} exercice(s) fait(s)",
+    "pendingCount": "en attente"
+  },
+  "addStudentModal": {
+    "title": "Ajouter un élève",
+    "label": "Email de l'élève",
+    "button": "Ajouter"
+  },
+  "deleteStudentModal": {
+    "title": "Confirmer la suppression",
+    "confirmText": "Êtes-vous sûr de vouloir supprimer <strong>{{name}} ({{email}})</strong> de cette classe ?",
+    "warning": "Cette action est irréversible et supprimera également tous ses résultats associés à cette classe.",
+    "cancelButton": "Annuler",
+    "deleteButton": "Confirmer la suppression"
   }
 
 }

@@ -57,5 +57,32 @@
     "title": "فصل جديد",
     "label": "الاسم",
     "button": "إنشاء"
+  },
+  "classDetails": {
+    "backButton": "رجوع",
+    "tabStudents": "الطلاب",
+    "tabContent": "المحتويات",
+    "tabCompetencies": "تحليل الكفاءات",
+    "tabCorrections": "تصحيحات معلقة",
+    "studentsTitle": "الطلاب المسجلون",
+    "addStudentButton": "إضافة طالب",
+    "noStudents": "لا يوجد طلاب في هذا الفصل حتى الآن.",
+    "noContent": "لم يتم تعيين أي محتوى لهذا الفصل حتى الآن.",
+    "noCorrections": "لا توجد واجبات لتصحيحها في الوقت الحالي. أحسنت!",
+    "completionRate": "معدل الإنجاز",
+    "submissionsCount": "{{count}} / {{total}} تمرين (تمارين) منجزة",
+    "pendingCount": "معلقة"
+  },
+  "addStudentModal": {
+    "title": "إضافة طالب",
+    "label": "البريد الإلكتروني للطالب",
+    "button": "إضافة"
+  },
+  "deleteStudentModal": {
+    "title": "تأكيد الحذف",
+    "confirmText": "هل أنت متأكد أنك تريد حذف <strong>{{name}} ({{email}})</strong> من هذا الفصل؟",
+    "warning": "هذا الإجراء لا رجعة فيه وسيحذف أيضًا جميع نتائجه المرتبطة بهذا الفصل.",
+    "cancelButton": "إلغاء",
+    "deleteButton": "تأكيد الحذف"
   }
 }
