@@ -13,51 +13,50 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <header>
-        <div class="logo" id="home-link">
-             <img src="https://aida-backend-bqd0fnd2a3c7dadf.francecentral-01.azurewebsites.net/logo%20Aida11.svg" alt="Logo AÏDA" class="logo-icon">
-        </div>
-        <nav class="main-nav">
-            <a href="playground.html" class="btn btn-secondary hidden" id="workspace-link"><i class="fa-solid fa-pen-ruler"></i> Espace de Travail</a>
-            <a href="#" class="btn btn-secondary hidden" id="library-link"><i class="fa-solid fa-book-bookmark"></i> Bibliothèque</a>
-            
-            <div class="language-selector-container">
-                <i class="fa-solid fa-globe"></i>
-                <select id="language-switcher">
-                    <option value="fr">Français</option>
-                    <option value="en">English</option>
-                    <option value="ar">العربية</option>
-                </select>
-            </div>
-            <button class="btn theme-toggle" id="theme-toggle-header-btn"><i class="fa-solid fa-moon"></i></button>
-            <div class="user-menu-container hidden">
-                 <button class="btn" id="user-info-clickable">
-                    <img src="" alt="Avatar" id="user-avatar-display" class="avatar">
-                    <span id="user-name-display"></span> 
-                    <i class="fa-solid fa-chevron-down"></i>
-                </button>
-                <div class="card user-dropdown hidden" id="user-dropdown">
-                    <div class="dropdown-section">
-                        <a href="#"><i class="fa-solid fa-user-circle"></i> Mes infos perso</a>
-                    </div>
-                    <div class="dropdown-section">
-                        <a href="#"><i class="fa-solid fa-key"></i> Changer de mot de passe</a>
-                    </div>
-                    <div class="dropdown-section hidden" id="admin-module-link">
-                        <a href="#"><i class="fa-solid fa-user-shield"></i> Module Admin</a>
-                    </div>
-                    <div class="dropdown-section">
-                        <span>Thème</span>
-                        <button class="theme-toggle" id="theme-toggle-dropdown-btn"><i class="fa-solid fa-moon"></i></button>
-                    </div>
-                    <div class="dropdown-section">
-                         <button class="btn" id="logout-btn" style="width: 100%; justify-content: center; background-color: var(--incorrect-color); color: white;"><i class="fa-solid fa-right-from-bracket"></i> Déconnexion</button>
-                    </div>
+    
+<header>
+    <div class="logo" id="home-link">
+         <img src="https://aida-backend-bqd0fnd2a3c7dadf.francecentral-01.azurewebsites.net/logo%20Aida11.svg" alt="Logo AÏDA" class="logo-icon">
+    </div>
+    <nav class="main-nav">
+        <a href="playground.html" class="btn btn-secondary hidden" id="workspace-link"><i class="fa-solid fa-pen-ruler"></i> Espace de Travail</a>
+        <a href="#" class="btn btn-secondary hidden" id="library-link"><i class="fa-solid fa-book-bookmark"></i> Bibliothèque</a>
+        
+        <select id="language-switcher" class="btn btn-secondary">
+            <option value="fr">Français</option>
+            <option value="en">English</option>
+            <option value="ar">العربية</option>
+        </select>
+        
+        <button class="btn theme-toggle" id="theme-toggle-header-btn"><i class="fa-solid fa-moon"></i></button>
+        <div class="user-menu-container hidden">
+             <button class="btn" id="user-info-clickable">
+                <img src="" alt="Avatar" id="user-avatar-display" class="avatar">
+                <span id="user-name-display"></span> 
+                <i class="fa-solid fa-chevron-down"></i>
+            </button>
+            <div class="card user-dropdown hidden" id="user-dropdown">
+                <div class="dropdown-section">
+                    <a href="#"><i class="fa-solid fa-user-circle"></i> Mes infos perso</a>
+                </div>
+                <div class="dropdown-section">
+                    <a href="#"><i class="fa-solid fa-key"></i> Changer de mot de passe</a>
+                </div>
+                <div class="dropdown-section hidden" id="admin-module-link">
+                    <a href="#"><i class="fa-solid fa-user-shield"></i> Module Admin</a>
+                </div>
+                <div class="dropdown-section">
+                    <span>Thème</span>
+                    <button class="theme-toggle" id="theme-toggle-dropdown-btn"><i class="fa-solid fa-moon"></i></button>
+                </div>
+                <div class="dropdown-section">
+                     <button class="btn" id="logout-btn" style="width: 100%; justify-content: center; background-color: var(--incorrect-color); color: white;"><i class="fa-solid fa-right-from-bracket"></i> Déconnexion</button>
                 </div>
             </div>
-            <button class="btn btn-main" id="login-nav-btn">Connexion</button>
-        </nav>
-    </header>
+        </div>
+        <button class="btn btn-main" id="login-nav-btn">Connexion</button>
+    </nav>
+</header>
 
     <main>
         <div class="page active" id="home-page">

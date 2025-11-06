@@ -24,7 +24,89 @@ const userMenuContainer = document.querySelector('.user-menu-container');
 const homeLink = document.getElementById('home-link');
 const themeToggleHeaderBtn = document.getElementById('theme-toggle-header-btn');
 const themeToggleDropdownBtn = document.getElementById('theme-toggle-dropdown-btn');
+// NOUVEAU : Éléments DOM pour i18n
+const languageSwitcherBtn = document.getElementById('language-switcher-btn');
+const languageDropdown = document.getElementById('language-dropdown');
+const currentLangDisplay = document.getElementById('current-language-display')
 
+// --- NOUVEAU : Logique d'Internationalisation (i18next) ---
+
+// Met à jour le texte de tous les éléments avec l'attribut [data-i18n]
+async function updateTranslations() {
+    const elements = document.querySelectorAll('[data-i18n]');
+    elements.forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        el.innerHTML = i18next.t(key) || el.innerHTML;
+    });
+
+    // Mettre à jour le texte du bouton principal
+    const lang = i18next.language;
+    if (currentLangDisplay) {
+        if (lang === 'fr') currentLangDisplay.textContent = 'Français';
+        else if (lang === 'en') currentLangDisplay.textContent = 'English';
+        else if (lang === 'ar') currentLangDisplay.textContent = 'العربية';
+    }
+
+    // Mettre à jour la classe 'active' dans le dropdown
+    document.querySelectorAll('.language-option').forEach(opt => {
+        opt.classList.toggle('active', opt.dataset.lang === lang);
+        // Supprime l'icône check de tous...
+        if (opt.querySelector('i')) opt.querySelector('i').style.opacity = 0;
+    });
+    // ...et l'ajoute au bon
+    const activeOption = document.querySelector(`.language-option[data-lang="${lang}"]`);
+    if (activeOption && activeOption.querySelector('i')) {
+        activeOption.querySelector('i').style.opacity = 1;
+    }
+
+    // Gérer la direction du texte (RTL) pour l'arabe
+    document.body.dir = lang === 'ar' ? 'rtl' : 'ltr';
+}
+
+// Initialise i18next
+async function initI18n() {
+    await i18next
+        .use(i18nextHttpBackend)
+        .init({
+            lng: localStorage.getItem('language') || 'fr', // Langue par défaut
+            fallbackLng: 'fr',
+            backend: {
+                loadPath: '/locales/{{lng}}.json', // Chemin vers vos fichiers de traduction
+            },
+            debug: true // Affiche les infos dans la console (à retirer en production)
+        });
+    
+    // Applique les traductions au chargement
+    await updateTranslations();
+
+    // Ajoute les listeners pour le nouveau menu
+    if (languageSwitcherBtn) {
+        languageSwitcherBtn.addEventListener('click', () => {
+            languageDropdown.classList.toggle('hidden');
+        });
+    }
+
+    // Listener global pour fermer le dropdown
+    window.addEventListener('click', (e) => {
+        if (languageMenuContainer && !languageMenuContainer.contains(e.target)) {
+            languageDropdown.classList.add('hidden');
+        }
+    });
+
+    document.querySelectorAll('.language-option').forEach(button => {
+        button.addEventListener('click', async (e) => {
+            e.preventDefault();
+            const lang = e.currentTarget.dataset.lang;
+            if (lang === i18next.language) return; // Ne fait rien si la langue est déjà active
+            
+            await i18next.changeLanguage(lang);
+            localStorage.setItem('language', lang);
+            await updateTranslations();
+            languageDropdown.classList.add('hidden');
+        });
+    });
+}
+// --- Fin de la logique i18n ---
 
 // --- NOUVEAU : Logique pour les fonds d'écran dynamiques ---
 const backgrounds = {
