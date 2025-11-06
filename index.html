@@ -7,6 +7,9 @@
     <link rel="icon" href="data:,">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/i18next/23.7.6/i18next.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/i18next-http-backend/2.4.2/i18nextHttpBackend.min.js"></script>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -17,6 +20,15 @@
         <nav class="main-nav">
             <a href="playground.html" class="btn btn-secondary hidden" id="workspace-link"><i class="fa-solid fa-pen-ruler"></i> Espace de Travail</a>
             <a href="#" class="btn btn-secondary hidden" id="library-link"><i class="fa-solid fa-book-bookmark"></i> Bibliothèque</a>
+            
+            <div class="language-selector-container">
+                <i class="fa-solid fa-globe"></i>
+                <select id="language-switcher">
+                    <option value="fr">Français</option>
+                    <option value="en">English</option>
+                    <option value="ar">العربية</option>
+                </select>
+            </div>
             <button class="btn theme-toggle" id="theme-toggle-header-btn"><i class="fa-solid fa-moon"></i></button>
             <div class="user-menu-container hidden">
                  <button class="btn" id="user-info-clickable">
@@ -79,11 +91,6 @@
         <div class="page" id="planner-page"></div>
         <div class="page" id="grading-module-page"></div>
     </main>
-    <div id="modal-container"></div>
-    
-    <script type="module" src="src/main.js"></script>
-    
- </main>
     <div id="modal-container"></div>
     
     <div id="dynamic-background-image"></div> 

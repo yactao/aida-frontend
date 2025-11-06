@@ -23,6 +23,13 @@
     /* NOUVEAU : Couleurs pour les blobs (basé sur le user-file) */
     --card-bg-darker: #F0F4FA; /* Pour l'aide en mode clair */
     --border-color: #E0E8F3;
+    
+    /* NOUVEAU : Variables pour la carte de série (basé sur le user-file) */
+    --primary-color-light: #C9CCF5; /* Indigo très clair */
+    --shadow-small: 0 2px 8px rgba(0, 0, 0, 0.07);
+    --shadow-medium: 0 6px 20px rgba(0, 0, 0, 0.1);
+    --heading-color: #1F2937; /* Couleur de titre sombre */
+    --text-color-light: #9CA3AF; /* Texte gris clair pour pseudo-éléments */
 }
 body.dark-mode {
     /* MODIFIÉ : Palette sombre (ajustée) */
@@ -37,6 +44,13 @@ body.dark-mode {
     /* NOUVEAU : Couleurs pour les blobs (basé sur le user-file) */
     --card-bg-darker: #2C2C2C;
     --border-color: #3A3A3A;
+    
+    /* NOUVEAU : Variables pour la carte de série (basé sur le user-file) */
+    --primary-color-light: #2a3a50;
+    --shadow-small: 0 2px 8px rgba(0, 0, 0, 0.2);
+    --shadow-medium: 0 6px 20px rgba(0, 0, 0, 0.3);
+    --heading-color: #FFFFFF;
+    --text-color-light: #666;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -183,8 +197,7 @@ body.dark-mode .dashboard-card-student .card-footer { background-color: #2c2c2c;
 .tag-histoire-géo { background-color: #F5A623; }
 .tag-autre { background-color: #777; }
 
-/* --- COLLEZ LE NOUVEAU BLOC DE CODE ICI --- */
-/* NOUVEAU : Styles des cartes par type de contenu (Tableau de bord Élève) */
+/* --- NOUVEAU : Styles des cartes par type de contenu (Tableau de bord Élève) --- */
 .dashboard-card-student {
     /* Style par défaut (pour "Exercices") */
     border-top: 5px solid var(--primary-color); /* Indigo */
@@ -669,140 +682,6 @@ body.dark-mode #chat-history {
 .user-message p {
     font-size: 1.5em; /* Applique la même taille à la bulle utilisateur */
     line-height: 1.5; /* Optionnel: assure une bonne lisibilité avec une grande police */
-}
-
-/* --- NOUVEAU : Styles pour le Lecteur de Cours (style Netflix/LMS) --- */
-
-/* Conteneur principal qui sépare la NAV du CONTENU */
-.course-player-container {
-    display: flex;
-    /* Calcule la hauteur pour remplir l'écran moins le header principal */
-    height: calc(100vh - 75px); /* Ajustez 75px si la hauteur de votre header est différente */
-    width: 100%;
-}
-
-/* Barre de navigation de gauche */
-.course-player-nav {
-    width: 320px;
-    flex-shrink: 0;
-    background-color: var(--card-bg-color);
-    border-right: 1px solid var(--border-color);
-    padding: 1.5rem;
-    overflow-y: auto;
-    height: 100%;
-}
-body.dark-mode .course-player-nav {
-    border-right-color: #333;
-}
-
-.course-player-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding-bottom: 1.5rem;
-    border-bottom: 1px solid var(--border-color);
-    margin-bottom: 1rem;
-}
-body.dark-mode .course-player-header {
-    border-bottom-color: #333;
-}
-/* Assure que le logo dans le player n'est pas inversé en mode sombre */
-.course-player-header .logo-icon {
-    filter: none !important;
-}
-
-.episode-group {
-    margin-bottom: 1.5rem;
-}
-.episode-title {
-    font-size: 1.1rem;
-    color: var(--text-color);
-    margin-bottom: 0.75rem;
-}
-.activity-list {
-    list-style: none;
-    padding-left: 0;
-}
-.activity-item {
-    padding: 0.75rem 1rem;
-    border-radius: 8px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    font-weight: 600;
-    color: #666; /* Couleur par défaut (plus claire) */
-}
-body.dark-mode .activity-item {
-    color: #999;
-}
-.activity-item i {
-    width: 15px; /* Aligne les icônes */
-}
-.activity-item:hover {
-    background-color: var(--background-color);
-}
-body.dark-mode .activity-item:hover {
-    background-color: #2c2c2c;
-}
-
-/* Style de l'activité sélectionnée */
-.activity-item.active {
-    background-color: var(--primary-color);
-    color: white;
-}
-body.dark-mode .activity-item.active {
-    color: white;
-}
-
-
-/* Contenu principal de droite */
-.course-player-content {
-    flex-grow: 1;
-    padding: 2rem;
-    overflow-y: auto;
-    height: 100%;
-}
-.content-header {
-    border-bottom: 1px solid var(--border-color);
-    padding-bottom: 1rem;
-    margin-bottom: 2rem;
-}
-body.dark-mode .content-header {
-    border-bottom-color: #333;
-}
-
-/* NOUVEAU : Boîte du Narrateur */
-#narrator-box {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    padding: 1.5rem;
-    background-color: var(--aida-chat-bg); /* Fond bleu très clair */
-    border-radius: 12px;
-    margin-bottom: 2rem;
-    border: 1px solid var(--border-color);
-}
-body.dark-mode #narrator-box {
-    background-color: #2a3a50;
-    border-color: #444;
-}
-#narrator-box .btn-icon {
-    flex-shrink: 0;
-    width: 44px;
-    height: 44px;
-    background-color: var(--primary-color);
-    color: white;
-    border-radius: 50%;
-}
-#narrator-box .btn-icon:hover {
-    background-color: var(--secondary-color);
-}
-#narrator-text {
-    font-family: 'Georgia', serif;
-    font-style: italic;
-    font-size: 1.1rem;
-    line-height: 1.5;
 }
 
 /* --- NOUVEAU : Styles pour le Lecteur de Cours (style Netflix/LMS) --- */
