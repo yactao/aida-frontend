@@ -64,6 +64,7 @@ export async function renderTeacherDashboard() {
         <div id="class-grid" class="dashboard-grid">${spinnerHtml}</div>`;
     changePage('teacher-dashboard-page');
     
+    p.querySelector('#open-grading-module-btn').addEventListener('click', renderGradingModulePage);
     p.querySelector('#open-class-modal').addEventListener('click', showCreateClassModal);
     p.querySelector('#open-gen-modal').addEventListener('click', () => showGenerationModal());
     p.querySelector('#open-planner-btn').addEventListener('click', renderPlannerPage);
@@ -1701,6 +1702,119 @@ async function handleGradingAnalysis(e) {
         `;
         
         // Afficher les critères
+        if (results.criteres && Array.isArray(results.criteres)) {
+            html += '<ul>';
+            results.criteres.forEach(critere => {
+                html += `<li><strong>${critere.nom} (${critere.note}):</strong> ${critere.commentaire}</li>`;
+            });
+            html += '</ul>';
+        } else {
+            html += '<p>Aucun critère détaillé fourni.</p>';
+        }
+
+        html += `
+                <h4 style="margin-top: 1.5rem;">Note Finale Suggérée</h4>
+                <p style="font-size: 1.5rem; font-weight: 700; color: var(--primary-color);">${results.noteFinale || 'N/A'}</p>
+                
+                <h4 style="margin-top: 1.5rem;">Commentaire pour l'élève</h4>
+                <div class="student-answer-box">${results.commentaireEleve ? results.commentaireEleve.replace(/\\n/g, '<br>') : 'N/A'}</div>
+            </div>
+        `;
+        
+// --- NOUVEAU MODULE : AIDE À LA CORRECTION ---
+
+// Affiche la page du module de notation
+function renderGradingModulePage() {
+    const page = document.getElementById('grading-module-page');
+    changePage('grading-module-page');
+    
+    page.innerHTML = `
+        <div class="page-header">
+            <h2><i class="fa-solid fa-magic-sparkles"></i> Module d'Aide à la Correction (Beta)</h2>
+            <button class="btn btn-secondary" id="back-to-teacher-dash-grading"><i class="fa-solid fa-arrow-left"></i> Retour</button>
+        </div>
+        
+        <div class="card">
+            <p class="subtitle" style="margin-bottom: 1.5rem;">Uploadez une ou plusieurs pages pour un élève (PDF ou image) et fournissez le sujet ainsi que vos critères pour qu'AIDA génère une proposition d'évaluation.</p>
+            
+            <form id="grading-form">
+                <div class="form-group">
+                    <label for="grading-sujet"><strong>1. Sujet du devoir</strong></label>
+                    <textarea id="grading-sujet" rows="3" required placeholder="Ex: Expliquez la différence entre l'analyse de texte et l'analyse de discours..."></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="grading-criteres"><strong>2. Critères de notation</strong> (fournissez le barème)</label>
+                    <textarea id="grading-criteres" rows="3" required placeholder="Ex: Pertinence du contenu /10, Organisation /5, Langue et expression /5"></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="grading-file"><strong>3. Copie de l'élève</strong> (PDF, JPG, PNG)</label>
+                    <input type="file" id="grading-file" accept=".pdf,.jpg,.jpeg,.png" required multiple>
+                </div>
+                
+                <button type="submit" class="btn btn-main" style="width: 100%;">
+                    <i class="fa-solid fa-wand-sparkles"></i> Lancer l'analyse
+                </button>
+            </form>
+        </div>
+        
+        <div id="grading-results" style="margin-top: 2rem;">
+            </div>
+    `;
+    
+    page.querySelector('#back-to-teacher-dash-grading').addEventListener('click', renderTeacherDashboard);
+    page.querySelector('#grading-form').addEventListener('submit', handleGradingAnalysis);
+}
+
+// Gère l'envoi du formulaire d'analyse (version 1 élève / N pages)
+async function handleGradingAnalysis(e) {
+    e.preventDefault();
+    const resultsContainer = document.getElementById('grading-results');
+    resultsContainer.innerHTML = spinnerHtml;
+
+    const sujet = document.getElementById('grading-sujet').value;
+    const criteres = document.getElementById('grading-criteres').value;
+    const files = document.getElementById('grading-file').files; // Utilise .files (au pluriel)
+
+    if (!files || files.length === 0 || !sujet || !criteres) {
+        resultsContainer.innerHTML = `<p class="error-message">Veuillez remplir tous les champs et sélectionner au moins un fichier.</p>`;
+        return;
+    }
+
+    const formData = new FormData();
+    formData.append('sujet', sujet);
+    formData.append('criteres', criteres);
+    
+    // Boucle pour ajouter tous les fichiers (pages)
+    for (const file of files) {
+        formData.append('copies', file); // 'copies' (au pluriel) doit correspondre au backend
+    }
+
+    try {
+        const response = await fetch(`${window.backendUrl}/api/ai/grade-upload`, {
+            method: 'POST',
+            body: formData
+        });
+
+        if (!response.ok) {
+            const errText = await response.text();
+            throw new Error(errText || "Erreur du serveur lors de l'analyse"); // Apostrophe retirée
+        }
+
+        const results = await response.json(); 
+        
+        let html = `
+            <div class="card" style="margin-bottom: 1.5rem;">
+                <h3>Résultat de l'analyse AIDA</h3>
+                <p class="subtitle">Pour la copie : ${files[0].name} ${files.length > 1 ? `(et ${files.length - 1} autre(s) page(s))` : ''}</p>
+                
+                <h4 style="margin-top: 1.5rem;">Analyse Globale</h4>
+                <p>${results.analyseGlobale ? results.analyseGlobale.replace(/\\n/g, '<br>') : 'N/A'}</p>
+                
+                <h4 style="margin-top: 1.5rem;">Évaluation Détaillée</h4>
+        `;
+        
         if (results.criteres && Array.isArray(results.criteres)) {
             html += '<ul>';
             results.criteres.forEach(critere => {
