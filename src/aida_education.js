@@ -56,6 +56,9 @@ export async function renderTeacherDashboard() {
         <div class="page-header">
             <h2>${greeting}</h2>
             <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                
+                <button class="btn btn-secondary" id="open-grading-module-btn" data-i18n="teacherDashboard.gradingButton"><i class="fa-solid fa-magic-sparkles"></i> Aide à la Correction</button>
+                
                 <button class="btn btn-secondary" id="open-planner-btn" data-i18n="teacherDashboard.plannerButton"><i class="fa-solid fa-calendar-days"></i> Planificateur de Cours</button>
                 <button class="btn btn-main" id="open-gen-modal" data-i18n="teacherDashboard.newContentButton"><i class="fa-solid fa-plus"></i> Nouveau Contenu</button> 
                 <button class="btn btn-secondary" id="open-class-modal" data-i18n="teacherDashboard.newClassButton"><i class="fa-solid fa-users"></i> Nouvelle Classe</button>
@@ -64,16 +67,17 @@ export async function renderTeacherDashboard() {
         <div id="class-grid" class="dashboard-grid">${spinnerHtml}</div>`;
     changePage('teacher-dashboard-page');
     
-    
+    // CORRECTION : Écouteur d'événement RÉ-INSÉRÉ ICI
+    p.querySelector('#open-grading-module-btn').addEventListener('click', renderGradingModulePage);
+
     p.querySelector('#open-class-modal').addEventListener('click', showCreateClassModal);
     p.querySelector('#open-gen-modal').addEventListener('click', () => showGenerationModal());
     p.querySelector('#open-planner-btn').addEventListener('click', renderPlannerPage);
 
-    // NOUVEAU : Applique les traductions aux boutons statiques
+    // Applique les traductions aux boutons statiques
     const elements = p.querySelectorAll('[data-i18n]');
     elements.forEach(el => {
         const key = el.getAttribute('data-i18n');
-        // Vérifie si l'élément n'est pas le conteneur dupliqué (problème potentiel de récursivité)
         if (el.id !== 'class-grid' && !el.closest('#class-grid')) {
              el.innerHTML = i18next.t(key) || el.innerHTML;
         }
@@ -93,14 +97,11 @@ export async function renderTeacherDashboard() {
         }
         
         const grid = p.querySelector('#class-grid');
-        // Utilise i18next.t() pour le message "Aucune classe"
         grid.innerHTML = teacherClasses.length === 0 ? `<p>${i18next.t('teacherDashboard.noClasses')}</p>` : "";
         
         const classCardsHtml = teacherClasses.map(c => {
             const completionRate = calculateCompletionRate(c);
             
-            // CORRECTION : Utilise la clé de base (ex: 'studentsCount')
-            // i18next choisira automatiquement '_one' ou '_other'
             const studentString = i18next.t('teacherDashboard.studentsCount', { count: c.students.length });
             const contentString = i18next.t('teacherDashboard.contentCount', { count: (c.content || []).length });
             const completionString = i18next.t('teacherDashboard.completionRate');
@@ -120,10 +121,9 @@ export async function renderTeacherDashboard() {
             </div>`;
         }).join('');
         
-        // Injecte le HTML
         grid.innerHTML = classCardsHtml;
 
-        // Le listener est ajouté APRES l'injection du HTML, ce qui corrige le bug de clic
+        // Le listener de clic est attaché APRÈS la création du HTML
         grid.addEventListener('click', (e) => {
             const card = e.target.closest('.dashboard-card');
             if (card && card.dataset.classId) {
