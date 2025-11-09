@@ -57,7 +57,7 @@ export async function renderTeacherDashboard() {
             <h2>${greeting}</h2>
             <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
                 
-                <button class="btn btn-secondary" id="open-grading-module-btn" data-i18n="aide à la correction"><i class="fa-solid fa-magic-sparkles"></i> Aide à la Correction</button>
+                <button class="btn btn-secondary" id="open-grading-module-btn" data-i18n="Aide à la correction"><i class="fa-solid fa-magic-sparkles"></i> Aide à la Correction</button>
                 
                 <button class="btn btn-secondary" id="open-planner-btn" data-i18n="teacherDashboard.plannerButton"><i class="fa-solid fa-calendar-days"></i> Planificateur de Cours</button>
                 <button class="btn btn-main" id="open-gen-modal" data-i18n="teacherDashboard.newContentButton"><i class="fa-solid fa-plus"></i> Nouveau Contenu</button> 
