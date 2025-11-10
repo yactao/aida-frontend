@@ -76,6 +76,149 @@
     "warning": "Cette action est irréversible et supprimera également tous ses résultats associés à cette classe.",
     "cancelButton": "Annuler",
     "deleteButton": "Confirmer la suppression"
-  }
+  },
 
+  "studentDashboard": {
+    "title": "Tableau de Bord de {{name}}",
+    "subtitle": "Tes devoirs et exercices en un seul endroit.",
+    "noTodo": "Tu n'as aucun devoir à faire pour le moment. Bon travail !",
+    "noPending": "Aucun devoir en attente de correction.",
+    "noArchive": "Aucun devoir terminé dans tes archives."
+  },
+  "studentCard": {
+    "status": "Statut :",
+    "status_todo": "À faire",
+    "status_late": "En retard",
+    "status_pending": "En attente",
+    "status_completed": "Terminé",
+    "type": "Type :",
+    "dueDate": "À rendre le : {{date}}",
+    "button_start": "Commencer",
+    "button_view": "Voir le devoir",
+    "button_correction": "Voir la correction"
+  },
+  "contentViewer": {
+    "backButton": "Retour au tableau de bord",
+    "instructionsTitle": "Énoncé",
+    "answerTitle": "Ta réponse",
+    "submitButton": "Soumettre le devoir",
+    "helpButton": "Demander de l'aide à AIDA",
+    "submitConfirmTitle": "Confirmer la soumission",
+    "submitConfirmText": "Es-tu sûr de vouloir soumettre ce devoir ? Tu ne pourras plus le modifier.",
+    "submitConfirmButton": "Soumettre",
+    "cancelButton": "Annuler"
+  },
+  "aidaHelp": {
+    "title": "Aide AIDA",
+    "trustModeBanner": "Le mode 'Préparation de devoir' est activé. L'IA te guidera sans te donner les réponses.",
+    "placeholder": "Pose ta question sur l'exercice...",
+    "initialMessage": "Bonjour ! Je vois que tu travailles sur l'exercice '{{title}}'. Comment puis-je t'aider ?",
+    "initialMessageTrust": "Bonjour ! Je vois que tu prépares le devoir '{{title}}'. Pose-moi tes questions, je te guiderai étape par étape.",
+    "sendButton": "Envoyer"
+  },
+
+"planner": {
+    "title": "Planificateur de Cours",
+    "backButton": "Retour",
+    "themeLabel": "Thème de la séquence",
+    "themePlaceholder": "Ex: L'Empire romain, Les fractions...",
+    "levelLabel": "Niveau de la classe",
+    "levelPlaceholder": "Ex: 6ème, CE2, Seconde...",
+    "sessionsLabel": "Nombre de séances",
+    "submitButton": "Générer la séquence",
+    "generateButton": "Générer"
+  },
+  "genModal": {
+    "title": "Générer du contenu pédagogique",
+    "tabProgram": "Depuis le Programme",
+    "tabUpload": "Depuis un Texte/Document",
+    "contentTypeLabel": "Type de contenu",
+    "countLabelQuiz": "Nombre de questions",
+    "countLabelExercices": "Nombre d'exercices",
+    "cycleLabel": "Cycle",
+    "levelLabel": "Niveau",
+    "subjectLabel": "Matière",
+    "notionLabel": "Notion",
+    "competenceLabel": "Compétence",
+    "choose": "-- Choisir --",
+    "freeCompetenceLabel": "Compétence Suggérée",
+    "freeCompetencePlaceholder": "Sujet ou compétence libre...",
+    "generateButton": "Générer",
+    "uploadLabel": "Chargez un document (PDF, DOCX, PNG, JPG)",
+    "uploadContentTypeLabel": "Type de contenu à générer",
+    "uploadButton": "Analyser et Générer"
+  },
+  "editModal": {
+    "title": "Modifier et Valider le Contenu",
+    "titleLabel": "Titre",
+    "questionLabel": "Question {{index}}",
+    "optionsLabel": "Options",
+    "exerciceLabel": "Exercice {{index}}",
+    "revisionLabel": "Contenu de la fiche",
+    "structureError": "Le contenu généré par l'IA a une structure inattendue. Vous pouvez le modifier manuellement ci-dessous.",
+    "rawJsonLabel": "Contenu brut (JSON)",
+    "submitButton": "Valider et Assigner"
+  },
+  "assignModal": {
+    "title": "Assigner \"{{title}}\"",
+    "classLabel": "Assigner à la classe",
+    "dueDateLabel": "À faire pour le",
+    "evaluatedLabel": "Ce contenu est un devoir évalué",
+    "submitButton": "Assigner",
+    "successTitle": "Succès",
+    "successText": "Le contenu a bien été assigné !"
+  },
+  "library": {
+    "title": "Bibliothèque de Contenus",
+    "searchPlaceholder": "Rechercher par titre...",
+    "allSubjects": "Toutes les matières",
+    "searchButton": "Rechercher",
+    "noContent": "Aucun contenu trouvé. Essayez d'autres mots-clés ou partagez le vôtre !",
+    "typeLabel": "Type:",
+    "authorLabel": "Auteur:",
+    "importButton": "Ajouter à une classe"
+  },
+  "publishModal": {
+    "title": "Publier dans la bibliothèque",
+    "confirmText": "Vous êtes sur le point de partager \"<strong>{{title}}</strong>\" avec d'autres enseignants.",
+    "categoryText": "Il sera publié dans la catégorie : <strong>{{subject}}</strong>",
+    "cancelButton": "Annuler",
+    "submitButton": "Confirmer et Publier",
+    "successTitle": "Succès",
+    "successText": "Votre contenu a été publié avec succès !"
+  },
+  "grading": {
+    "title": "Module d'Aide à la Correction (Beta)",
+    "backButton": "Retour",
+    "subtitle": "Uploadez une ou plusieurs copies d'élèves (PDF ou image) et fournissez le sujet ainsi que vos critères pour qu'AIDA génère des propositions d'évaluation.",
+    "subjectLabel": "1. Sujet du devoir",
+    "subjectPlaceholder": "Ex: Expliquez la différence entre...",
+    "criteriaLabel": "2. Critères de notation (fournissez le barème)",
+    "criteriaPlaceholder": "Ex: Pertinence du contenu /10, Organisation /5...",
+    "filesLabel": "3. Copies des élèves (PDF, JPG, PNG)",
+    "submitButton": "Lancer l'analyse",
+    "errorFillFields": "Veuillez remplir tous les champs et sélectionner au moins un fichier.",
+    "resultTitle": "Résultat de l'analyse AIDA",
+    "resultSubtitle": "Pour la copie : {{file}} (et {{count}} autre(s) page(s))",
+    "globalAnalysis": "Analyse Globale",
+    "detailedAnalysis": "Évaluation Détaillée",
+    "noCriteria": "Aucun critère détaillé fourni.",
+    "finalGrade": "Note Finale Suggérée",
+    "studentComment": "Commentaire pour l'élève"
+  },
+  "contentTypes": {
+    "quiz": "Quiz",
+    "exercices": "Fiche d'exercices",
+    "revision": "Fiche de révision",
+    "dm": "Devoir Maison"
+  },
+  "subjects": {
+    "maths": "Mathématiques",
+    "francais": "Français",
+    "histoire-geo": "Histoire-Géo",
+    "sciences": "Sciences",
+    "autre": "Autre"
+  }
 }
+
+

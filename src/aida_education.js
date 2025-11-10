@@ -39,7 +39,9 @@ function calculateCompletionRate(cls) {
 }
 
 function resetSelects(selects) { 
-    selects.forEach(s => { s.innerHTML = '<option value="">-- Choisir --</option>'; s.disabled = true; }); 
+    // MODIFIÉ : Traduction du placeholder
+    const chooseText = i18next.t('genModal.choose');
+    selects.forEach(s => { s.innerHTML = `<option value="">${chooseText}</option>`; s.disabled = true; }); 
     const generateBtn = document.getElementById('generate-btn');
     if (generateBtn) generateBtn.disabled = true; 
 }
@@ -57,31 +59,23 @@ export async function renderTeacherDashboard() {
             <h2>${greeting}</h2>
             <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
                 
-                <button class="btn btn-secondary" id="open-grading-module-btn" data-i18n="Aide à la correction"><i class="fa-solid fa-magic-sparkles"></i> Aide à la Correction</button>
+                <button class="btn btn-secondary" id="open-grading-module-btn" data-i18n="grading.title"><i class="fa-solid fa-magic-sparkles"></i> ${i18next.t('grading.title')}</button>
                 
-                <button class="btn btn-secondary" id="open-planner-btn" data-i18n="teacherDashboard.plannerButton"><i class="fa-solid fa-calendar-days"></i> Planificateur de Cours</button>
-                <button class="btn btn-main" id="open-gen-modal" data-i18n="teacherDashboard.newContentButton"><i class="fa-solid fa-plus"></i> Nouveau Contenu</button> 
-                <button class="btn btn-secondary" id="open-class-modal" data-i18n="teacherDashboard.newClassButton"><i class="fa-solid fa-users"></i> Nouvelle Classe</button>
+                <button class="btn btn-secondary" id="open-planner-btn" data-i18n="teacherDashboard.plannerButton"><i class="fa-solid fa-calendar-days"></i> ${i18next.t('teacherDashboard.plannerButton')}</button>
+                <button class="btn btn-main" id="open-gen-modal" data-i18n="teacherDashboard.newContentButton"><i class="fa-solid fa-plus"></i> ${i18next.t('teacherDashboard.newContentButton')}</button> 
+                <button class="btn btn-secondary" id="open-class-modal" data-i18n="teacherDashboard.newClassButton"><i class="fa-solid fa-users"></i> ${i18next.t('teacherDashboard.newClassButton')}</button>
             </div>
         </div>
         <div id="class-grid" class="dashboard-grid">${spinnerHtml}</div>`;
     changePage('teacher-dashboard-page');
     
-    // CORRECTION : Écouteur d'événement RÉ-INSÉRÉ ICI
     p.querySelector('#open-grading-module-btn').addEventListener('click', renderGradingModulePage);
 
     p.querySelector('#open-class-modal').addEventListener('click', showCreateClassModal);
     p.querySelector('#open-gen-modal').addEventListener('click', () => showGenerationModal());
     p.querySelector('#open-planner-btn').addEventListener('click', renderPlannerPage);
 
-    // Applique les traductions aux boutons statiques
-    const elements = p.querySelectorAll('[data-i18n]');
-    elements.forEach(el => {
-        const key = el.getAttribute('data-i18n');
-        if (el.id !== 'class-grid' && !el.closest('#class-grid')) {
-             el.innerHTML = i18next.t(key) || el.innerHTML;
-        }
-    });
+    // Pas besoin d'appliquer les traductions ici car elles sont insérées directement en HTML
 
     try {
         teacherClasses = await apiRequest(`/teacher/classes?teacherEmail=${window.currentUser.email}`);
@@ -97,11 +91,12 @@ export async function renderTeacherDashboard() {
         }
         
         const grid = p.querySelector('#class-grid');
-        grid.innerHTML = teacherClasses.length === 0 ? `<p>${i18next.t('teacherDashboard.noClasses')}</p>` : "";
+        grid.innerHTML = teacherClasses.length === 0 ? `<p data-i18n="teacherDashboard.noClasses">${i18next.t('teacherDashboard.noClasses')}</p>` : "";
         
         const classCardsHtml = teacherClasses.map(c => {
             const completionRate = calculateCompletionRate(c);
             
+            // MODIFIÉ : Traductions des cartes
             const studentString = i18next.t('teacherDashboard.studentsCount', { count: c.students.length });
             const contentString = i18next.t('teacherDashboard.contentCount', { count: (c.content || []).length });
             const completionString = i18next.t('teacherDashboard.completionRate');
@@ -123,7 +118,7 @@ export async function renderTeacherDashboard() {
         
         grid.innerHTML = classCardsHtml;
 
-        // Le listener de clic est attaché APRÈS la création du HTML
+        // ... (partie Sortable inchangée) ...
         grid.addEventListener('click', (e) => {
             const card = e.target.closest('.dashboard-card');
             if (card && card.dataset.classId) {
@@ -131,7 +126,6 @@ export async function renderTeacherDashboard() {
                 renderClassDetailsPage(card.dataset.classId);
             }
         });
-
         if (typeof Sortable !== 'undefined') {
              new Sortable(grid, {
                 animation: 150,
@@ -153,6 +147,7 @@ export async function renderTeacherDashboard() {
                 }
             });
         }
+        // ... (fin partie Sortable) ...
 
     } catch (error) {
         p.querySelector('#class-grid').innerHTML = `<p class="error-message">Impossible de charger le tableau de bord: ${error.message}</p>`;
@@ -160,7 +155,6 @@ export async function renderTeacherDashboard() {
 }
 
 async function showCreateClassModal() { 
-    // MODIFIÉ : Récupère les traductions avant de générer le HTML
     const title = i18next.t('createClassModal.title');
     const label = i18next.t('createClassModal.label');
     const button = i18next.t('createClassModal.button');
@@ -189,27 +183,30 @@ async function showCreateClassModal() {
 
 export async function renderClassDetailsPage(id) {
     const page = document.getElementById('class-details-page');
-    page.innerHTML = `<button id="back-to-teacher" class="btn btn-secondary" data-i18n="classDetails.backButton"><i class="fa-solid fa-arrow-left"></i> Retour</button>${spinnerHtml}`;
+    // MODIFIÉ : Traduction du bouton retour
+    const backButtonText = i18next.t('classDetails.backButton');
+    page.innerHTML = `<button id="back-to-teacher" class="btn btn-secondary" data-i18n="classDetails.backButton"><i class="fa-solid fa-arrow-left"></i> ${backButtonText}</button>${spinnerHtml}`;
     page.querySelector('#back-to-teacher').addEventListener('click', renderTeacherDashboard);
     changePage('class-details-page');
     
     try {
         currentClassData = await apiRequest(`/teacher/classes/${id}?teacherEmail=${window.currentUser.email}`);
         
+        // MODIFIÉ : Traduction des onglets
         page.innerHTML = `
-            <button id="back-to-teacher" class="btn btn-secondary" data-i18n="classDetails.backButton"><i class="fa-solid fa-arrow-left"></i> Retour</button>
+            <button id="back-to-teacher" class="btn btn-secondary" data-i18n="classDetails.backButton"><i class="fa-solid fa-arrow-left"></i> ${backButtonText}</button>
             <h2>${currentClassData.className}</h2>
             <div class="tabs">
-                <button class="tab-button active" data-tab="students-panel" data-i18n="classDetails.tabStudents">Élèves</button>
-                <button class="tab-button" data-tab="contents-panel" data-i18n="classDetails.tabContent">Contenus</button>
-                <button class="tab-button" data-tab="competencies-panel" data-i18n="classDetails.tabCompetencies">Analyse par Compétence</button>
-                <button class="tab-button" data-tab="corrections-panel" data-i18n="classDetails.tabCorrections">Corrections en attente</button> 
+                <button class="tab-button active" data-tab="students-panel" data-i18n="classDetails.tabStudents">${i18next.t('classDetails.tabStudents')}</button>
+                <button class="tab-button" data-tab="contents-panel" data-i18n="classDetails.tabContent">${i18next.t('classDetails.tabContent')}</button>
+                <button class="tab-button" data-tab="competencies-panel" data-i18n="classDetails.tabCompetencies">${i18next.t('classDetails.tabCompetencies')}</button>
+                <button class="tab-button" data-tab="corrections-panel" data-i18n="classDetails.tabCorrections">${i18next.t('classDetails.tabCorrections')}</button> 
                 <span id="pending-count" class="new-tag hidden"></span>
             </div>
             <div id="students-panel" class="tab-panel active">
                 <div class="page-header" style="margin-bottom: 1.5rem;">
-                    <h3 data-i18n="classDetails.studentsTitle">Élèves inscrits</h3>
-                    <button id="open-add-student-modal-btn" class="btn btn-secondary" data-i18n="classDetails.addStudentButton"><i class="fa-solid fa-user-plus"></i> Ajouter un élève</button>
+                    <h3 data-i18n="classDetails.studentsTitle">${i18next.t('classDetails.studentsTitle')}</h3>
+                    <button id="open-add-student-modal-btn" class="btn btn-secondary" data-i18n="classDetails.addStudentButton"><i class="fa-solid fa-user-plus"></i> ${i18next.t('classDetails.addStudentButton')}</button>
                 </div>
                 <div id="student-list" class="dashboard-grid"></div>
             </div>
@@ -219,7 +216,6 @@ export async function renderClassDetailsPage(id) {
             </div>
             <div id="corrections-panel" class="tab-panel"></div>`;
         
-        // Exécute les rendus des panneaux (qui vont maintenant gérer leur propre traduction)
         renderStudentListPanel();
         renderContentListPanel();
         renderCorrectionsPanel();
@@ -227,25 +223,18 @@ export async function renderClassDetailsPage(id) {
         const pendingCorrections = (currentClassData.results || []).filter(r => r.status === 'pending_validation');
         const pendingCountSpan = page.querySelector('#pending-count');
         if (pendingCorrections.length > 0) {
+            // MODIFIÉ : Traduction du tag "en attente"
             pendingCountSpan.textContent = `${pendingCorrections.length} ${i18next.t('classDetails.pendingCount')}`;
             pendingCountSpan.classList.remove('hidden');
+            // Note: Le code original attache le span au bouton, ce qui est étrange. Je le laisse tel quel.
             page.querySelector('[data-tab="corrections-panel"]').appendChild(pendingCountSpan);
         }
         
-        // CORRECTION : Traduit les éléments statiques AVANT d'attacher les listeners
-        const elements = page.querySelectorAll('[data-i18n]');
-        elements.forEach(el => {
-            // Ne pas écraser les panneaux qui ont leur propre contenu
-            if (!el.id.endsWith('-panel') && !el.id.endsWith('-list')) {
-                const key = el.getAttribute('data-i18n');
-                el.innerHTML = i18next.t(key) || el.innerHTML;
-            }
-        });
+        // Pas besoin de re-traduire les éléments statiques, c'est fait au-dessus
 
-        // Attache les listeners APRÈS la traduction
         page.querySelector('#back-to-teacher').addEventListener('click', renderTeacherDashboard);
         page.querySelector('#open-add-student-modal-btn').addEventListener('click', () => {
-            // ... (logique de la modale addStudent inchangée) ...
+            // MODIFIÉ : Traduction de la modale d'ajout
             const title = i18next.t('addStudentModal.title');
             const label = i18next.t('addStudentModal.label');
             const button = i18next.t('addStudentModal.button');
@@ -263,6 +252,7 @@ export async function renderClassDetailsPage(id) {
             document.getElementById('add-student-form').addEventListener('submit', handleAddStudent);
         });
 
+        // ... (partie gestion des onglets inchangée) ...
         page.querySelectorAll('.tab-button').forEach(button => {
             button.addEventListener('click', (e) => {
                 page.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
@@ -278,26 +268,27 @@ export async function renderClassDetailsPage(id) {
         });
 
     } catch (error) {
-         page.innerHTML = `<button id="back-to-teacher" class="btn btn-secondary" data-i18n="classDetails.backButton"><i class="fa-solid fa-arrow-left"></i> Retour</button><p class="error-message" style="margin-top: 1rem;">Impossible de charger les détails de la classe: ${error.message}</p>`;
-         page.querySelector('#back-to-teacher').innerHTML = i18next.t('classDetails.backButton') || 'Retour';
+         const backButtonText = i18next.t('classDetails.backButton');
+         page.innerHTML = `<button id="back-to-teacher" class="btn btn-secondary" data-i18n="classDetails.backButton"><i class="fa-solid fa-arrow-left"></i> ${backButtonText}</button><p class="error-message" style="margin-top: 1rem;">Impossible de charger les détails de la classe: ${error.message}</p>`;
          page.querySelector('#back-to-teacher').addEventListener('click', renderTeacherDashboard);
     }
 }
 
 function renderStudentListPanel() {
-    // CORRECTION : Les traductions sont insérées directement dans le HTML
     let studentCardsHtml = (currentClassData.studentsWithDetails || []).map(student => {
         const studentResults = (currentClassData.results || []).filter(r => r.studentEmail === student.email);
         const assignedContentCount = (currentClassData.content || []).length;
         const completionRate = assignedContentCount > 0 ? (studentResults.length / assignedContentCount) * 100 : 0;
         
+        // MODIFIÉ : Traductions des cartes élève
         const completionString = i18next.t('classDetails.completionRate');
         const submissionsString = i18next.t('classDetails.submissionsCount', { count: studentResults.length, total: assignedContentCount });
+        const deleteTitle = i18next.t('classDetails.deleteStudentTitle');
 
         return `<div class="dashboard-card" data-student-email="${student.email}">
                     <div class="dashboard-card-title">
                         <h4><img src="${window.backendUrl}/avatars/${student.avatar}" class="avatar"> ${student.firstName}</h4>
-                        <button class="btn-icon delete-student-btn" data-student-email="${student.email}" title="Supprimer l'élève"><i class="fa-solid fa-trash-alt"></i></button>
+                        <button class="btn-icon delete-student-btn" data-student-email="${student.email}" title="${deleteTitle}"><i class="fa-solid fa-trash-alt"></i></button>
                     </div>
                     <p>${completionString}: ${Math.round(completionRate)}%</p>
                     <p>${submissionsString}</p>
@@ -305,9 +296,9 @@ function renderStudentListPanel() {
     }).join('');
     
     const studentListContainer = document.getElementById('student-list');
-    studentListContainer.innerHTML = (currentClassData.studentsWithDetails || []).length > 0 ? studentCardsHtml : `<p>${i18next.t('classDetails.noStudents')}</p>`;
+    // MODIFIÉ : Traduction message "aucun élève"
+    studentListContainer.innerHTML = (currentClassData.studentsWithDetails || []).length > 0 ? studentCardsHtml : `<p data-i18n="classDetails.noStudents">${i18next.t('classDetails.noStudents')}</p>`;
     
-    // Les listeners sont attachés APRÈS la création du HTML traduit
     studentListContainer.querySelectorAll('.dashboard-card').forEach(card => {
         card.style.cursor = 'pointer';
         card.addEventListener('click', (e) => {
@@ -322,7 +313,7 @@ function renderStudentListPanel() {
             const studentEmail = button.dataset.studentEmail;
             const student = currentClassData.studentsWithDetails.find(s => s.email === studentEmail);
             
-            // Logique de modale traduite (inchangée, car elle est déjà correcte)
+            // MODIFIÉ : Traduction modale suppression
             const title = i18next.t('deleteStudentModal.title');
             const confirmText = i18next.t('deleteStudentModal.confirmText', { name: student.firstName, email: student.email });
             const warning = i18next.t('deleteStudentModal.warning');
@@ -343,7 +334,7 @@ function renderStudentListPanel() {
     });
 }
 
-//ajouter la traduction de la modale
+// ... (handleAddStudent et handleRemoveStudent inchangés) ...
 async function handleAddStudent(e) { 
     e.preventDefault(); 
     const email = document.getElementById('student-email-input').value; 
@@ -357,7 +348,6 @@ async function handleAddStudent(e) {
         if(errP) errP.textContent = err.message; 
     } 
 }
-
 async function handleRemoveStudent(studentEmail) {
     try {
         await apiRequest(`/teacher/classes/${currentClassData.id}/remove-student`, 'POST', { studentEmail, teacherEmail: window.currentUser.email });
@@ -369,6 +359,7 @@ async function handleRemoveStudent(studentEmail) {
 }
 
 
+// ... (renderCompetencyReport inchangé) ...
 async function renderCompetencyReport(classId) {
     const panel = document.getElementById('competencies-panel');
     panel.innerHTML = spinnerHtml;
@@ -401,28 +392,36 @@ async function renderCompetencyReport(classId) {
     }
 }
 
+
 function renderContentListPanel() {
     const panel = document.getElementById('contents-panel');
     const contents = currentClassData.content || [];
     if (contents.length === 0) {
-        panel.innerHTML = `<p>${i18next.t('classDetails.noContent')}</p>`;
+        // MODIFIÉ : Traduction
+        panel.innerHTML = `<p data-i18n="classDetails.noContent">${i18next.t('classDetails.noContent')}</p>`;
         return;
     }
 
+    // MODIFIÉ : Traduction des titres de boutons
+    const shareTitle = i18next.t('classDetails.shareTitle');
+    const deleteTitle = i18next.t('classDetails.deleteTitle');
+    const typeLabel = i18next.t('library.typeLabel'); // Réutilise la clé de la bibliothèque
+    const assignedLabel = i18next.t('classDetails.assignedLabel');
+
     let html = '<div class="dashboard-grid">';
     contents.forEach(content => {
-        const assignedDate = new Date(content.assignedAt).toLocaleDateString('fr-FR');
+        const assignedDate = new Date(content.assignedAt).toLocaleDateString();
         html += `
             <div class="dashboard-card">
                 <div class="dashboard-card-title">
                      <h4>${content.title}</h4>
                      <div style="display: flex; gap: 0.5rem;">
-                        <button class="btn-icon share-content-btn" data-content-id="${content.id}" title="Partager dans la bibliothèque"><i class="fa-solid fa-share-nodes"></i></button>
-                        <button class="btn-icon delete-content-btn" data-content-id="${content.id}" title="Supprimer le contenu"><i class="fa-solid fa-trash-alt"></i></button>
+                        <button class="btn-icon share-content-btn" data-content-id="${content.id}" title="${shareTitle}"><i class="fa-solid fa-share-nodes"></i></button>
+                        <button class="btn-icon delete-content-btn" data-content-id="${content.id}" title="${deleteTitle}"><i class="fa-solid fa-trash-alt"></i></button>
                      </div>
                 </div>
-                <p>Type: ${content.type}</p>
-                <p>Assigné le: ${assignedDate}</p>
+                <p>${typeLabel} ${content.type}</p>
+                <p>${assignedLabel} ${assignedDate}</p>
             </div>
         `;
     });
@@ -434,12 +433,19 @@ function renderContentListPanel() {
             e.stopPropagation();
             const contentId = button.dataset.contentId;
             const content = contents.find(c => c.id === contentId);
-            renderModal(getModalTemplate('delete-content-confirm', 'Confirmer la suppression', `
-                <p>Êtes-vous sûr de vouloir supprimer <strong>${content.title}</strong>" ?</p>
-                <p>Cette action est irréversible et supprimera également tous les résultats des élèves pour ce devoir.</p>
+            // MODIFIÉ : Traduction modale suppression
+            const title = i18next.t('deleteContentModal.title');
+            const confirmText = i18next.t('deleteContentModal.confirmText', { title: content.title });
+            const warning = i18next.t('deleteContentModal.warning');
+            const cancelButton = i18next.t('deleteContentModal.cancelButton');
+            const deleteButton = i18next.t('deleteContentModal.deleteButton');
+
+            renderModal(getModalTemplate('delete-content-confirm', title, `
+                <p>${confirmText}</p>
+                <p>${warning}</p>
                 <div style="display:flex; justify-content: flex-end; gap: 1rem; margin-top: 2rem;">
-                    <button class="btn btn-secondary" id="cancel-delete">Annuler</button>
-                    <button class="btn" style="background: var(--incorrect-color); color: white;" id="confirm-delete">Confirmer</button>
+                    <button class="btn btn-secondary" id="cancel-delete">${cancelButton}</button>
+                    <button class="btn" style="background: var(--incorrect-color); color: white;" id="confirm-delete">${deleteButton}</button>
                 </div>
             `));
             document.getElementById('cancel-delete').addEventListener('click', () => window.modalContainer.innerHTML = '');
@@ -456,6 +462,7 @@ function renderContentListPanel() {
     });
 }
 
+// ... (handleDeleteContent inchangé) ...
 async function handleDeleteContent(contentId) {
      try {
         await apiRequest(`/teacher/classes/${currentClassData.id}/content/${contentId}?teacherEmail=${window.currentUser.email}`, 'DELETE');
@@ -466,18 +473,28 @@ async function handleDeleteContent(contentId) {
     }
 }
 
+
 async function handlePublishContent(contentId) {
     const content = currentClassData.content.find(c => c.id === contentId);
     if (!content) return;
 
     const subjectInfo = getSubjectInfo(content.title);
     
-    renderModal(getModalTemplate('publish-confirm', 'Publier dans la bibliothèque', `
-        <p>Vous êtes sur le point de partager "<strong>${content.title}</strong>" avec d'autres enseignants.</p>
-        <p>Il sera publié dans la catégorie : <strong>${subjectInfo.name}</strong></p>
+    // MODIFIÉ : Traduction modale publication
+    const title = i18next.t('publishModal.title');
+    const confirmText = i18next.t('publishModal.confirmText', { title: content.title });
+    const categoryText = i18next.t('publishModal.categoryText', { subject: subjectInfo.name });
+    const cancelButton = i18next.t('publishModal.cancelButton');
+    const submitButton = i18next.t('publishModal.submitButton');
+    const successTitle = i18next.t('publishModal.successTitle');
+    const successText = i18next.t('publishModal.successText');
+
+    renderModal(getModalTemplate('publish-confirm', title, `
+        <p>${confirmText}</p>
+        <p>${categoryText}</p>
         <div style="display:flex; justify-content: flex-end; gap: 1rem; margin-top: 2rem;">
-            <button class="btn btn-secondary" id="cancel-publish">Annuler</button>
-            <button class="btn btn-main" id="confirm-publish">Confirmer et Publier</button>
+            <button class="btn btn-secondary" id="cancel-publish">${cancelButton}</button>
+            <button class="btn btn-main" id="confirm-publish">${submitButton}</button>
         </div>
     `));
     
@@ -490,7 +507,7 @@ async function handlePublishContent(contentId) {
                 subject: subjectInfo.name
             });
             window.modalContainer.innerHTML = '';
-            renderModal(getModalTemplate('publish-success', 'Succès', '<p>Votre contenu a été publié avec succès !</p>'));
+            renderModal(getModalTemplate('publish-success', successTitle, `<p>${successText}</p>`));
             setTimeout(() => window.modalContainer.innerHTML = '', 2000);
         } catch (error) {
             alert(`Erreur de publication: ${error.message}`);
@@ -503,23 +520,29 @@ function renderCorrectionsPanel() {
     const pendingCorrections = (currentClassData.results || []).filter(r => r.status === 'pending_validation');
 
     if (pendingCorrections.length === 0) {
-        panel.innerHTML = `<p>${i18next.t('classDetails.noCorrections')}</p>`;
+        // MODIFIÉ : Traduction
+        panel.innerHTML = `<p data-i18n="classDetails.noCorrections">${i18next.t('classDetails.noCorrections')}</p>`;
         return;
     }
+
+    // MODIFIÉ : Traduction
+    const studentLabel = i18next.t('classDetails.studentLabel');
+    const submittedLabel = i18next.t('classDetails.submittedLabel');
+    const viewCopyButton = i18next.t('classDetails.viewCopyButton');
 
     let html = '<div class="dashboard-grid">';
     pendingCorrections.forEach(result => {
         const student = (currentClassData.studentsWithDetails || []).find(s => s.email === result.studentEmail);
         const studentName = student ? student.firstName : result.studentEmail;
-        const submittedDate = new Date(result.submittedAt).toLocaleDateString('fr-FR');
+        const submittedDate = new Date(result.submittedAt).toLocaleDateString();
         const resultString = JSON.stringify(result).replace(/"/g, '&quot;');
         html += `
             <div class="dashboard-card" data-result="${resultString}">
                 <h4>${result.title}</h4>
-                <p><strong>Élève :</strong> ${studentName}</p>
-                <p><strong>Soumis le :</strong> ${submittedDate}</p>
+                <p><strong>${studentLabel} :</strong> ${studentName}</p>
+                <p><strong>${submittedLabel} :</strong> ${submittedDate}</p>
                 <div style="text-align: right; margin-top: 1rem;">
-                    <button class="btn btn-secondary view-copy-btn">Voir la copie</button>
+                    <button class="btn btn-secondary view-copy-btn">${viewCopyButton}</button>
                 </div>
             </div>
         `;
@@ -541,65 +564,85 @@ function renderCorrectionsPanel() {
 }
 
 function showValidationModal(result, content) {
-    let detailsHtml = '<h4>Réponses de l\'élève</h4>';
+    // MODIFIÉ : Traduction
+    const studentAnswersTitle = i18next.t('validationModal.studentAnswersTitle');
+    const questionLabel = i18next.t('validationModal.questionLabel');
+    const studentAnswerLabel = i18next.t('validationModal.studentAnswerLabel');
+    const noAnswerLabel = i18next.t('validationModal.noAnswerLabel');
+    const correctAnswerLabel = i18next.t('validationModal.correctAnswerLabel');
+    const statementLabel = i18next.t('validationModal.statementLabel');
+    const answerLabel = i18next.t('validationModal.answerLabel');
+    const noDetailLabel = i18next.t('validationModal.noDetailLabel');
+    
+    let detailsHtml = `<h4>${studentAnswersTitle}</h4>`;
     if (content.type === 'quiz' && result.answers && Array.isArray(result.answers)) {
         content.questions.forEach((q, index) => {
             const studentAnswerIndex = result.answers[index];
             const correctAnswerIndex = q.correct_answer_index;
             const isCorrect = studentAnswerIndex === correctAnswerIndex;
             detailsHtml += `<div class="feedback-item ${isCorrect ? 'correct' : 'incorrect'}">
-                                <p><strong>Question ${index + 1}: ${q.question_text}</strong></p>
-                                <p>Réponse de l'élève : ${studentAnswerIndex > -1 ? q.options[studentAnswerIndex] : 'Aucune'}</p>
-                                ${!isCorrect ? `<p>Bonne réponse : ${q.options[correctAnswerIndex]}</p>` : ''}
+                                <p><strong>${questionLabel} ${index + 1}: ${q.question_text}</strong></p>
+                                <p>${studentAnswerLabel} : ${studentAnswerIndex > -1 ? q.options[studentAnswerIndex] : noAnswerLabel}</p>
+                                ${!isCorrect ? `<p>${correctAnswerLabel} : ${q.options[correctAnswerIndex]}</p>` : ''}
                             </div>`;
         });
     } else if ((content.type === 'exercices' || content.type === 'dm') && result.answers && Array.isArray(result.answers)) {
         content.content.forEach((exo, index) => {
-            const studentAnswer = result.answers[index] || "<i>Aucune réponse.</i>";
+            const studentAnswer = result.answers[index] || `<i>${noAnswerLabel}</i>`;
             detailsHtml += `
                 <div class="feedback-item">
-                    <p><strong>Énoncé ${index + 1}:</strong> ${exo.enonce}</p>
-                    <p><strong>Réponse :</strong></p>
+                    <p><strong>${statementLabel} ${index + 1}:</strong> ${exo.enonce}</p>
+                    <p><strong>${answerLabel} :</strong></p>
                     <div class="student-answer-box">${studentAnswer.replace(/\n/g, '<br>')}</div>
                 </div>`;
         });
     } else {
-         detailsHtml = `<p>Le détail des réponses n'est pas disponible pour ce type de devoir.</p>`;
+         detailsHtml = `<p>${noDetailLabel}</p>`;
     }
+
+    // MODIFIÉ : Traduction
+    const validationTitle = i18next.t('validationModal.validationTitle');
+    const commentLabel = i18next.t('validationModal.commentLabel');
+    const submitButton = i18next.t('validationModal.submitButton');
+    const appreciationAcquis = i18next.t('appreciations.acquis');
+    const appreciationEnCours = i18next.t('appreciations.en_cours');
+    const appreciationNonAcquis = i18next.t('appreciations.non_acquis');
+    const appreciationARevoir = i18next.t('appreciations.a_revoir');
 
     const validationHtml = `
         <div class="validation-section">
-            <h4>Valider la copie</h4>
+            <h4>${validationTitle}</h4>
             <form id="validation-form">
                 <div class="appreciation-grid">
                     <div class="appreciation-option">
                         <input type="radio" id="appreciation-acquis" name="appreciation" value="acquis" required>
-                        <label for="appreciation-acquis">Acquis</label>
+                        <label for="appreciation-acquis">${appreciationAcquis}</label>
                     </div>
                     <div class="appreciation-option">
                         <input type="radio" id="appreciation-en_cours" name="appreciation" value="en_cours" required>
-                        <label for="appreciation-en_cours">En cours d'acquisition</label>
+                        <label for="appreciation-en_cours">${appreciationEnCours}</label>
                     </div>
                     <div class="appreciation-option">
                         <input type="radio" id="appreciation-non_acquis" name="appreciation" value="non_acquis" required>
-                        <label for="appreciation-non_acquis">Non acquis</label>
+                        <label for="appreciation-non_acquis">${appreciationNonAcquis}</label>
                     </div>
                      <div class="appreciation-option">
                         <input type="radio" id="appreciation-a_revoir" name="appreciation" value="a_revoir" required>
-                        <label for="appreciation-a_revoir">À revoir</label>
+                        <label for="appreciation-a_revoir">${appreciationARevoir}</label>
                     </div>
                 </div>
                 <div class="form-group">
-                    <label for="teacher-comment">Commentaire (optionnel)</label>
+                    <label for="teacher-comment">${commentLabel}</label>
                     <textarea id="teacher-comment" rows="3"></textarea>
                 </div>
-                <button type="submit" class="btn btn-main">Valider la correction</button>
+                <button type="submit" class="btn btn-main">${submitButton}</button>
             </form>
         </div>
     `;
 
-    renderModal(getModalTemplate('validation-modal', `Correction pour : ${result.title}`, detailsHtml + validationHtml));
+    renderModal(getModalTemplate('validation-modal', `${i18next.t('validationModal.modalTitlePrefix')} : ${result.title}`, detailsHtml + validationHtml));
     
+    // ... (logique de soumission du formulaire inchangée) ...
     document.getElementById('validation-form').addEventListener('submit', async (e) => {
         e.preventDefault();
         const appreciation = document.querySelector('input[name="appreciation"]:checked').value;
@@ -624,47 +667,72 @@ function showValidationModal(result, content) {
 }
 
 function showValidatedResultModal(result, content) {
-    let detailsHtml = '<h4>Détail des réponses</h4>';
+    // MODIFIÉ : Traductions (réutilisation des clés de la modale de validation)
+    const studentAnswersTitle = i18next.t('validationModal.studentAnswersTitle');
+    const questionLabel = i18next.t('validationModal.questionLabel');
+    const studentAnswerLabel = i18next.t('validationModal.studentAnswerLabel');
+    const noAnswerLabel = i18next.t('validationModal.noAnswerLabel');
+    const correctAnswerLabel = i18next.t('validationModal.correctAnswerLabel');
+    const statementLabel = i18next.t('validationModal.statementLabel');
+    const answerLabel = i18next.t('validationModal.answerLabel');
+    const noDetailLabel = i18next.t('validationModal.noDetailLabel');
+
+    let detailsHtml = `<h4>${studentAnswersTitle}</h4>`;
     if (content.type === 'quiz' && result.answers && Array.isArray(result.answers)) {
         content.questions.forEach((q, index) => {
             const studentAnswerIndex = result.answers[index];
             const correctAnswerIndex = q.correct_answer_index;
             const isCorrect = studentAnswerIndex === correctAnswerIndex;
             detailsHtml += `<div class="feedback-item ${isCorrect ? 'correct' : 'incorrect'}">
-                                <p><strong>Question ${index + 1}: ${q.question_text}</strong></p>
-                                <p>Réponse de l'élève : ${studentAnswerIndex > -1 ? q.options[studentAnswerIndex] : 'Aucune'}</p>
-                                ${!isCorrect ? `<p>Bonne réponse : ${q.options[correctAnswerIndex]}</p>` : ''}
+                                <p><strong>${questionLabel} ${index + 1}: ${q.question_text}</strong></p>
+                                <p>${studentAnswerLabel} : ${studentAnswerIndex > -1 ? q.options[studentAnswerIndex] : noAnswerLabel}</p>
+                                ${!isCorrect ? `<p>${correctAnswerLabel} : ${q.options[correctAnswerIndex]}</p>` : ''}
                             </div>`;
         });
     } else if ((content.type === 'exercices' || content.type === 'dm') && result.answers && Array.isArray(result.answers)) {
         content.content.forEach((exo, index) => {
-            const studentAnswer = result.answers[index] || "<i>Aucune réponse.</i>";
+            const studentAnswer = result.answers[index] || `<i>${noAnswerLabel}</i>`;
             detailsHtml += `
                 <div class="feedback-item">
-                    <p><strong>Énoncé ${index + 1}:</strong> ${exo.enonce}</p>
-                    <p><strong>Réponse de l'élève :</strong></p>
+                    <p><strong>${statementLabel} ${index + 1}:</strong> ${exo.enonce}</p>
+                    <p><strong>${answerLabel} :</strong></p>
                     <div class="student-answer-box">${studentAnswer.replace(/\n/g, '<br>')}</div>
                 </div>`;
         });
     } else {
-         detailsHtml = `<p>Le détail des réponses n'est pas disponible pour ce type de devoir.</p>`;
+         detailsHtml = `<p>${noDetailLabel}</p>`;
     }
+
+    // MODIFIÉ : Traduction
+    const feedbackTitle = i18next.t('validatedModal.feedbackTitle');
+    const appreciationLabel = i18next.t('validatedModal.appreciationLabel');
+    const commentLabel = i18next.t('validatedModal.commentLabel');
 
     let feedbackHtml = `
         <div class="validation-section">
-            <h4>Retour du professeur</h4>
-            <p><strong>Appréciation :</strong> ${getAppreciationText(result.appreciation)}</p>
-            ${result.teacherComment ? `<p><strong>Commentaire :</strong> ${result.teacherComment}</p>` : ''}
+            <h4>${feedbackTitle}</h4>
+            <p><strong>${appreciationLabel} :</strong> ${getAppreciationText(result.appreciation)}</p>
+            ${result.teacherComment ? `<p><strong>${commentLabel} :</strong> ${result.teacherComment}</p>` : ''}
         </div>
     `;
     
-    renderModal(getModalTemplate('validated-result-modal', `Résultat pour : ${result.title}`, detailsHtml + feedbackHtml));
+    renderModal(getModalTemplate('validated-result-modal', `${i18next.t('validatedModal.modalTitlePrefix')} : ${result.title}`, detailsHtml + feedbackHtml));
 }
 
 function renderStudentDetailsPage(studentEmail) {
     const page = document.getElementById('student-details-page');
     const student = currentClassData.studentsWithDetails.find(s => s.email === studentEmail);
     const studentResults = (currentClassData.results || []).filter(r => r.studentEmail === studentEmail);
+    
+    // MODIFIÉ : Traduction
+    const backButton = i18next.t('studentDetails.backButton');
+    const profileTitle = i18next.t('studentDetails.profileTitle', { name: student.firstName });
+    const resultsTitle = i18next.t('studentDetails.resultsTitle');
+    const noResults = i18next.t('studentDetails.noResults');
+    const completedLabel = i18next.t('studentDetails.completedLabel');
+    const scoreLabel = i18next.t('studentDetails.scoreLabel');
+    const helpUsedTitle = i18next.t('studentDetails.helpUsedTitle');
+    const viewDetailsButton = i18next.t('studentDetails.viewDetailsButton');
     
     let resultsHtml = '';
     
@@ -695,21 +763,21 @@ function renderStudentDetailsPage(studentEmail) {
                             const scorePercentage = result.totalQuestions > 0 ? (result.score / result.totalQuestions) * 100 : 0;
                             scoreHtml = `
                             <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem;">
-                                <strong>Score: ${result.score}/${result.totalQuestions}</strong>
+                                <strong>${scoreLabel}: ${result.score}/${result.totalQuestions}</strong>
                                 <div class="progress-bar">
                                     <div class="progress-bar-fill" style="width: ${scorePercentage}%;"></div>
                                 </div>
                             </div>`;
                         }
                         
-                        const helpIcon = result.helpUsed ? `<i class="fa-solid fa-lightbulb" title="L'élève a demandé de l'aide pour ce devoir" style="font-size: 0.9rem; color: var(--warning-color); margin-left: 0.5rem;"></i>` : '';
+                        const helpIcon = result.helpUsed ? `<i class="fa-solid fa-lightbulb" title="${helpUsedTitle}" style="font-size: 0.9rem; color: var(--warning-color); margin-left: 0.5rem;"></i>` : '';
 
                         resultsHtml += `
                             <div class="dashboard-card" style="cursor: default;">
                                 <h4>${result.title} ${helpIcon}</h4>
-                                <p style="margin-bottom: 1rem;">Terminé le: ${new Date(result.submittedAt).toLocaleDateString('fr-FR')}</p>
+                                <p style="margin-bottom: 1rem;">${completedLabel} ${new Date(result.submittedAt).toLocaleDateString()}</p>
                                 ${scoreHtml}
-                                <button class="btn btn-secondary view-details" data-content-id="${result.contentId}">Voir les détails</button>
+                                <button class="btn btn-secondary view-details" data-content-id="${result.contentId}">${viewDetailsButton}</button>
                             </div>`;
                     }
                 });
@@ -717,16 +785,16 @@ function renderStudentDetailsPage(studentEmail) {
         }
 
     } else {
-        resultsHtml = '<p>Aucun exercice terminé pour le moment.</p>';
+        resultsHtml = `<p>${noResults}</p>`;
     }
 
     page.innerHTML = `
-        <button id="back-to-class-details" class="btn btn-secondary" style="margin-bottom: 2rem;"><i class="fa-solid fa-arrow-left"></i> Retour à la classe</button>
+        <button id="back-to-class-details" class="btn btn-secondary" style="margin-bottom: 2rem;"><i class="fa-solid fa-arrow-left"></i> ${backButton}</button>
         <div class="card">
             <div class="page-header">
-                <h2><img src="${window.backendUrl}/avatars/${student.avatar}" class="avatar"> Profil de ${student.firstName}</h2>
+                <h2><img src="${window.backendUrl}/avatars/${student.avatar}" class="avatar"> ${profileTitle}</h2>
             </div>
-            <h3 style="margin-top: 2rem; margin-bottom: 1rem;">Résultats des exercices terminés</h3>
+            <h3 style="margin-top: 2rem; margin-bottom: 1rem;">${resultsTitle}</h3>
             ${resultsHtml}
         </div>`;
     
@@ -755,40 +823,64 @@ function showGenerationModal(prefillData = null) {
         return;
     }
     
+    // MODIFIÉ : Traductions
+    const chooseText = i18next.t('genModal.choose');
     const h = `
         <div class="tabs">
-            <button class="tab-button active" data-tab="from-program">Depuis le Programme</button>
-            <button class="tab-button" data-tab="from-text">Depuis un Texte/Document</button>
+            <button class="tab-button active" data-tab="from-program" data-i18n="genModal.tabProgram">${i18next.t('genModal.tabProgram')}</button>
+            <button class="tab-button" data-tab="from-text" data-i18n="genModal.tabUpload">${i18next.t('genModal.tabUpload')}</button>
         </div>
         <div id="from-program" class="tab-panel active">
             <form id="generation-form">
-                <div class="form-group"><label>Type de contenu</label><select id="content-type-select"><option value="quiz">Quiz</option><option value="exercices">Fiche d'exercices</option><option value="revision">Fiche de révision</option><option value="dm">Devoir Maison</option></select></div>
-                <div class="form-group" id="exercise-count-group"><label for="exercise-count" id="exercise-count-label">Nombre de questions</label><input type="number" id="exercise-count" value="3" min="1" max="15"></div>
+                <div class="form-group">
+                    <label data-i18n="genModal.contentTypeLabel">${i18next.t('genModal.contentTypeLabel')}</label>
+                    <select id="content-type-select">
+                        <option value="quiz" data-i18n="contentTypes.quiz">${i18next.t('contentTypes.quiz')}</option>
+                        <option value="exercices" data-i18n="contentTypes.exercices">${i18next.t('contentTypes.exercices')}</option>
+                        <option value="revision" data-i18n="contentTypes.revision">${i18next.t('contentTypes.revision')}</option>
+                        <option value="dm" data-i18n="contentTypes.dm">${i18next.t('contentTypes.dm')}</option>
+                    </select>
+                </div>
+                <div class="form-group" id="exercise-count-group">
+                    <label for="exercise-count" id="exercise-count-label" data-i18n="genModal.countLabelQuiz">${i18next.t('genModal.countLabelQuiz')}</label>
+                    <input type="number" id="exercise-count" value="3" min="1" max="15">
+                </div>
                 <div id="program-fields">
-                    <div class="form-group"><label>Cycle</label><select id="cycle-select"><option value="">-- Choisir --</option></select></div>
-                    <div class="form-group"><label>Niveau</label><select id="niveau-select" disabled><option value="">-- Choisir --</option></select></div>
-                    <div class="form-group"><label>Matière</label><select id="matiere-select" disabled><option value="">-- Choisir --</option></select></div>
-                    <div class="form-group"><label>Notion</label><select id="notion-select" disabled><option value="">-- Choisir --</option></select></div>
-                    <div class="form-group"><label>Compétence</label><select id="competence-select" disabled><option value="">-- Choisir --</option></select></div>
+                    <div class="form-group"><label data-i18n="genModal.cycleLabel">${i18next.t('genModal.cycleLabel')}</label><select id="cycle-select"><option value="">${chooseText}</option></select></div>
+                    <div class="form-group"><label data-i18n="genModal.levelLabel">${i18next.t('genModal.levelLabel')}</label><select id="niveau-select" disabled><option value="">${chooseText}</option></select></div>
+                    <div class="form-group"><label data-i18n="genModal.subjectLabel">${i18next.t('genModal.subjectLabel')}</label><select id="matiere-select" disabled><option value="">${chooseText}</option></select></div>
+                    <div class="form-group"><label data-i18n="genModal.notionLabel">${i18next.t('genModal.notionLabel')}</label><select id="notion-select" disabled><option value="">${chooseText}</option></select></div>
+                    <div class="form-group"><label data-i18n="genModal.competenceLabel">${i18next.t('genModal.competenceLabel')}</label><select id="competence-select" disabled><option value="">${chooseText}</option></select></div>
                 </div>
                 <div id="free-competence-field" class="form-group hidden">
-                    <label>Compétence Suggérée</label>
-                    <input type="text" id="competence-input" placeholder="Sujet ou compétence libre...">
+                    <label data-i18n="genModal.freeCompetenceLabel">${i18next.t('genModal.freeCompetenceLabel')}</label>
+                    <input type="text" id="competence-input" placeholder="${i18next.t('genModal.freeCompetencePlaceholder')}">
                 </div>
-                <button type="submit" class="btn btn-main" id="generate-btn">Générer</button>
+                <button type="submit" class="btn btn-main" id="generate-btn" data-i18n="genModal.generateButton">${i18next.t('genModal.generateButton')}</button>
             </form>
         </div>
         <div id="from-text" class="tab-panel">
              <form id="generate-from-upload-form">
-                <div class="form-group"><label for="document-upload-input">Chargez un document (PDF, DOCX, PNG, JPG)</label><input type="file" id="document-upload-input" accept=".pdf,.docx,.png,.jpg,.jpeg" required></div>
-                <div class="form-group"><label>Type de contenu à générer</label><select id="teacher-content-type-upload"><option value="quiz">Quiz</option><option value="exercices">Fiche d'exercices</option><option value="revision">Fiche de révision</option><option value="dm">Devoir Maison</option></select></div>
-                <div class="form-group" id="exercise-count-group-upload"><label for="exercise-count-upload" id="exercise-count-label-upload">Nombre de questions</label><input type="number" id="exercise-count-upload" value="3" min="1" max="15"></div>
-                <button type="submit" class="btn btn-main">Analyser et Générer</button>
+                <div class="form-group"><label for="document-upload-input" data-i18n="genModal.uploadLabel">${i18next.t('genModal.uploadLabel')}</label><input type="file" id="document-upload-input" accept=".pdf,.docx,.png,.jpg,.jpeg" required></div>
+                <div class="form-group">
+                    <label data-i18n="genModal.uploadContentTypeLabel">${i18next.t('genModal.uploadContentTypeLabel')}</label>
+                    <select id="teacher-content-type-upload">
+                        <option value="quiz" data-i18n="contentTypes.quiz">${i18next.t('contentTypes.quiz')}</option>
+                        <option value="exercices" data-i18n="contentTypes.exercices">${i18next.t('contentTypes.exercices')}</option>
+                        <option value="revision" data-i18n="contentTypes.revision">${i18next.t('contentTypes.revision')}</option>
+                        <option value="dm" data-i18n="contentTypes.dm">${i18next.t('contentTypes.dm')}</option>
+                    </select>
+                </div>
+                <div class="form-group" id="exercise-count-group-upload">
+                    <label for="exercise-count-upload" id="exercise-count-label-upload" data-i18n="genModal.countLabelQuiz">${i18next.t('genModal.countLabelQuiz')}</label>
+                    <input type="number" id="exercise-count-upload" value="3" min="1" max="15">
+                </div>
+                <button type="submit" class="btn btn-main" data-i18n="genModal.uploadButton">${i18next.t('genModal.uploadButton')}</button>
             </form>
         </div>
         <div id="generation-spinner" class="hidden">${spinnerHtml}</div>`;
     
-    renderModal(getModalTemplate('generation-modal', 'Générer du contenu pédagogique', h));
+    renderModal(getModalTemplate('generation-modal', i18next.t('genModal.title'), h));
     
     const setupContentTypeListener = (typeSelectId, countGroupId, countLabelId) => {
         const typesWithCount = ['quiz', 'exercices', 'dm'];
@@ -798,16 +890,24 @@ function showGenerationModal(prefillData = null) {
         typeSelect.addEventListener('change', () => {
             const selectedType = typeSelect.value;
             countGroup.classList.toggle('hidden', !typesWithCount.includes(selectedType));
-            if(selectedType === 'quiz') countLabel.textContent = "Nombre de questions";
-            else if (selectedType === 'exercices' || selectedType === 'dm') countLabel.textContent = "Nombre d'exercices";
+            // MODIFIÉ : Utilise i18next pour changer le label
+            if(selectedType === 'quiz') {
+                countLabel.textContent = i18next.t('genModal.countLabelQuiz');
+                countLabel.dataset.i18n = 'genModal.countLabelQuiz'; // Met à jour la clé
+            }
+            else if (selectedType === 'exercices' || selectedType === 'dm') {
+                 countLabel.textContent = i18next.t('genModal.countLabelExercices');
+                 countLabel.dataset.i18n = 'genModal.countLabelExercices'; // Met à jour la clé
+            }
         });
         typeSelect.dispatchEvent(new Event('change'));
     };
     setupContentTypeListener('content-type-select', 'exercise-count-group', 'exercise-count-label');
     setupContentTypeListener('teacher-content-type-upload', 'exercise-count-group-upload', 'exercise-count-label-upload');
+    
+    // ... (Reste de la logique de la modale de génération inchangée) ...
     const cy = document.getElementById('cycle-select'), n = document.getElementById('niveau-select'), m = document.getElementById('matiere-select'), no = document.getElementById('notion-select'), co = document.getElementById('competence-select'), gen = document.getElementById('generate-btn');
     const competenceInput = document.getElementById('competence-input');
-
     Object.keys(window.programmes).forEach(c => cy.add(new Option(c, c)));
     cy.addEventListener('change', () => { resetSelects([n, m, no, co]); const s = cy.value; if (s) { Object.keys(window.programmes[s]).forEach(l => n.add(new Option(l, l))); n.disabled = false; } });
     n.addEventListener('change', () => { resetSelects([m, no, co]); const d = window.programmes[cy.value][n.value]; if (d) { Object.keys(d).forEach(k => m.add(new Option(d[k].nom, k))); m.disabled = false; } });
@@ -825,7 +925,6 @@ function showGenerationModal(prefillData = null) {
         resetSelects([co]);
         const d = window.programmes[cy.value][n.value]?.[m.value]?.[no.value];
         if (!d) return;
-
         if (d.sous_notions) {
             Object.values(d.sous_notions).forEach(sn => {
                 (sn.competences || []).forEach(c => co.add(new Option(c, c)));
@@ -844,7 +943,6 @@ function showGenerationModal(prefillData = null) {
         const form = e.currentTarget;
         let comp = '';
         let levelForInfo = '';
-
         const isFreeMode = !document.getElementById('free-competence-field').classList.contains('hidden');
         if (isFreeMode) {
             comp = competenceInput.value;
@@ -853,21 +951,15 @@ function showGenerationModal(prefillData = null) {
             comp = co.value;
             levelForInfo = n.value;
         }
-
         selectedCompetenceInfo = { level: levelForInfo, competence: comp };
         const contentType = document.getElementById('content-type-select').value;
         const exerciseCount = document.getElementById('exercise-count').value;
-        
         const matiereSelect = document.getElementById('matiere-select');
         const selectedMatiereText = isFreeMode ? '' : matiereSelect.options[matiereSelect.selectedIndex].text;
-        let language = null;
-        if (selectedMatiereText.includes('Anglais')) {
-            language = 'Anglais';
-        } else if (selectedMatiereText.includes('Arabe')) {
-            language = 'Arabe';
-        } else if (selectedMatiereText.includes('Espagnol')) {
-            language = 'Espagnol';
-        }
+        let language = i18next.language; // MODIFIÉ: Utilise la langue globale
+        if (selectedMatiereText.includes('Anglais')) language = 'en';
+        else if (selectedMatiereText.includes('Arabe')) language = 'ar';
+        else if (selectedMatiereText.includes('Espagnol')) language = 'es';
 
         document.getElementById('generation-spinner').classList.remove('hidden');
         try {
@@ -881,26 +973,23 @@ function showGenerationModal(prefillData = null) {
         }
     });
     
-    // Correction du bouton Générer depuis Texte/Document
     document.getElementById('generate-from-upload-form').addEventListener('submit', async (e) => { 
         e.preventDefault(); 
         const spinner = document.getElementById('generation-spinner'); 
         spinner.classList.remove('hidden'); 
         const formData = new FormData(); 
         const fileInput = document.getElementById('document-upload-input');
-
         if (!fileInput.files.length) {
             alert("Veuillez charger un fichier.");
             spinner.classList.add('hidden');
             return;
         }
-
         formData.append('document', fileInput.files[0]); 
         formData.append('contentType', document.getElementById('teacher-content-type-upload').value); 
         formData.append('exerciseCount', document.getElementById('exercise-count-upload').value); 
+        formData.append('language', i18next.language); // MODIFIÉ: Envoie la langue
         
         try { 
-            // Fetch est utilisé ici car apiRequest ne gère pas nativement FormData
             const response = await fetch(`${window.backendUrl}/api/ai/generate-from-upload`, { method: 'POST', body: formData }); 
             const data = await response.json(); 
             if (!response.ok) throw new Error(data.error); 
@@ -923,16 +1012,10 @@ function showGenerationModal(prefillData = null) {
         }); 
     });
 
-    // Tentative de préremplissage (pour le Planificateur)
     if (prefillData) {
-        // CORRECTION: Logique de préremplissage et de bascule vers le champ libre
         document.getElementById('content-type-select').value = prefillData.type;
         document.getElementById('content-type-select').dispatchEvent(new Event('change'));
-
         let found = false;
-        
-        // Logique de recherche dans window.programmes omise ici, mais doit exister
-        
         if (!found) {
             document.getElementById('program-fields').classList.add('hidden');
             const freeField = document.getElementById('free-competence-field');
@@ -945,30 +1028,41 @@ function showGenerationModal(prefillData = null) {
 }
 
 function showEditModal() {
-    let editHtml = `<form id="edit-form"><div class="form-group"><label>Titre</label><input type="text" id="edit-title" value="${generatedContent.title || ''}"></div>`;
+    // MODIFIÉ : Traductions
+    const titleLabel = i18next.t('editModal.titleLabel');
+    const revisionLabel = i18next.t('editModal.revisionLabel');
+    const structureError = i18next.t('editModal.structureError');
+    const rawJsonLabel = i18next.t('editModal.rawJsonLabel');
+    const submitButton = i18next.t('editModal.submitButton');
+    
+    let editHtml = `<form id="edit-form"><div class="form-group"><label>${titleLabel}</label><input type="text" id="edit-title" value="${generatedContent.title || ''}"></div>`;
 
     if (generatedContent.type === 'quiz' && Array.isArray(generatedContent.questions)) {
+        const questionLabel = i18next.t('editModal.questionLabel');
+        const optionsLabel = i18next.t('editModal.optionsLabel');
         generatedContent.questions.forEach((q, i) => {
-            editHtml += `<div class="form-group"><label>Question ${i + 1}</label><input type="text" id="edit-q-${i}" value="${q.question_text || ''}"><label style="margin-top: 0.5rem;">Options</label>`;
+            editHtml += `<div class="form-group"><label>${questionLabel.replace('{{index}}', i + 1)}</label><input type="text" id="edit-q-${i}" value="${q.question_text || ''}"><label style="margin-top: 0.5rem;">${optionsLabel}</label>`;
             if (Array.isArray(q.options)) {
                 editHtml += q.options.map((opt, j) => `<input type="text" id="edit-q-${i}-opt-${j}" value="${opt || ''}" style="margin-bottom: 0.5rem;">`).join('');
             }
             editHtml += `</div>`;
         });
     } else if ((generatedContent.type === 'exercices' || generatedContent.type === 'dm') && Array.isArray(generatedContent.content)) {
+        const exerciceLabel = i18next.t('editModal.exerciceLabel');
         generatedContent.content.forEach((ex, i) => {
-            editHtml += `<div class="form-group"><label>Exercice ${i + 1}</label><textarea id="edit-ex-${i}" rows="3">${ex.enonce || ''}</textarea></div>`;
+            editHtml += `<div class="form-group"><label>${exerciceLabel.replace('{{index}}', i + 1)}</label><textarea id="edit-ex-${i}" rows="3">${ex.enonce || ''}</textarea></div>`;
         });
     } else if (generatedContent.type === 'revision' && typeof generatedContent.content === 'string') {
-        editHtml += `<div class="form-group"><label>Contenu de la fiche</label><textarea id="edit-revision-content" rows="10">${generatedContent.content || ''}</textarea></div>`;
+        editHtml += `<div class="form-group"><label>${revisionLabel}</label><textarea id="edit-revision-content" rows="10">${generatedContent.content || ''}</textarea></div>`;
     } else {
-        editHtml += `<p class="error-message">Le contenu généré par l'IA a une structure inattendue. Vous pouvez le modifier manuellement ci-dessous.</p>`;
-        editHtml += `<div class="form-group"><label>Contenu brut (JSON)</label><textarea rows="10" id="raw-json-edit">${JSON.stringify(generatedContent, null, 2)}</textarea></div>`;
+        editHtml += `<p class="error-message">${structureError}</p>`;
+        editHtml += `<div class="form-group"><label>${rawJsonLabel}</label><textarea rows="10" id="raw-json-edit">${JSON.stringify(generatedContent, null, 2)}</textarea></div>`;
     }
-    editHtml += `<button type="submit" class="btn btn-main" id="generate-btn">Valider et Assigner</button></form>`;
+    editHtml += `<button type="submit" class="btn btn-main" id="generate-btn">${submitButton}</button></form>`;
 
-    renderModal(getModalTemplate('edit-modal', 'Modifier et Valider le Contenu', editHtml));
+    renderModal(getModalTemplate('edit-modal', i18next.t('editModal.title'), editHtml));
 
+    // ... (logique de soumission du formulaire d'édition inchangée) ...
     document.getElementById('edit-form').addEventListener('submit', (e) => {
         e.preventDefault();
         try {
@@ -1004,15 +1098,25 @@ function showAssignModal(contentToAssign) {
     const defaultDueDate = new Date(); 
     defaultDueDate.setDate(defaultDueDate.getDate() + 7); 
     const formattedDefaultDate = defaultDueDate.toISOString().split('T')[0]; 
+    
+    // MODIFIÉ : Traductions
+    const classLabel = i18next.t('assignModal.classLabel');
+    const dueDateLabel = i18next.t('assignModal.dueDateLabel');
+    const evaluatedLabel = i18next.t('assignModal.evaluatedLabel');
+    const submitButton = i18next.t('assignModal.submitButton');
+    
     const modalHtml = `<form id="assign-form">
-        <div class="form-group"><label for="assign-class-select">Assigner à la classe</label><select id="assign-class-select" required></select></div>
-        <div class="form-group"><label for="due-date-input">À faire pour le</label><input type="date" id="due-date-input" value="${formattedDefaultDate}" required></div>
-        <div class="form-group checkbox-group"><input type="checkbox" id="is-evaluated-checkbox"><label for="is-evaluated-checkbox">Ce contenu est un devoir évalué</label></div>
-        <button type="submit" class="btn btn-main">Assigner</button>
+        <div class="form-group"><label for="assign-class-select">${classLabel}</label><select id="assign-class-select" required></select></div>
+        <div class="form-group"><label for="due-date-input">${dueDateLabel}</label><input type="date" id="due-date-input" value="${formattedDefaultDate}" required></div>
+        <div class="form-group checkbox-group"><input type="checkbox" id="is-evaluated-checkbox"><label for="is-evaluated-checkbox">${evaluatedLabel}</label></div>
+        <button type="submit" class="btn btn-main">${submitButton}</button>
     </form>`; 
-    renderModal(getModalTemplate('assign-modal', `Assigner "${content.title}"`, modalHtml)); 
+    
+    renderModal(getModalTemplate('assign-modal', i18next.t('assignModal.title', { title: content.title }), modalHtml)); 
+    
     const select = document.getElementById('assign-class-select'); 
     teacherClasses.forEach(c => select.add(new Option(c.className, c.id))); 
+    
     document.getElementById('assign-form').addEventListener('submit', async e => { 
         e.preventDefault(); 
         const classId = select.value; 
@@ -1026,7 +1130,8 @@ function showAssignModal(contentToAssign) {
                 contentData: { ...content, dueDate, isEvaluated, competence: content.competence || selectedCompetenceInfo } 
             }); 
             window.modalContainer.innerHTML = ''; 
-            renderModal(getModalTemplate('assign-confirm', 'Succès', '<p>Le contenu a bien été assigné !</p>')); 
+            // MODIFIÉ : Traduction
+            renderModal(getModalTemplate('assign-confirm', i18next.t('assignModal.successTitle'), `<p>${i18next.t('assignModal.successText')}</p>`)); 
             setTimeout(() => { window.modalContainer.innerHTML = ''; renderTeacherDashboard(); }, 2000); 
         } catch (error) { 
             alert("Erreur lors de l'assignation du contenu: " + error.message); 
@@ -1037,22 +1142,35 @@ function showAssignModal(contentToAssign) {
 export async function renderPlannerPage() {
     const page = document.getElementById('planner-page');
     changePage('planner-page');
+    
+    // MODIFIÉ : Traductions
+    const title = i18next.t('planner.title');
+    const backButton = i18next.t('planner.backButton');
+    const themeLabel = i18next.t('planner.themeLabel');
+    const themePlaceholder = i18next.t('planner.themePlaceholder');
+    const levelLabel = i18next.t('planner.levelLabel');
+    const levelPlaceholder = i18next.t('planner.levelPlaceholder');
+    const sessionsLabel = i18next.t('planner.sessionsLabel');
+    const submitButton = i18next.t('planner.submitButton');
+    
     page.innerHTML = `
         <div class="page-header">
-            <h2><i class="fa-solid fa-calendar-days"></i> Planificateur de Cours</h2>
-            <button id="back-to-teacher-dash" class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> Retour</button>
+            <h2><i class="fa-solid fa-calendar-days"></i> ${title}</h2>
+            <button id="back-to-teacher-dash" class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> ${backButton}</button>
         </div>
         <div class="card">
             <form id="planner-form">
-                <div class="form-group"><label for="planner-theme">Thème de la séquence</label><input type="text" id="planner-theme" placeholder="Ex: L'Empire romain, Les fractions..." required></div>
-                <div class="form-group"><label for="planner-level">Niveau de la classe</label><input type="text" id="planner-level" placeholder="Ex: 6ème, CE2, Seconde..." required></div>
-                <div class="form-group"><label for="planner-sessions">Nombre de séances</label><input type="number" id="planner-sessions" value="3" min="1" max="10" required></div>
-                <button type="submit" class="btn btn-main">Générer la séquence</button>
+                <div class="form-group"><label for="planner-theme">${themeLabel}</label><input type="text" id="planner-theme" placeholder="${themePlaceholder}" required></div>
+                <div class="form-group"><label for="planner-level">${levelLabel}</label><input type="text" id="planner-level" placeholder="${levelPlaceholder}" required></div>
+                <div class="form-group"><label for="planner-sessions">${sessionsLabel}</label><input type="number" id="planner-sessions" value="3" min="1" max="10" required></div>
+                <button type="submit" class="btn btn-main">${submitButton}</button>
             </form>
         </div>
         <div id="planner-output" class="hidden">${spinnerHtml}</div>`;
+        
     const outputContainer = document.getElementById('planner-output');
     page.querySelector('#back-to-teacher-dash').addEventListener('click', renderTeacherDashboard);
+    
     page.querySelector('#planner-form').addEventListener('submit', async (e) => {
         e.preventDefault();
         outputContainer.classList.remove('hidden');
@@ -1061,9 +1179,11 @@ export async function renderPlannerPage() {
         const level = document.getElementById('planner-level').value;
         const numSessions = document.getElementById('planner-sessions').value;
         try {
-            const data = await apiRequest('/ai/generate-lesson-plan', 'POST', { theme, level, numSessions });
+            // MODIFIÉ : Envoie la langue actuelle à l'API
+            const data = await apiRequest('/ai/generate-lesson-plan', 'POST', { theme, level, numSessions, lang: i18next.language });
             const plan = data.structured_plan;
             let outputHtml = `<h3>${plan.planTitle} (Niveau ${plan.level})</h3>`;
+            const generateButtonText = i18next.t('planner.generateButton');
 
             plan.sessions.forEach((session, sessionIndex) => {
                 session.resources = session.resources || [];
@@ -1078,7 +1198,7 @@ export async function renderPlannerPage() {
                      outputHtml += `<li>
                                        <span>${res.type.charAt(0).toUpperCase() + res.type.slice(1)} : ${res.sujet}</span>
                                        <button class="btn btn-generate-planner" data-resource='${resourceData}' data-level="${plan.level}">
-                                           <i class="fa-solid fa-wand-sparkles"></i> Générer
+                                           <i class="fa-solid fa-wand-sparkles"></i> ${generateButtonText}
                                        </button>
                                    </li>`;
                 });
@@ -1086,6 +1206,7 @@ export async function renderPlannerPage() {
             });
             outputContainer.innerHTML = outputHtml;
 
+            // ... (logique du bouton "Générer" inchangée) ...
             outputContainer.querySelectorAll('.btn-generate-planner').forEach(button => {
                 button.addEventListener('click', (e) => {
                     const resourceString = e.currentTarget.dataset.resource;
@@ -1116,9 +1237,18 @@ export async function renderStudentDashboard() {
     try {
         studentDashboardData = await apiRequest(`/student/dashboard?studentEmail=${window.currentUser.email}`);
         
-        let todoHtml = '<h3>À faire</h3>';
+        // MODIFIÉ : Traductions
+        const title = i18next.t('studentDashboard.title', { name: window.currentUser.firstName });
+        const todoTitle = i18next.t('studentDashboard.todo');
+        const pendingTitle = i18next.t('studentDashboard.pending');
+        const archiveTitle = i18next.t('studentDashboard.archive');
+        const filterAll = i18next.t('studentDashboard.filterAll');
+        const filterMonth = i18next.t('studentDashboard.filterMonth');
+        const filterWeek = i18next.t('studentDashboard.filterWeek');
+
+        let todoHtml = `<h3>${todoTitle}</h3>`;
         if (studentDashboardData.todo.length === 0) {
-            todoHtml += "<p>Bravo, tu es à jour !</p>";
+            todoHtml += `<p data-i18n="studentDashboard.noTodo">${i18next.t('studentDashboard.noTodo')}</p>`;
         } else {
             todoHtml += '<div class="dashboard-grid">';
             studentDashboardData.todo.forEach(item => {
@@ -1127,9 +1257,9 @@ export async function renderStudentDashboard() {
             todoHtml += '</div>';
         }
 
-        let pendingHtml = '<h3 style="margin-top: 2rem;">En attente de validation</h3>';
+        let pendingHtml = `<h3 style="margin-top: 2rem;">${pendingTitle}</h3>`;
         if (studentDashboardData.pending.length === 0) {
-            pendingHtml += "<p>Aucun devoir en attente de correction.</p>";
+            pendingHtml += `<p data-i18n="studentDashboard.noPending">${i18next.t('studentDashboard.noPending')}</p>`;
         } else {
             pendingHtml += '<div class="dashboard-grid">';
             studentDashboardData.pending.forEach(item => {
@@ -1140,27 +1270,26 @@ export async function renderStudentDashboard() {
 
         let completedHtml = `
             <div class="page-header" style="margin-top: 2rem;">
-                <h3>Archives</h3>
+                <h3>${archiveTitle}</h3>
                 <div id="archive-filters">
-                    <button class="btn btn-secondary active" data-filter="all">Tout</button>
-                    <button class="btn btn-secondary" data-filter="month">Ce mois-ci</button>
-                    <button class="btn btn-secondary" data-filter="week">Cette semaine</button>
+                    <button class="btn btn-secondary active" data-filter="all">${filterAll}</button>
+                    <button class="btn btn-secondary" data-filter="month">${filterMonth}</button>
+                    <button class="btn btn-secondary" data-filter="week">${filterWeek}</button>
                 </div>
             </div>
             <div id="student-completed-list"></div>`;
 
-        page.innerHTML = `<h2>Bonjour ${window.currentUser.firstName}!</h2>${todoHtml}${pendingHtml}${completedHtml}`;
+        page.innerHTML = `<h2>${title}</h2>${todoHtml}${pendingHtml}${completedHtml}`;
         
         renderFilteredArchives('all'); 
         
-        page.querySelectorAll('#archive-filters').forEach(button => {
-            button.addEventListener('click', (e) => {
-                if (e.target.tagName === 'BUTTON') {
-                    page.querySelectorAll('#archive-filters button').forEach(btn => btn.classList.remove('active'));
-                    e.target.classList.add('active');
-                    renderFilteredArchives(e.target.dataset.filter);
-                }
-            });
+        // ... (logique des filtres et boutons inchangée) ...
+        page.querySelector('#archive-filters').addEventListener('click', (e) => { // Corrigé le sélecteur
+            if (e.target.tagName === 'BUTTON') {
+                page.querySelectorAll('#archive-filters button').forEach(btn => btn.classList.remove('active'));
+                e.target.classList.add('active');
+                renderFilteredArchives(e.target.dataset.filter);
+            }
         });
 
         page.querySelectorAll('.start-btn').forEach(button => {
@@ -1178,7 +1307,6 @@ export async function renderStudentDashboard() {
             });
         });
 
-
     } catch (error) {
         page.innerHTML = `<p class="error-message">Impossible de charger le tableau de bord étudiant: ${error.message}</p>`;
     }
@@ -1187,7 +1315,8 @@ export async function renderStudentDashboard() {
 function renderFilteredArchives(filter) {
     const container = document.getElementById('student-completed-list');
     if (!studentDashboardData || !studentDashboardData.completed || studentDashboardData.completed.length === 0) {
-        container.innerHTML = "<p>Aucun devoir terminé pour le moment.</p>";
+        // MODIFIÉ : Traduction
+        container.innerHTML = `<p data-i18n="studentDashboard.noArchive">${i18next.t('studentDashboard.noArchive')}</p>`;
         return;
     }
     
@@ -1207,7 +1336,8 @@ function renderFilteredArchives(filter) {
     });
 
     if (filteredItems.length === 0) {
-        container.innerHTML = "<p>Aucun exercice terminé pour cette période.</p>";
+        // MODIFIÉ : Traduction
+        container.innerHTML = `<p data-i18n="studentDashboard.noArchivePeriod">${i18next.t('studentDashboard.noArchivePeriod')}</p>`;
         return;
     }
 
@@ -1231,6 +1361,7 @@ function renderFilteredArchives(filter) {
     }
     container.innerHTML = completedHtml;
     
+    // ... (logique des boutons de correction inchangée) ...
     container.querySelectorAll('.view-correction-btn').forEach(button => {
          button.addEventListener('click', (e) => {
             const contentId = e.target.dataset.contentId;
@@ -1243,6 +1374,12 @@ function renderFilteredArchives(filter) {
 
 function createStudentCard(c, status) {
     const subjectInfo = getSubjectInfo(c.title);
+    
+    // MODIFIÉ : Traductions
+    const typeLabel = i18next.t('contentTypes.' + c.type.toLowerCase()) || c.type;
+    const classLabel = i18next.t('studentCard.classLabel');
+    const dueDateText = i18next.t('studentCard.dueDate', { date: new Date(c.dueDate).toLocaleDateString() });
+
     let dateInfoHtml = '';
     let buttonHtml = '';
 
@@ -1252,38 +1389,38 @@ function createStudentCard(c, status) {
             const today = new Date(); today.setHours(0,0,0,0);
             const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate() + 1);
             let statusClass = 'status-ontime';
-            let statusText = `À faire pour le ${dueDate.toLocaleDateString('fr-FR')}`;
+            // MODIFIÉ : Traductions
+            let statusText = i18next.t('studentCard.status_todo_date', { date: dueDate.toLocaleDateString() });
             if (dueDate < today) {
                 statusClass = 'status-overdue';
-                statusText = `En retard (pour le ${dueDate.toLocaleDateString('fr-FR')})`;
+                statusText = i18next.t('studentCard.status_late_date', { date: dueDate.toLocaleDateString() });
             } else if (dueDate <= tomorrow) {
                 statusClass = 'status-due-soon';
-                statusText = `À rendre bientôt`;
+                statusText = i18next.t('studentCard.status_due_soon');
             }
             dateInfoHtml = `<span class="deadline-status ${statusClass}">${statusText}</span>`;
-            buttonHtml = `<button class="btn btn-main start-btn" data-content-id="${c.id}">Commencer</button>`;
+            buttonHtml = `<button class="btn btn-main start-btn" data-content-id="${c.id}" data-i18n="studentCard.button_start">${i18next.t('studentCard.button_start')}</button>`;
             break;
         case 'pending':
-            dateInfoHtml = `<span class="deadline-status status-pending">En attente de correction</span>`;
-            buttonHtml = `<button class="btn btn-secondary" disabled>En attente</button>`;
+            dateInfoHtml = `<span class="deadline-status status-pending" data-i18n="studentCard.status_pending">${i18next.t('studentCard.status_pending')}</span>`;
+            buttonHtml = `<button class="btn btn-secondary" disabled data-i18n="studentCard.status_pending">${i18next.t('studentCard.status_pending')}</button>`;
             break;
         case 'completed':
-            const appreciationText = c.appreciation ? getAppreciationText(c.appreciation) : 'Validé';
+            const appreciationText = c.appreciation ? getAppreciationText(c.appreciation) : i18next.t('studentCard.status_completed_simple');
             dateInfoHtml = `<span class="deadline-status status-completed">${appreciationText}</span>`;
-            buttonHtml = `<button class="btn btn-secondary view-correction-btn" data-content-id="${c.id}">Voir la correction</button>`;
+            buttonHtml = `<button class="btn btn-secondary view-correction-btn" data-content-id="${c.id}" data-i18n="studentCard.button_correction">${i18next.t('studentCard.button_correction')}</button>`;
             break;
     }
 
-    // MODIFIÉ : Ajout de la classe dynamique "card-type-${c.type}"
     return `
-        <div class="dashboard-card-student card-type-${c.type}">
+        <div class="dashboard-card-student card-type-${c.type.toLowerCase()}">
             <div class="card-header">
-                <span class="subject-tag ${subjectInfo.cssClass}">${c.type.charAt(0).toUpperCase() + c.type.slice(1)}</span>
+                <span class="subject-tag ${subjectInfo.cssClass}">${typeLabel}</span>
                 ${dateInfoHtml}
             </div>
             <div class="card-content">
                 <h4>${c.title}</h4>
-                <p>Classe: ${c.className}</p>
+                <p>${classLabel}: ${c.className}</p>
             </div>
             <div class="card-footer">
                 ${buttonHtml}
@@ -1292,26 +1429,30 @@ function createStudentCard(c, status) {
 }
 
 
-// MODIFIÉ : Correction pour récupérer data-question ET data-question-text
 async function handleHelpRequest(e) { 
     e.preventDefault(); 
-    // Marque que l'aide a été utilisée (pour Quiz ou Devoir)
     helpUsedInQuiz = true; 
     helpUsedInHomework = true; 
 
     const button = e.target.closest('button');
-    
-    // CORRECTION : Récupère le texte de la question (Quiz ou Exercice)
     const q = button.dataset.question || button.dataset.questionText;
-    
-    // NOUVEAUTÉ : Récupère le niveau depuis le bouton
     const level = button.dataset.level || 'N/A';
     
-    // Envoie les deux informations à la modale
-    showAidaHelpModal(q, level);
+    // MODIFIÉ : Transmet l'objet 'content' et 'assignment' complet si possible
+    // Pour l'instant, nous n'avons que le texte.
+    // Nous devons trouver le 'content' et 'assignment' pour `showAidaHelpModal`
+    
+    // Simulé pour l'instant - showAidaHelpModal doit être importé et géré
+    // console.log("Demande d'aide pour :", q, "Niveau:", level);
+    // showAidaHelpModal(q, level); // 'q' est le texte, 'level' est le niveau
+    
+    // Appel corrigé - `showAidaHelpModal` attend (content, assignment)
+    // Nous allons tricher et lui passer un objet partiel pour qu'il fonctionne
+    const fakeContent = { title: q };
+    const fakeAssignment = { isEvaluated: false }; // Supposons non évalué si le bouton est là
+    showAidaHelpModal(fakeContent, fakeAssignment);
 }
 
-// MODIFIÉ : Ajout de la restauration du lien header
 async function handleSubmitQuiz(c) { 
     sessionStorage.removeItem('isEvaluatedSession');
     const answers = c.questions.map((q, i) => { const sel = document.querySelector(`input[name=q${i}]:checked`); return sel ? parseInt(sel.value) : -1; }); 
@@ -1322,7 +1463,6 @@ async function handleSubmitQuiz(c) {
             score, totalQuestions: c.questions.length, answers, helpUsed: helpUsedInQuiz, teacherEmail: c.teacherEmail
         }); 
         
-        // CORRECTION : Réafficher le lien Espace de Travail du header
         const headerWorkspaceLink = document.getElementById('workspace-link');
         if (headerWorkspaceLink && window.currentUser.role === 'student') {
              headerWorkspaceLink.classList.remove('hidden');
@@ -1334,15 +1474,12 @@ async function handleSubmitQuiz(c) {
     }
 }
 
-// MODIFIÉ : Logique d'affichage des boutons d'aide (spécifique vs global)
 function renderContentViewer(c) {
     const p = document.getElementById('content-viewer-page');
     
-    // CORRECTION : Masquer le bouton Espace de Travail du Header
     const headerWorkspaceLink = document.getElementById('workspace-link');
     if (headerWorkspaceLink) headerWorkspaceLink.classList.add('hidden');
     
-    // Mise à jour de la session pour la barre d'alerte (si elle est utilisée)
     if (c.isEvaluated) {
         sessionStorage.setItem('isEvaluatedSession', 'true');
     } else {
@@ -1355,9 +1492,13 @@ function renderContentViewer(c) {
     let html = '';
     let footerHtml = '';
     const isInteractiveHomework = c.type === 'exercices' || c.type === 'dm';
-
-    // NOUVEAUTÉ : Récupération du niveau pour l'injecter dans les boutons
     const contentLevel = c.competence?.level || 'Niveau non spécifié';
+
+    // MODIFIÉ : Traductions
+    const helpButtonText = i18next.t('contentViewer.helpButton');
+    const submitQuizButton = i18next.t('contentViewer.submitButton'); // Réutilise
+    const submitHomeworkButton = i18next.t('contentViewer.submitButton'); // Réutilise
+    const markAsReadButton = i18next.t('contentViewer.markAsReadButton');
 
     if (c.type === 'quiz') {
          c.questions.forEach((q, i) => {
@@ -1367,7 +1508,7 @@ function renderContentViewer(c) {
                             
                             ${!c.isEvaluated ? `
                             <button type="button" class="btn-help" data-question="${q.question_text}" data-level="${contentLevel}">
-                                <i class="fa-solid fa-lightbulb"></i> Aide
+                                <i class="fa-solid fa-lightbulb"></i> ${helpButtonText}
                             </button>
                             ` : ''}
                         </div>
@@ -1380,47 +1521,46 @@ function renderContentViewer(c) {
                     </div>`;
         });
         
-        // STRATÉGIE : Bouton d'aide global pour Quiz Évalué
         if (c.isEvaluated) {
-             footerHtml += `<button type="button" id="open-aida-help-btn" class="btn btn-secondary" style="margin-right: auto;"><i class="fa-solid fa-lightbulb"></i> Obtenir de l'aide</button>`;
+             footerHtml += `<button type="button" id="open-aida-help-btn" class="btn btn-secondary" style="margin-right: auto;"><i class="fa-solid fa-lightbulb"></i> ${helpButtonText}</button>`;
         }
         
-        footerHtml += `<button type="submit" class="btn btn-main"><i class="fa-solid fa-paper-plane"></i> Soumettre le Quiz</button>`;
+        footerHtml += `<button type="submit" class="btn btn-main"><i class="fa-solid fa-paper-plane"></i> ${submitQuizButton}</button>`;
     
     } else if (isInteractiveHomework) {
         c.content.forEach((exo, i) => {
             html += `
                 <div class="exercice-block">
                     <div class="question-header" style="justify-content: flex-start; gap: 20px;">
-                        <h4>Exercice ${i + 1}</h4>
+                        <h4>${i18next.t('editModal.exerciceLabel', { index: i + 1 })}</h4>
                         
                         ${!c.isEvaluated ? `
                         <button type="button" class="btn-help-exercice" data-question-index="${i}" data-question-text="${exo.enonce}" data-level="${contentLevel}">
-                            <i class="fa-solid fa-lightbulb"></i> Aide
+                            <i class="fa-solid fa-lightbulb"></i> ${helpButtonText}
                         </button>
                         ` : ''}
                     </div>
                     <p class="enonce">${exo.enonce}</p>
-                    <textarea class="reponse-eleve" data-exercice-index="${i}" placeholder="Rédige ta réponse ici..."></textarea>
+                    <textarea class="reponse-eleve" data-exercice-index="${i}" placeholder="${i18next.t('contentViewer.answerPlaceholder')}"></textarea>
                 </div>
             `;
         });
         
-        // STRATÉGIE : Le footer dépend de l'évaluation
         if (c.isEvaluated) {
-             // Devoir Noté : Un seul bouton global
-             footerHtml += `<button type="button" id="open-aida-help-btn" class="btn btn-secondary" style="margin-right: auto;"><i class="fa-solid fa-lightbulb"></i> Obtenir de l'aide</button>`;
+             footerHtml += `<button type="button" id="open-aida-help-btn" class="btn btn-secondary" style="margin-right: auto;"><i class="fa-solid fa-lightbulb"></i> ${helpButtonText}</button>`;
         }
-        // S'il n'est pas évalué, on ne met PAS le bouton "Espace de Travail" (correction précédente)
         
-        footerHtml += `<button type="submit" class="btn btn-main"><i class="fa-solid fa-paper-plane"></i> Soumettre le devoir</button>`;
+        footerHtml += `<button type="submit" class="btn btn-main"><i class="fa-solid fa-paper-plane"></i> ${submitHomeworkButton}</button>`;
     
     } else { 
         html = `<div class="revision-content">${c.content.replace(/\n/g, '<br>')}</div>`;
-        footerHtml = `<button type="button" id="finish-exercise-btn" class="btn btn-main"><i class="fa-solid fa-check"></i> Marquer comme lu</button>`;
+        footerHtml = `<button type="button" id="finish-exercise-btn" class="btn btn-main"><i class="fa-solid fa-check"></i> ${markAsReadButton}</button>`;
     }
 
-    p.innerHTML = `<button id="back-to-student" class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> Retour</button>
+    // MODIFIÉ : Traduction
+    const backButton = i18next.t('contentViewer.backButton');
+    
+    p.innerHTML = `<button id="back-to-student" class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> ${backButton}</button>
                      <div class="card" style="margin-top:1rem;">
                         <h2>${c.title}</h2>
                         <form id="content-form">
@@ -1433,7 +1573,6 @@ function renderContentViewer(c) {
     backBtn.addEventListener('click', () => {
         sessionStorage.removeItem('isEvaluatedSession');
         
-        // CORRECTION : Réafficher le lien Espace de Travail du header
         const headerWorkspaceLink = document.getElementById('workspace-link');
         if (headerWorkspaceLink && window.currentUser.role === 'student') {
             headerWorkspaceLink.classList.remove('hidden');
@@ -1444,32 +1583,25 @@ function renderContentViewer(c) {
 
     const form = p.querySelector('#content-form');
 
-    // --- Rétablissement des Listeners (APRÈS injection de p.innerHTML) ---
-
     if (c.type === 'quiz') {
         form.addEventListener('submit', e => { e.preventDefault(); handleSubmitQuiz(c); });
-        
-        // Le listener ne s'attachera qu'aux boutons qui existent (ceux non évalués)
         form.querySelectorAll('.btn-help').forEach(b => b.addEventListener('click', handleHelpRequest));
     
     } else if (isInteractiveHomework) {
         form.addEventListener('submit', e => { e.preventDefault(); handleSubmitNonQuiz(c); });
-        
-        // Le listener ne s'attachera qu'aux boutons qui existent (ceux non évalués)
         form.querySelectorAll('.btn-help-exercice').forEach(b => b.addEventListener('click', handleHelpRequest));
     }
     
-    // Ce listener (pour le bouton global) ne s'attachera que s'il existe (devoir évalué)
     const aidaHelpBtn = p.querySelector('#open-aida-help-btn');
     if (aidaHelpBtn) {
         aidaHelpBtn.addEventListener('click', () => {
             helpUsedInHomework = true;
-            // Envoie le titre global et le niveau
-            showAidaHelpModal(`Aide pour le devoir : ${c.title}`, contentLevel);
+            // MODIFIÉ : Appel à showAidaHelpModal
+            const assignment = studentDashboardData.todo.find(item => item.id === c.id) || c; // Retrouve l'objet assignment
+            showAidaHelpModal(c, assignment);
         });
     }
 
-    // ... (partie "finish-exercise-btn" inchangée) ...
     const finishBtn = p.querySelector('#finish-exercise-btn');
     if (finishBtn) {
         finishBtn.addEventListener('click', async () => {
@@ -1480,7 +1612,6 @@ function renderContentViewer(c) {
                     title: c.title, score: 0, totalQuestions: 0, answers: [], helpUsed: false, teacherEmail: c.teacherEmail
                 });
                 
-                // CORRECTION : Réafficher le lien Espace de Travail du header
                 const headerWorkspaceLink = document.getElementById('workspace-link');
                 if (headerWorkspaceLink && window.currentUser.role === 'student') {
                      headerWorkspaceLink.classList.remove('hidden');
@@ -1496,7 +1627,7 @@ function renderContentViewer(c) {
     changePage('content-viewer-page');
 }
 
-// MODIFIÉ : Ajout de la restauration du lien header
+// ... (handleSubmitNonQuiz inchangé) ...
 async function handleSubmitNonQuiz(c) {
     sessionStorage.removeItem('isEvaluatedSession');
     const answerTextareas = document.querySelectorAll('#content-form .reponse-eleve');
@@ -1515,7 +1646,6 @@ async function handleSubmitNonQuiz(c) {
             teacherEmail: c.teacherEmail
         });
         
-        // CORRECTION : Réafficher le lien Espace de Travail du header
         const headerWorkspaceLink = document.getElementById('workspace-link');
         if (headerWorkspaceLink && window.currentUser.role === 'student') {
              headerWorkspaceLink.classList.remove('hidden');
@@ -1533,21 +1663,23 @@ async function handleSubmitNonQuiz(c) {
 export async function renderLibraryPage() {
     const page = document.getElementById('library-page');
     changePage('library-page');
+    
+    // MODIFIÉ : Traductions
     page.innerHTML = `
         <div class="page-header">
-            <h2><i class="fa-solid fa-book-bookmark"></i> Bibliothèque de Contenus</h2>
+            <h2 data-i18n="library.title"><i class="fa-solid fa-book-bookmark"></i> ${i18next.t('library.title')}</h2>
         </div>
         <form id="library-search-form" style="display:flex; gap:1rem; margin-bottom: 2rem;">
-            <input type="text" id="library-search-input" placeholder="Rechercher par titre...">
+            <input type="text" id="library-search-input" placeholder="${i18next.t('library.searchPlaceholder')}">
             <select id="library-subject-filter">
-                <option value="">Toutes les matières</option>
-                <option>Mathématiques</option>
-                <option>Français</option>
-                <option>Histoire-Géo</option>
-                <option>Sciences</option>
-                <option>Autre</option>
+                <option value="" data-i18n="library.allSubjects">${i18next.t('library.allSubjects')}</option>
+                <option value="Mathématiques" data-i18n="subjects.maths">${i18next.t('subjects.maths')}</option>
+                <option value="Français" data-i18n="subjects.francais">${i18next.t('subjects.francais')}</option>
+                <option value="Histoire-Géo" data-i18n="subjects.histoire-geo">${i18next.t('subjects.histoire-geo')}</option>
+                <option value="Sciences" data-i18n="subjects.sciences">${i18next.t('subjects.sciences')}</option>
+                <option value="Autre" data-i18n="subjects.autre">${i18next.t('subjects.autre')}</option>
             </select>
-            <button type="submit" class="btn btn-main">Rechercher</button>
+            <button type="submit" class="btn btn-main" data-i18n="library.searchButton">${i18next.t('library.searchButton')}</button>
         </form>
         <div id="library-grid" class="dashboard-grid">${spinnerHtml}</div>
     `;
@@ -1567,13 +1699,19 @@ async function loadLibraryContents() {
     const subject = document.getElementById('library-subject-filter').value;
     
     try {
-        // CORRECTION: Utilisation de backticks (``)
-        const results = await apiRequest(`/library?searchTerm=${searchTerm}&subject=${subject}`);
+        const results = await apiRequest(`/library?searchTerm=${encodeURIComponent(searchTerm)}&subject=${encodeURIComponent(subject)}`);
         grid.innerHTML = '';
         if (results.length === 0) {
-            grid.innerHTML = '<p>Aucun contenu trouvé. Essayez d\'autres mots-clés ou partagez le vôtre !</p>';
+            // MODIFIÉ : Traduction
+            grid.innerHTML = `<p data-i18n="library.noContent">${i18next.t('library.noContent')}</p>`;
             return;
         }
+        
+        // MODIFIÉ : Traductions
+        const typeLabel = i18next.t('library.typeLabel');
+        const authorLabel = i18next.t('library.authorLabel');
+        const importButton = i18next.t('library.importButton');
+
         results.forEach(content => {
             const subjectInfo = getSubjectInfo(content.title);
             const card = document.createElement('div');
@@ -1582,10 +1720,10 @@ async function loadLibraryContents() {
             card.innerHTML = `
                 <div class="dashboard-card-title"><h4>${content.title}</h4></div>
                 <p><span class="subject-tag ${subjectInfo.cssClass}">${subjectInfo.name}</span></p>
-                <p>Type: ${content.type}</p>
-                <p>Auteur: ${content.authorName}</p>
+                <p>${typeLabel} ${content.type}</p>
+                <p>${authorLabel} ${content.authorName}</p>
                 <div style="text-align:right; margin-top: 1rem;">
-                   <button class="btn btn-secondary import-content-btn" data-content="${contentString}">Ajouter à une classe</button>
+                   <button class="btn btn-secondary import-content-btn" data-content="${contentString}">${importButton}</button>
                 </div>
             `;
             grid.appendChild(card);
@@ -1605,38 +1743,38 @@ async function loadLibraryContents() {
 
 // --- NOUVEAU MODULE : AIDE À LA CORRECTION ---
 
-// Affiche la page du module de notation
 function renderGradingModulePage() {
     const page = document.getElementById('grading-module-page');
     changePage('grading-module-page');
     
+    // MODIFIÉ : Traductions
     page.innerHTML = `
         <div class="page-header">
-            <h2><i class="fa-solid fa-magic-sparkles"></i> Module d'Aide à la Correction (Beta)</h2>
-            <button class="btn btn-secondary" id="back-to-teacher-dash-grading"><i class="fa-solid fa-arrow-left"></i> Retour</button>
+            <h2 data-i18n="grading.title"><i class="fa-solid fa-magic-sparkles"></i> ${i18next.t('grading.title')}</h2>
+            <button class="btn btn-secondary" id="back-to-teacher-dash-grading" data-i18n="grading.backButton"><i class="fa-solid fa-arrow-left"></i> ${i18next.t('grading.backButton')}</button>
         </div>
         
         <div class="card">
-            <p class="subtitle" style="margin-bottom: 1.5rem;">Uploadez une ou plusieurs copies d'élèves (PDF ou image) et fournissez le sujet ainsi que vos critères pour qu'AIDA génère des propositions d'évaluation.</p>
+            <p class="subtitle" style="margin-bottom: 1.5rem;" data-i18n="grading.subtitle">${i18next.t('grading.subtitle')}</p>
             
             <form id="grading-form">
                 <div class="form-group">
-                    <label for="grading-sujet"><strong>1. Sujet du devoir</strong></label>
-                    <textarea id="grading-sujet" rows="3" required placeholder="Ex: Expliquez la différence entre l'analyse de texte et l'analyse de discours..."></textarea>
+                    <label for="grading-sujet" data-i18n="grading.subjectLabel"><strong>${i18next.t('grading.subjectLabel')}</strong></label>
+                    <textarea id="grading-sujet" rows="3" required placeholder="${i18next.t('grading.subjectPlaceholder')}"></textarea>
                 </div>
                 
                 <div class="form-group">
-                    <label for="grading-criteres"><strong>2. Critères de notation</strong> (fournissez le barème)</label>
-                    <textarea id="grading-criteres" rows="3" required placeholder="Ex: Pertinence du contenu /10, Organisation /5, Langue et expression /5"></textarea>
+                    <label for="grading-criteres" data-i18n="grading.criteriaLabel"><strong>${i18next.t('grading.criteriaLabel')}</strong></label>
+                    <textarea id="grading-criteres" rows="3" required placeholder="${i18next.t('grading.criteriaPlaceholder')}"></textarea>
                 </div>
                 
                 <div class="form-group">
-                    <label for="grading-file"><strong>3. Copies des élèves</strong> (PDF, JPG, PNG)</label>
+                    <label for="grading-file" data-i18n="grading.filesLabel"><strong>${i18next.t('grading.filesLabel')}</strong></label>
                     <input type="file" id="grading-file" accept=".pdf,.jpg,.jpeg,.png" required multiple>
                 </div>
                 
-                <button type="submit" class="btn btn-main" style="width: 100%;">
-                    <i class="fa-solid fa-wand-sparkles"></i> Lancer l'analyse
+                <button type="submit" class="btn btn-main" style="width: 100%;" data-i18n="grading.submitButton">
+                    <i class="fa-solid fa-wand-sparkles"></i> ${i18next.t('grading.submitButton')}
                 </button>
             </form>
         </div>
@@ -1649,7 +1787,6 @@ function renderGradingModulePage() {
     page.querySelector('#grading-form').addEventListener('submit', handleGradingAnalysis);
 }
 
-// Gère l'envoi du formulaire d'analyse (version 1 élève / N pages)
 async function handleGradingAnalysis(e) {
     e.preventDefault();
     const resultsContainer = document.getElementById('grading-results');
@@ -1657,20 +1794,21 @@ async function handleGradingAnalysis(e) {
 
     const sujet = document.getElementById('grading-sujet').value;
     const criteres = document.getElementById('grading-criteres').value;
-    const files = document.getElementById('grading-file').files; // Utilise .files (au pluriel)
+    const files = document.getElementById('grading-file').files;
 
     if (!files || files.length === 0 || !sujet || !criteres) {
-        resultsContainer.innerHTML = `<p class="error-message">Veuillez remplir tous les champs et sélectionner au moins un fichier.</p>`;
+        // MODIFIÉ : Traduction
+        resultsContainer.innerHTML = `<p class="error-message" data-i18n="grading.errorFillFields">${i18next.t('grading.errorFillFields')}</p>`;
         return;
     }
 
     const formData = new FormData();
     formData.append('sujet', sujet);
     formData.append('criteres', criteres);
+    formData.append('lang', i18next.language); // MODIFIÉ : Envoie la langue
     
-    // Boucle pour ajouter tous les fichiers (pages)
     for (const file of files) {
-        formData.append('copies', file); // 'copies' (au pluriel) doit correspondre au backend
+        formData.append('copies', file);
     }
 
     try {
@@ -1684,24 +1822,28 @@ async function handleGradingAnalysis(e) {
             throw new Error(errText || 'Erreur du serveur lors de analyse.');
         }
 
-        // MODIFIÉ : Attend un OBJET unique, pas un tableau
         const results = await response.json(); 
         
-        // --- MODIFIÉ : Affichage formaté pour UN SEUL résultat ---
+        // MODIFIÉ : Traductions
+        const resultTitle = i18next.t('grading.resultTitle');
+        const resultSubtitle = i18next.t('grading.resultSubtitle', { file: files[0].name, count: files.length - 1 });
+        const globalAnalysis = i18next.t('grading.globalAnalysis');
+        const detailedAnalysis = i18next.t('grading.detailedAnalysis');
+        const noCriteria = i18next.t('grading.noCriteria');
+        const finalGrade = i18next.t('grading.finalGrade');
+        const studentComment = i18next.t('grading.studentComment');
         
-        // (Utilise 'results' directement, au lieu de 'eval')
         let html = `
             <div class="card" style="margin-bottom: 1.5rem;">
-                <h3>Résultat de l'analyse AIDA</h3>
-                <p class="subtitle">Pour la copie : ${files[0].name} (et ${files.length - 1} autre(s) page(s))</p>
+                <h3>${resultTitle}</h3>
+                <p class="subtitle">${resultSubtitle}</p>
                 
-                <h4 style="margin-top: 1.5rem;">Analyse Globale</h4>
+                <h4 style="margin-top: 1.5rem;">${globalAnalysis}</h4>
                 <p>${results.analyseGlobale ? results.analyseGlobale.replace(/\\n/g, '<br>') : 'N/A'}</p>
                 
-                <h4 style="margin-top: 1.5rem;">Évaluation Détaillée</h4>
+                <h4 style="margin-top: 1.5rem;">${detailedAnalysis}</h4>
         `;
         
-        // Afficher les critères
         if (results.criteres && Array.isArray(results.criteres)) {
             html += '<ul>';
             results.criteres.forEach(critere => {
@@ -1709,14 +1851,14 @@ async function handleGradingAnalysis(e) {
             });
             html += '</ul>';
         } else {
-            html += '<p>Aucun critère détaillé fourni.</p>';
+            html += `<p>${noCriteria}</p>`;
         }
 
         html += `
-                <h4 style="margin-top: 1.5rem;">Note Finale Suggérée</h4>
+                <h4 style="margin-top: 1.5rem;">${finalGrade}</h4>
                 <p style="font-size: 1.5rem; font-weight: 700; color: var(--primary-color);">${results.noteFinale || 'N/A'}</p>
                 
-                <h4 style="margin-top: 1.5rem;">Commentaire pour l'élève</h4>
+                <h4 style="margin-top: 1.5rem;">${studentComment}</h4>
                 <div class="student-answer-box">${results.commentaireEleve ? results.commentaireEleve.replace(/\\n/g, '<br>') : 'N/A'}</div>
             </div>
         `;

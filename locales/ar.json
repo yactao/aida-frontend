@@ -84,5 +84,146 @@
     "warning": "هذا الإجراء لا رجعة فيه وسيحذف أيضًا جميع نتائجه المرتبطة بهذا الفصل.",
     "cancelButton": "إلغاء",
     "deleteButton": "تأكيد الحذف"
+  },
+
+  "studentDashboard": {
+    "title": "لوحة تحكم {{name}}",
+    "subtitle": "واجباتك وتمارينك في مكان واحد.",
+    "noTodo": "ليس لديك واجبات للقيام بها الآن. عمل جيد!",
+    "noPending": "لا توجد واجبات بانتظار التصحيح.",
+    "noArchive": "لا توجد واجبات مكتملة في أرشيفك."
+  },
+  "studentCard": {
+    "status": "الحالة:",
+    "status_todo": "للقيام به",
+    "status_late": "متأخر",
+    "status_pending": "قيد الانتظار",
+    "status_completed": "مكتمل",
+    "type": "النوع:",
+    "dueDate": "يُسلم في: {{date}}",
+    "button_start": "ابدأ",
+    "button_view": "عرض الواجب",
+    "button_correction": "عرض التصحيح"
+  },
+  "contentViewer": {
+    "backButton": "العودة إلى لوحة التحكم",
+    "instructionsTitle": "التعليمات",
+    "answerTitle": "إجابتك",
+    "submitButton": "تسليم الواجب",
+    "helpButton": "اطلب المساعدة من AIDA",
+    "submitConfirmTitle": "تأكيد التسليم",
+    "submitConfirmText": "هل أنت متأكد من رغبتك في تسليم هذا الواجب؟ لن تتمكن من تعديله لاحقاً.",
+    "submitConfirmButton": "تسليم",
+    "cancelButton": "إلغاء"
+  },
+  "aidaHelp": {
+    "title": "مساعدة AIDA",
+    "trustModeBanner": "وضع 'الإعداد للواجب' مُفعّل. سيرشدك الذكاء الاصطناعي دون إعطائك الإجابات.",
+    "placeholder": "اطرح سؤالك حول التمرين...",
+    "initialMessage": "مرحباً! أرى أنك تعمل على تمرين '{{title}}'. كيف يمكنني مساعدتك؟",
+    "initialMessageTrust": "مرحباً! أرى أنك تحضّر للواجب '{{title}}'. اطرح أسئلتك، وسأرشدك خطوة بخطوة.",
+    "sendButton": "إرسال"
+  },
+  "planner": {
+    "title": "مخطط الدروس",
+    "backButton": "عودة",
+    "themeLabel": "موضوع الوحدة",
+    "themePlaceholder": "مثال: الإمبراطورية الرومانية، الكسور...",
+    "levelLabel": "مستوى الصف",
+    "levelPlaceholder": "مثال: الصف السادس، الثاني ابتدائي...",
+    "sessionsLabel": "عدد الحصص",
+    "submitButton": "إنشاء الوحدة",
+    "generateButton": "إنشاء"
+  },
+  "genModal": {
+    "title": "إنشاء محتوى تعليمي",
+    "tabProgram": "من المنهج",
+    "tabUpload": "من نص/مستند",
+    "contentTypeLabel": "نوع المحتوى",
+    "countLabelQuiz": "عدد الأسئلة",
+    "countLabelExercices": "عدد التمارين",
+    "cycleLabel": "المرحلة",
+    "levelLabel": "المستوى",
+    "subjectLabel": "المادة",
+    "notionLabel": "المفهوم",
+    "competenceLabel": "المهارة",
+    "choose": "-- اختر --",
+    "freeCompetenceLabel": "مهارة مقترحة",
+    "freeCompetencePlaceholder": "موضوع أو مهارة حرة...",
+    "generateButton": "إنشاء",
+    "uploadLabel": "تحميل مستند (PDF, DOCX, PNG, JPG)",
+    "uploadContentTypeLabel": "نوع المحتوى المراد إنشاؤه",
+    "uploadButton": "تحليل وإنشاء"
+  },
+  "editModal": {
+    "title": "تعديل واعتماد المحتوى",
+    "titleLabel": "العنوان",
+    "questionLabel": "سؤال {{index}}",
+    "optionsLabel": "الخيارات",
+    "exerciceLabel": "تمرين {{index}}",
+    "revisionLabel": "محتوى البطاقة",
+    "structureError": "المحتوى الذي تم إنشاؤه له بنية غير متوقعة. يمكنك تعديله يدويًا أدناه.",
+    "rawJsonLabel": "المحتوى الخام (JSON)",
+    "submitButton": "اعتماد وتعيين"
+  },
+  "assignModal": {
+    "title": "تعيين \"{{title}}\"",
+    "classLabel": "تعيين للفصل",
+    "dueDateLabel": "تاريخ التسليم",
+    "evaluatedLabel": "هذا المحتوى هو واجب مُقيّم",
+    "submitButton": "تعيين",
+    "successTitle": "نجاح",
+    "successText": "تم تعيين المحتوى بنجاح!"
+  },
+  "library": {
+    "title": "مكتبة المحتويات",
+    "searchPlaceholder": "البحث بالعنوان...",
+    "allSubjects": "جميع المواد",
+    "searchButton": "بحث",
+    "noContent": "لم يتم العثور على محتوى. جرب كلمات أخرى أو شارك محتوى خاص بك!",
+    "typeLabel": "النوع:",
+    "authorLabel": "المؤلف:",
+    "importButton": "إضافة إلى فصل"
+  },
+  "publishModal": {
+    "title": "نشر في المكتبة",
+    "confirmText": "أنت على وشك مشاركة \"<strong>{{title}}</strong>\" مع معلمين آخرين.",
+    "categoryText": "سيتم نشره في فئة: <strong>{{subject}}</strong>",
+    "cancelButton": "إلغاء",
+    "submitButton": "تأكيد ونشر",
+    "successTitle": "نجاح",
+    "successText": "تم نشر المحتوى الخاص بك بنجاح!"
+  },
+  "grading": {
+    "title": "مساعد التصحيح (تجريبي)",
+    "backButton": "عودة",
+    "subtitle": "قم بتحميل نسخة واحدة أو أكثر من أوراق الطلاب (PDF أو صورة) وقدم موضوع الواجب ومعاييرك ليقوم AIDA بإنشاء مقترحات تقييم.",
+    "subjectLabel": "1. موضوع الواجب",
+    "subjectPlaceholder": "مثال: اشرح الفرق بين...",
+    "criteriaLabel": "2. معايير التصحيح (قدم سلم التنقيط)",
+    "criteriaPlaceholder": "مثال: ملاءمة المحتوى /10، التنظيم /5...",
+    "filesLabel": "3. أوراق الطلاب (PDF, JPG, PNG)",
+    "submitButton": "بدء التحليل",
+    "errorFillFields": "يرجى ملء جميع الحقول واختيار ملف واحد على الأقل.",
+    "resultTitle": "نتيجة تحليل AIDA",
+    "resultSubtitle": "للورقة: {{file}} (و {{count}} صفحة (صفحات) أخرى)",
+    "globalAnalysis": "تحليل عام",
+    "detailedAnalysis": "تقييم مفصل",
+    "noCriteria": "لم يتم تقديم معايير مفصلة.",
+    "finalGrade": "الدرجة النهائية المقترحة",
+    "studentComment": "تعليق للطالب"
+  },
+  "contentTypes": {
+    "quiz": "اختبار",
+    "exercices": "ورقة تمارين",
+    "revision": "بطاقة مراجعة",
+    "dm": "واجب منزلي"
+  },
+  "subjects": {
+    "maths": "الرياضيات",
+    "francais": "اللغة الفرنسية",
+    "histoire-geo": "التاريخ والجغرافيا",
+    "sciences": "العلوم",
+    "autre": "أخرى"
   }
 }
