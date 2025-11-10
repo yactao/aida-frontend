@@ -104,7 +104,7 @@
             flex-shrink: 0; /* S'assure que le banner ne rétrécit pas */
         }
 
-        /* --- Nouveaux Styles pour l'Historique --- */
+        /* --- Styles pour l'Historique --- */
         
         .playground-content-wrapper {
             display: flex;
@@ -116,6 +116,8 @@
             overflow: hidden; /* Important */
             background-color: var(--card-bg-color);
             margin-top: 1rem;
+            /* NOUVEAU : Transition pour le wrapper */
+            transition: all 0.3s ease;
         }
         
         .playground-sidebar {
@@ -126,6 +128,9 @@
             overflow-y: auto;
             display: flex;
             flex-direction: column;
+            /* NOUVEAU : Transitions */
+            transition: all 0.3s ease;
+            flex-shrink: 0;
         }
         body.dark-mode .playground-sidebar {
              background: #191919; /* Un fond sombre mais distinct */
@@ -173,12 +178,49 @@
             flex-direction: column;
             height: 100%; /* Important */
             overflow: hidden; /* Le scroll sera dans #chat-window */
+            /* NOUVEAU : Position relative pour le bouton */
+            position: relative; 
         }
         
-        /* Ajustement : l'input-area a déjà un fond, pas besoin de le re-styler */
          #chat-window {
             background-color: var(--card-bg-color); /* S'assure que c'est cohérent */
          }
+
+        /* --- NOUVEAU : Styles pour la Sidebar Rétractable --- */
+        
+        /* État lorsque le panneau EST masqué */
+        .playground-content-wrapper.sidebar-collapsed .playground-sidebar {
+            flex-basis: 0;
+            width: 0;
+            padding: 1rem 0; /* Enlève le padding horizontal */
+            overflow: hidden; /* Cache le contenu qui dépasse */
+            opacity: 0;
+            border-right-width: 0; /* Cache aussi la bordure */
+        }
+        
+        /* Positionnement du nouveau bouton */
+        #toggle-sidebar-btn {
+            position: absolute;
+            top: 0.5rem;
+            left: 0.5rem;
+            z-index: 10;
+            background-color: var(--card-bg-color);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            font-size: 1rem; /* Taille de l'icône */
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border-color);
+        }
+        #toggle-sidebar-btn:hover {
+            background-color: #E9F2FF;
+        }
+        body.dark-mode #toggle-sidebar-btn {
+            border-color: #333;
+        }
+        body.dark-mode #toggle-sidebar-btn:hover {
+            background-color: #333;
+        }
 
     </style>
 </head>
@@ -207,6 +249,9 @@
             </aside>
 
             <main class="playground-main">
+                
+                <button id="toggle-sidebar-btn" class="btn-icon" title="Afficher/Cacher l'historique"><i class="fa-solid fa-bars"></i></button>
+
                 <div id="chat-window">
                     </div>
 
@@ -271,6 +316,10 @@
         // NOUVEAUX sélecteurs pour l'historique
         const newChatBtn = document.getElementById('new-chat-btn');
         const historyList = document.getElementById('history-list');
+        
+        // NOUVEAUX sélecteurs pour la barre rétractable
+        const toggleSidebarBtn = document.getElementById('toggle-sidebar-btn');
+        const contentWrapper = document.querySelector('.playground-content-wrapper');
 
         // --- 2. ÉTAT DE L'APPLICATION (Refonte) ---
         const STORAGE_KEY = 'aidaPlaygroundHistory';
@@ -389,6 +438,10 @@
                 // Désactive l'UI de l'historique en mode "devoir"
                 newChatBtn.disabled = true;
                 historyList.innerHTML = '<li style="color: #888; text-align: center; font-style: italic; user-select: none;">Historique désactivé en mode devoir.</li>';
+                
+                // Cache aussi le bouton de bascule en mode devoir
+                toggleSidebarBtn.classList.add('hidden');
+                contentWrapper.classList.add('sidebar-collapsed');
             }
             addMessage('aida', welcomeMessage, false);
         }
@@ -628,7 +681,15 @@
         
         // --- 7. ÉCOUTEURS D'ÉVÉNEMENTS (Mis à jour) ---
         
-        // NOUVEAU
+        // NOUVEL écouteur pour le bouton de bascule
+        toggleSidebarBtn.addEventListener('click', () => {
+            contentWrapper.classList.toggle('sidebar-collapsed');
+            
+            // Sauvegarde l'état dans le localStorage
+            const isCollapsed = contentWrapper.classList.contains('sidebar-collapsed');
+            localStorage.setItem('aidaSidebarCollapsed', isCollapsed);
+        });
+        
         newChatBtn.addEventListener('click', () => {
              startNewChat(false, "Bonjour ! Je suis AIDA. Comment puis-je t'aider aujourd'hui ?");
         });
@@ -708,6 +769,12 @@
         // Configuration initiale de la voix et de la parole
         populateVoiceList();
         setupSpeechRecognition();
+
+        // NOUVEAU : Vérifie si l'utilisateur avait masqué le panneau
+        const savedCollapsedState = localStorage.getItem('aidaSidebarCollapsed');
+        if (savedCollapsedState === 'true') {
+            contentWrapper.classList.add('sidebar-collapsed');
+        }
 
         // Charge tout l'historique depuis le localStorage
         loadHistoryFromStorage();
