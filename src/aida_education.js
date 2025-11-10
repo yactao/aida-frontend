@@ -1239,12 +1239,12 @@ export async function renderStudentDashboard() {
         
         // MODIFIÉ : Traductions
         const title = i18next.t('studentDashboard.title', { name: window.currentUser.firstName });
-        const todoTitle = i18next.t('studentDashboard.todo');
-        const pendingTitle = i18next.t('studentDashboard.pending');
-        const archiveTitle = i18next.t('studentDashboard.archive');
-        const filterAll = i18next.t('studentDashboard.filterAll');
-        const filterMonth = i18next.t('studentDashboard.filterMonth');
-        const filterWeek = i18next.t('studentDashboard.filterWeek');
+        const todoTitle = i18next.t('Todo');
+        const pendingTitle = i18next.t('Pending');
+        const archiveTitle = i18next.t('Achive');
+        const filterAll = i18next.t('Filter All');
+        const filterMonth = i18next.t('Filter Month');
+        const filterWeek = i18next.t('Filter Week');
 
         let todoHtml = `<h3>${todoTitle}</h3>`;
         if (studentDashboardData.todo.length === 0) {
@@ -1377,8 +1377,8 @@ function createStudentCard(c, status) {
     
     // MODIFIÉ : Traductions
     const typeLabel = i18next.t('contentTypes.' + c.type.toLowerCase()) || c.type;
-    const classLabel = i18next.t('studentCard.classLabel');
-    const dueDateText = i18next.t('studentCard.dueDate', { date: new Date(c.dueDate).toLocaleDateString() });
+    const classLabel = i18next.t('Class');
+    const dueDateText = i18next.t('DueDate', { date: new Date(c.dueDate).toLocaleDateString() });
 
     let dateInfoHtml = '';
     let buttonHtml = '';
@@ -1390,13 +1390,13 @@ function createStudentCard(c, status) {
             const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate() + 1);
             let statusClass = 'status-ontime';
             // MODIFIÉ : Traductions
-            let statusText = i18next.t('studentCard.status_todo_date', { date: dueDate.toLocaleDateString() });
+            let statusText = i18next.t('Todo_date', { date: dueDate.toLocaleDateString() });
             if (dueDate < today) {
                 statusClass = 'status-overdue';
-                statusText = i18next.t('studentCard.status_late_date', { date: dueDate.toLocaleDateString() });
+                statusText = i18next.t('Late_date', { date: dueDate.toLocaleDateString() });
             } else if (dueDate <= tomorrow) {
                 statusClass = 'status-due-soon';
-                statusText = i18next.t('studentCard.status_due_soon');
+                statusText = i18next.t('Due_soon');
             }
             dateInfoHtml = `<span class="deadline-status ${statusClass}">${statusText}</span>`;
             buttonHtml = `<button class="btn btn-main start-btn" data-content-id="${c.id}" data-i18n="studentCard.button_start">${i18next.t('studentCard.button_start')}</button>`;
@@ -1541,7 +1541,7 @@ function renderContentViewer(c) {
                         ` : ''}
                     </div>
                     <p class="enonce">${exo.enonce}</p>
-                    <textarea class="reponse-eleve" data-exercice-index="${i}" placeholder="${i18next.t('contentViewer.answerPlaceholder')}"></textarea>
+                    <textarea class="reponse-eleve" data-exercice-index="${i}" placeholder="${i18next.t('Answer Placeholder')}"></textarea>
                 </div>
             `;
         });
