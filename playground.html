@@ -16,6 +16,7 @@
             --input-bg-color: #FFFFFF;
             --shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
             --warning-color: #F5A623;
+            --border-color: #eee;
         }
         body.dark-mode {
             --primary-color: #58a6ff;
@@ -25,18 +26,24 @@
             --card-bg-color: #1E1E1E;
             --input-bg-color: #2C2C2C;
             --shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+            --border-color: #333;
         }
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: 'Poppins', sans-serif; background-color: var(--background-color); color: var(--text-color); transition: background-color 0.3s, color 0.3s; display: flex; flex-direction: column; height: 100vh; }
-        .playground-container { display: flex; flex-direction: column; flex-grow: 1; max-width: 900px; width: 100%; margin: 0 auto; padding: 1rem; }
-        .playground-header { display: flex; justify-content: space-between; align-items: center; padding: 1rem 0; border-bottom: 1px solid #eee; }
-        body.dark-mode .playground-header { border-color: #333; }
-        .playground-header h2 { display: flex; align-items: center; gap: 0.75rem; }
-        .header-controls { display: flex; align-items: center; gap: 0.5rem; }
-        .btn { padding: 10px 20px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.3s ease; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; }
-        .btn-secondary { background-color: #E9F2FF; color: var(--primary-color); }
-        body.dark-mode .btn-secondary { background-color: #333; color: var(--primary-color); }
-
+        
+        .playground-container { 
+            display: flex; 
+            flex-direction: column; 
+            flex-grow: 1; 
+            max-width: 1200px; /* Élargi pour la sidebar */
+            width: 100%; 
+            margin: 0 auto; 
+            padding: 1rem; 
+            overflow: hidden; /* Empêche le double scroll */
+        }
+        
+        .playground-header { display: flex; justify-content: space-between; align-items: center; padding: 1rem 0; border-bottom: 1px solid var(--border-color); flex-shrink: 0; }
+        
         #chat-window { flex-grow: 1; overflow-y: auto; padding: 1rem; }
         .chat-message { display: flex; margin-bottom: 1rem; max-width: 80%; }
         .chat-message.user { justify-content: flex-end; margin-left: auto; }
@@ -47,17 +54,24 @@
         .message-bubble p:not(:last-child) { margin-bottom: 0.5rem; }
         .aida-controls { margin-top: 8px; display: flex; gap: 8px; }
 
-        .input-area { display: flex; flex-direction: column; gap: 0.5rem; padding: 1rem; border-top: 1px solid #eee; background-color: var(--card-bg-color); }
-        body.dark-mode .input-area { border-color: #333; }
+        .input-area { display: flex; flex-direction: column; gap: 0.5rem; padding: 1rem; border-top: 1px solid var(--border-color); background-color: var(--card-bg-color); flex-shrink: 0; }
+        
         #mode-selector { display: flex; gap: 1rem; margin-bottom: 0.5rem; align-items: center; justify-content: center; flex-wrap: wrap; }
         #mode-selector label { display: flex; align-items: center; gap: 0.5rem; padding: 8px 12px; border-radius: 20px; cursor: pointer; border: 2px solid transparent; transition: all 0.3s; }
         #mode-selector input { display: none; }
         #mode-selector input:checked + label { background-color: #E9F2FF; border-color: var(--primary-color); color: var(--primary-color); }
         #mode-selector input:disabled + label { cursor: not-allowed; opacity: 0.6; }
         body.dark-mode #mode-selector input:checked + label { background-color: #2c3e50; }
+        
         .input-controls { display: flex; gap: 1rem; }
         #user-input { flex-grow: 1; padding: 12px; border: 1px solid #ccc; border-radius: 8px; background-color: var(--input-bg-color); color: var(--text-color); font-family: 'Poppins', sans-serif; resize: none; }
         body.dark-mode #user-input { border-color: #444; }
+        
+        .btn { padding: 10px 20px; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.3s ease; text-decoration: none; display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; }
+        .btn-secondary { background-color: #E9F2FF; color: var(--primary-color); }
+        body.dark-mode .btn-secondary { background-color: #333; color: var(--primary-color); }
+        .btn-main { background: linear-gradient(45deg, var(--primary-color), var(--secondary-color)); color: white; }
+        
         .btn-icon { background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #aaa; padding: 10px; border-radius: 8px; transition: color 0.3s, background-color 0.3s; }
         body.dark-mode .btn-icon { color: #666; }
         .btn-icon:hover { background-color: #E9F2FF; }
@@ -87,13 +101,92 @@
             text-align: center;
             font-size: 0.9rem;
             font-weight: 600;
+            flex-shrink: 0; /* S'assure que le banner ne rétrécit pas */
         }
+
+        /* --- Nouveaux Styles pour l'Historique --- */
+        
+        .playground-content-wrapper {
+            display: flex;
+            flex-grow: 1; /* Prend la place restante sous le header */
+            height: 1px; /* Astuce pour que flex-grow fonctionne avec la hauteur */
+            min-height: 0; /* Empêche le dépassement */
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            overflow: hidden; /* Important */
+            background-color: var(--card-bg-color);
+            margin-top: 1rem;
+        }
+        
+        .playground-sidebar {
+            flex: 0 0 280px;
+            background: var(--background-color); /* Un fond légèrement différent */
+            padding: 1rem;
+            border-right: 1px solid var(--border-color);
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+        body.dark-mode .playground-sidebar {
+             background: #191919; /* Un fond sombre mais distinct */
+        }
+
+        .history-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            flex-grow: 1;
+            overflow-y: auto;
+        }
+
+        .history-list li {
+            padding: 0.75rem 1rem;
+            margin-bottom: 0.5rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9em;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            transition: background-color 0.2s;
+            color: var(--text-color);
+        }
+        .history-list li:hover {
+            background-color: #E9F2FF; /* Plus clair */
+        }
+        body.dark-mode .history-list li:hover {
+            background-color: #2C2C2C; /* Plus clair en sombre */
+        }
+
+        .history-list li.active {
+            background-color: var(--primary-color);
+            color: white;
+            font-weight: 600;
+        }
+        body.dark-mode .history-list li.active {
+            background-color: var(--primary-color);
+        }
+
+        .playground-main {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            height: 100%; /* Important */
+            overflow: hidden; /* Le scroll sera dans #chat-window */
+        }
+        
+        /* Ajustement : l'input-area a déjà un fond, pas besoin de le re-styler */
+         #chat-window {
+            background-color: var(--card-bg-color); /* S'assure que c'est cohérent */
+         }
+
     </style>
 </head>
 <body>
     <div id="trust-mode-banner" class="hidden">
         <i class="fa-solid fa-lock"></i> Le mode "Préparation de devoir" est activé car vous consultez un devoir évalué.
     </div>
+    
     <div class="playground-container">
         <div class="playground-header">
             <h2><i class="fa-solid fa-pen-ruler"></i> Espace de Travail</h2>
@@ -103,28 +196,39 @@
             </div>
         </div>
 
-        <div id="chat-window">
-            <!-- Les messages du chat apparaîtront ici -->
-        </div>
+        <div class="playground-content-wrapper">
+            
+            <aside class="playground-sidebar">
+                <button id="new-chat-btn" class="btn btn-main" style="width: 100%; margin-bottom: 1rem;">
+                    <i class="fa-solid fa-plus"></i> Nouvelle Discussion
+                </button>
+                <ul id="history-list" class="history-list">
+                    </ul>
+            </aside>
 
-        <div class="input-area">
-            <div id="mode-selector">
-                <input type="radio" id="mode-tutor" name="mode" value="tutor" checked>
-                <label for="mode-tutor"><i class="fa-solid fa-person-chalkboard"></i> Aide aux exercices</label>
-                <input type="radio" id="mode-coach" name="mode" value="coach">
-                <label for="mode-coach"><i class="fa-solid fa-file-signature"></i> Préparation de devoir</label>
-            </div>
-            <div class="input-controls">
-                <textarea id="user-input" placeholder="Pose ta question ou décris ton exercice..."></textarea>
-                <button id="mic-btn" class="btn-icon" title="Parler"><i class="fa-solid fa-microphone"></i></button>
-                <button id="send-btn" class="btn-icon" title="Envoyer" style="color: var(--primary-color)"><i class="fa-solid fa-paper-plane"></i></button>
-                <button id="upload-btn" class="btn-icon" title="Charger un document"><i class="fa-solid fa-upload"></i></button>
-                <input type="file" id="doc-upload" class="hidden" accept=".pdf,.docx,.png,.jpg,.jpeg">
-            </div>
+            <main class="playground-main">
+                <div id="chat-window">
+                    </div>
+
+                <div class="input-area">
+                    <div id="mode-selector">
+                        <input type="radio" id="mode-tutor" name="mode" value="tutor" checked>
+                        <label for="mode-tutor"><i class="fa-solid fa-person-chalkboard"></i> Aide aux exercices</label>
+                        <input type="radio" id="mode-coach" name="mode" value="coach">
+                        <label for="mode-coach"><i class="fa-solid fa-file-signature"></i> Préparation de devoir</label>
+                    </div>
+                    <div class="input-controls">
+                        <textarea id="user-input" placeholder="Pose ta question ou décris ton exercice..."></textarea>
+                        <button id="mic-btn" class="btn-icon" title="Parler"><i class="fa-solid fa-microphone"></i></button>
+                        <button id="send-btn" class="btn-icon" title="Envoyer" style="color: var(--primary-color)"><i class="fa-solid fa-paper-plane"></i></button>
+                        <button id="upload-btn" class="btn-icon" title="Charger un document"><i class="fa-solid fa-upload"></i></button>
+                        <input type="file" id="doc-upload" class="hidden" accept=".pdf,.docx,.png,.jpg,.jpeg">
+                    </div>
+                </div>
+            </main>
         </div>
     </div>
 
-    <!-- Modale des paramètres vocaux -->
     <div id="voice-settings-modal" class="modal-overlay hidden">
         <div class="modal-content">
             <button class="close-modal">&times;</button>
@@ -145,6 +249,7 @@
     </div>
 
     <script>
+        // --- 1. SÉLECTEURS DOM (Anciens et Nouveaux) ---
         const backendUrl = 'https://aida-backend-bqd0fnd2a3c7dadf.francecentral-01.azurewebsites.net/api';
         const chatWindow = document.getElementById('chat-window');
         const userInput = document.getElementById('user-input');
@@ -162,20 +267,147 @@
         const rateValue = document.getElementById('rate-value');
         const pitchValue = document.getElementById('pitch-value');
         const trustModeBanner = document.getElementById('trust-mode-banner');
+        
+        // NOUVEAUX sélecteurs pour l'historique
+        const newChatBtn = document.getElementById('new-chat-btn');
+        const historyList = document.getElementById('history-list');
 
-        let chatHistory = [];
+        // --- 2. ÉTAT DE L'APPLICATION (Refonte) ---
+        const STORAGE_KEY = 'aidaPlaygroundHistory';
+        let allChatsHistory = []; // Stocke TOUS les chats
+        let currentChatId = null;   // ID du chat en cours
+        let currentMessages = []; // Messages du chat en cours (pour l'API)
+
         let recognition;
         let currentAudio = null;
         let currentListenBtn = null;
         
-        // --- Fonctions de l'interface du Chat ---
-        function addMessage(sender, text) {
+        // --- 3. FONCTIONS DE L'HISTORIQUE (Nouvelles) ---
+
+        // Génère un ID unique
+        function uuidv4() {
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+                return v.toString(16);
+            });
+        }
+
+        // Charge l'historique depuis le localStorage
+        function loadHistoryFromStorage() {
+            const storedHistory = localStorage.getItem(STORAGE_KEY);
+            allChatsHistory = storedHistory ? JSON.parse(storedHistory) : [];
+        }
+
+        // Sauvegarde l'historique dans le localStorage
+        function saveHistoryToStorage() {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(allChatsHistory));
+        }
+
+        // Met à jour la barre latérale
+        function renderHistorySidebar() {
+            historyList.innerHTML = '';
+            if (allChatsHistory.length === 0) {
+                historyList.innerHTML = '<li style="color: #888; text-align: center; font-style: italic; cursor: default; user-select: none;">Aucun historique</li>';
+                return;
+            }
+            
+            allChatsHistory.sort((a, b) => b.timestamp - a.timestamp); // Du plus récent au plus ancien
+
+            allChatsHistory.forEach(chat => {
+                const li = document.createElement('li');
+                li.textContent = chat.title;
+                li.dataset.chatId = chat.id;
+                if (chat.id === currentChatId) {
+                    li.classList.add('active');
+                }
+                li.addEventListener('click', () => {
+                    loadChat(chat.id);
+                });
+                historyList.appendChild(li);
+            });
+        }
+
+        // Charge un chat spécifique depuis l'historique
+        function loadChat(chatId) {
+            const chat = allChatsHistory.find(c => c.id === chatId);
+            if (!chat) return;
+
+            currentChatId = chatId;
+            currentMessages = chat.messages; // Charge les messages pour l'API
+            
+            chatWindow.innerHTML = ''; // Vide la fenêtre
+            // Re-génère les messages du chat chargé
+            currentMessages.forEach(msg => {
+                if (msg.role === 'user') {
+                    // Extrait le message utilisateur simple (sans le préfixe de mode)
+                    const userMsg = msg.content.startsWith('(Mode:') ? msg.content.substring(msg.content.indexOf(')') + 2) : msg.content;
+                    addMessage('user', userMsg, false); // 'false' pour ne pas l'ajouter à l'historique
+                } else if (msg.role === 'assistant') {
+                    addMessage('aida', msg.content, false); // 'false' pour ne pas l'ajouter à l'historique
+                }
+            });
+            
+            renderHistorySidebar(); // Met à jour la classe 'active'
+            chatWindow.scrollTop = chatWindow.scrollHeight;
+        }
+
+        // Sauvegarde le chat actuel (création ou mise à jour)
+        function saveCurrentChat() {
+            const userMessage = currentMessages.find(m => m.role === 'user');
+            if (!userMessage) return; // Ne pas sauvegarder un chat vide
+
+            const title = userMessage.content.substring(userMessage.content.indexOf(')') + 2, 60) + '...';
+            const existingChat = allChatsHistory.find(c => c.id === currentChatId);
+
+            if (existingChat) {
+                existingChat.messages = currentMessages;
+                existingChat.timestamp = Date.now();
+                existingChat.title = title; // Mettre à jour le titre au cas où
+            } else {
+                allChatsHistory.push({
+                    id: currentChatId,
+                    title: title,
+                    messages: currentMessages,
+                    timestamp: Date.now()
+                });
+            }
+            
+            saveHistoryToStorage();
+            renderHistorySidebar(); // Rafraîchit la liste
+        }
+
+        // Démarre une nouvelle discussion
+        function startNewChat(isTrustMode = false, welcomeMessage = "Bonjour ! Je suis AIDA. Comment puis-je t'aider aujourd'hui ?") {
+            currentChatId = null;
+            currentMessages = [];
+            chatWindow.innerHTML = '';
+            userInput.value = '';
+            
+            if (!isTrustMode) {
+                renderHistorySidebar(); // Dé-sélectionne tout item 'active'
+            } else {
+                // Désactive l'UI de l'historique en mode "devoir"
+                newChatBtn.disabled = true;
+                historyList.innerHTML = '<li style="color: #888; text-align: center; font-style: italic; user-select: none;">Historique désactivé en mode devoir.</li>';
+            }
+            addMessage('aida', welcomeMessage, false);
+        }
+
+        // --- 4. FONCTIONS DE L'INTERFACE (Modifiées) ---
+
+        // addMessage est MODIFIÉE pour ne pas ajouter à l'historique si 'addToHistory' est faux
+        // C'est utile lors du re-chargement d'un chat
+        function addMessage(sender, text, addToHistory = true) {
             const messageDiv = document.createElement('div');
             messageDiv.className = `chat-message ${sender}`;
             const bubble = document.createElement('div');
             bubble.className = 'message-bubble';
-            bubble.innerHTML = text.replace(/\n/g, '<br>');
+            
+            // Nettoyage simple pour l'affichage (le markdown sera géré côté IA si possible)
+            bubble.innerHTML = text.replace(/\n/g, '<br>'); 
+            
             messageDiv.appendChild(bubble);
+            
             if (sender === 'aida') {
                 const controls = document.createElement('div');
                 controls.className = 'aida-controls';
@@ -187,10 +419,14 @@
                 controls.appendChild(listenBtn);
                 messageDiv.appendChild(controls);
             }
+            
             chatWindow.appendChild(messageDiv);
             chatWindow.scrollTop = chatWindow.scrollHeight;
+
+            // Logique d'historique déplacée vers sendMessage()
         }
 
+        // showTypingIndicator (INCHANGÉE)
         function showTypingIndicator() {
             const typingDiv = document.createElement('div');
             typingDiv.id = 'typing-indicator';
@@ -202,12 +438,15 @@
             chatWindow.appendChild(typingDiv);
             chatWindow.scrollTop = chatWindow.scrollHeight;
         }
+        // removeTypingIndicator (INCHANGÉE)
         function removeTypingIndicator() {
             const indicator = document.getElementById('typing-indicator');
             if (indicator) {
                 indicator.remove();
             }
         }
+
+        // sendMessage est REFAITE pour gérer le nouvel état
         async function sendMessage() {
             const message = userInput.value.trim();
             if (!message) return;
@@ -219,25 +458,43 @@
             userInput.value = '';
             showTypingIndicator();
 
-            chatHistory.push({ role: 'user', content: fullMessage });
+            // Gère le nouvel ID de chat si c'est le premier message
+            if (currentChatId === null) {
+                currentChatId = uuidv4();
+            }
+
+            // Ajoute le message à l'historique de l'état local
+            currentMessages.push({ role: 'user', content: fullMessage });
             
             try {
                 const response = await fetch(`${backendUrl}/ai/playground-chat`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ history: chatHistory })
+                    // Envoie l'historique du chat *actuel*
+                    body: JSON.stringify({ history: currentMessages }) 
                 });
+                
+                if (!response.ok) {
+                    const errData = await response.json();
+                    throw new Error(errData.error || "Erreur de communication avec l'API");
+                }
+                
                 const data = await response.json();
-                chatHistory.push({ role: 'assistant', content: data.reply });
+                
+                currentMessages.push({ role: 'assistant', content: data.reply });
                 removeTypingIndicator();
                 addMessage('aida', data.reply);
+                
+                // Sauvegarde la conversation (création ou mise à jour)
+                saveCurrentChat();
+
             } catch (error) {
                 removeTypingIndicator();
-                addMessage('aida', "Désolé, une erreur est survenue. Veuillez réessayer.");
+                addMessage('aida', `Désolé, une erreur est survenue: ${error.message}. Veuillez réessayer.`);
             }
         }
         
-        // --- Fonctions Vocales ---
+        // --- 5. FONCTIONS VOCALES (INCHANGÉES) ---
         function setupSpeechRecognition() {
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
             if (!SpeechRecognition) {
@@ -329,7 +586,7 @@
         }
 
 
-        // --- Fonctions de la modale de paramètres ---
+        // --- 6. FONCTIONS DE LA MODALE (INCHANGÉES) ---
         function populateVoiceList() {
              const googleVoices = [
                 { name: 'Français (France, Femme)', value: 'fr-FR-Wavenet-E', lang: 'fr-FR' },
@@ -357,7 +614,6 @@
                 localStorage.setItem('aida-voice-name', 'fr-FR-Wavenet-E');
             }
         }
-
         function openSettingsModal() {
             rateSlider.value = localStorage.getItem('aida-rate') || 1;
             pitchSlider.value = localStorage.getItem('aida-pitch') || 1;
@@ -366,12 +622,18 @@
             voiceSelect.value = localStorage.getItem('aida-voice-name') || 'fr-FR-Wavenet-E';
             voiceSettingsModal.classList.remove('hidden');
         }
-        
         function closeSettingsModal() {
             voiceSettingsModal.classList.add('hidden');
         }
         
-        // --- Écouteurs d'événements ---
+        // --- 7. ÉCOUTEURS D'ÉVÉNEMENTS (Mis à jour) ---
+        
+        // NOUVEAU
+        newChatBtn.addEventListener('click', () => {
+             startNewChat(false, "Bonjour ! Je suis AIDA. Comment puis-je t'aider aujourd'hui ?");
+        });
+
+        // INCHANGÉS
         backToDashboardBtn.addEventListener('click', () => { window.location.href = 'index.html'; });
         sendBtn.addEventListener('click', sendMessage);
         userInput.addEventListener('keydown', (e) => {
@@ -383,8 +645,20 @@
             const file = e.target.files[0];
             if (!file) return;
 
+            // En mode "Trust", on ne permet pas l'upload
+            const isEvaluatedSession = sessionStorage.getItem('isEvaluatedSession') === 'true';
+            if(isEvaluatedSession) {
+                addMessage('aida', "Désolé, l'upload de documents est désactivé pendant un devoir évalué.", false);
+                return;
+            }
+
             addMessage('user', `Analyse du document: ${file.name}`);
             showTypingIndicator();
+
+            // Gère le nouvel ID de chat si c'est le premier message
+            if (currentChatId === null) {
+                currentChatId = uuidv4();
+            }
 
             const formData = new FormData();
             formData.append('document', file);
@@ -394,10 +668,13 @@
                 if (!response.ok) throw new Error(data.error || 'Erreur du serveur');
                 
                 const message = `Voici le texte extrait du document. Que veux-tu faire avec ?\n\n---\n${data.extractedText}`;
-                chatHistory.push({ role: 'user', content: message });
+                
+                currentMessages.push({ role: 'user', content: `(Mode: upload) ${message}` });
                 
                 removeTypingIndicator();
                 addMessage('aida', `J'ai lu le document ! Le texte est maintenant dans notre conversation. Dis-moi comment je peux t'aider avec.`);
+                
+                saveCurrentChat(); // Sauvegarde le chat après l'upload
             } catch (err) {
                 removeTypingIndicator();
                 addMessage('aida', `Désolé, je n'ai pas pu lire ce document. Erreur : ${err.message}`);
@@ -426,26 +703,39 @@
             }
         });
 
-        // --- Initialisation ---
+        // --- 8. INITIALISATION (Mise à jour) ---
+        
+        // Configuration initiale de la voix et de la parole
         populateVoiceList();
         setupSpeechRecognition();
 
+        // Charge tout l'historique depuis le localStorage
+        loadHistoryFromStorage();
+
+        // Vérifie si on est en mode "Devoir Évalué"
         const urlParams = new URLSearchParams(window.location.search);
         const modeFromUrl = urlParams.get('mode');
         const topic = urlParams.get('topic');
-        
         const isEvaluatedSession = sessionStorage.getItem('isEvaluatedSession') === 'true';
 
         if (isEvaluatedSession || modeFromUrl === 'coach') {
+            // MODE DEVOIR SÉCURISÉ
             trustModeBanner.classList.remove('hidden');
             document.getElementById('mode-coach').checked = true;
             modeSelector.querySelectorAll('input').forEach(input => input.disabled = true);
+            
             const initialMessage = topic ? `Bonjour ! Je suis prêt à t'aider à préparer ton devoir sur "${topic}". Comment puis-je t'aider à commencer (sans te donner la réponse, bien sûr) ?` : "Bonjour ! Le mode 'Préparation de devoir' est activé. Comment puis-je t'aider ?";
-            addMessage('aida', initialMessage);
+            
+            // Démarre un nouveau chat en mode "Trust", ce qui désactive l'historique
+            startNewChat(true, initialMessage);
+
         } else {
-             addMessage('aida', "Bonjour ! Je suis AIDA. Comment puis-je t'aider aujourd'hui ?");
+            // MODE NORMAL
+            // Affiche la barre latérale avec tous les chats
+            renderHistorySidebar();
+            // Démarre un nouveau chat (sans message, il sera ajouté ensuite)
+            startNewChat(false, "Bonjour ! Je suis AIDA. Comment puis-je t'aider aujourd'hui ?");
         }
     </script>
 </body>
 </html>
-
