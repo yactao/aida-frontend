@@ -218,6 +218,26 @@
     "histoire-geo": "Histoire-Géo",
     "sciences": "Sciences",
     "autre": "Autre"
+  },
+  "validationModal": {
+    "studentAnswersTitle": "Réponses de l'élève",
+    "questionLabel": "Question",
+    "studentAnswerLabel": "Réponse de l'élève",
+    "noAnswerLabel": "Aucune réponse",
+    "correctAnswerLabel": "Bonne réponse",
+    "statementLabel": "Énoncé",
+    "answerLabel": "Réponse",
+    "noDetailLabel": "Le détail des réponses n'est pas disponible pour ce type de devoir.",
+    "validationTitle": "Valider la copie",
+    "commentLabel": "Commentaire (optionnel)",
+    "submitButton": "Valider la correction",
+    "modalTitlePrefix": "Correction pour"
+  },
+  "validatedModal": {
+    "feedbackTitle": "Retour du professeur",
+    "appreciationLabel": "Appréciation",
+    "commentLabel": "Commentaire",
+    "modalTitlePrefix": "Résultat pour"
   }
 }
 

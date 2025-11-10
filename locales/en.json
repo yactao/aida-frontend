@@ -218,5 +218,25 @@
     "histoire-geo": "History/Geo",
     "sciences": "Science",
     "autre": "Other"
+  },
+  "validationModal": {
+    "studentAnswersTitle": "Student's Answers",
+    "questionLabel": "Question",
+    "studentAnswerLabel": "Student's answer",
+    "noAnswerLabel": "No answer",
+    "correctAnswerLabel": "Correct answer",
+    "statementLabel": "Statement",
+    "answerLabel": "Answer",
+    "noDetailLabel": "Answer details are not available for this assignment type.",
+    "validationTitle": "Validate submission",
+    "commentLabel": "Comment (optional)",
+    "submitButton": "Validate correction",
+    "modalTitlePrefix": "Correction for"
+  },
+  "validatedModal": {
+    "feedbackTitle": "Teacher's Feedback",
+    "appreciationLabel": "Appreciation",
+    "commentLabel": "Comment",
+    "modalTitlePrefix": "Result for"
   }
 }

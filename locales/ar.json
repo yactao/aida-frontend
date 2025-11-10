@@ -225,5 +225,25 @@
     "histoire-geo": "التاريخ والجغرافيا",
     "sciences": "العلوم",
     "autre": "أخرى"
+  },
+  "validationModal": {
+    "studentAnswersTitle": "إجابات الطالب",
+    "questionLabel": "سؤال",
+    "studentAnswerLabel": "إجابة الطالب",
+    "noAnswerLabel": "لا توجد إجابة",
+    "correctAnswerLabel": "الإجابة الصحيحة",
+    "statementLabel": "نص التمرين",
+    "answerLabel": "الإجابة",
+    "noDetailLabel": " تفاصيل الإجابات غير متاحة لهذا النوع من الواجبات.",
+    "validationTitle": "اعتماد التصحيح",
+    "commentLabel": "تعليق (اختياري)",
+    "submitButton": "اعتماد التصحيح",
+    "modalTitlePrefix": "تصحيح لـ"
+  },
+  "validatedModal": {
+    "feedbackTitle": "ملاحظات المعلم",
+    "appreciationLabel": "التقييم",
+    "commentLabel": "التعليق",
+    "modalTitlePrefix": "نتيجة لـ"
   }
 }

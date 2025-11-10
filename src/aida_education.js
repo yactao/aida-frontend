@@ -51,7 +51,6 @@ function resetSelects(selects) {
 export async function renderTeacherDashboard() {
     const p = document.getElementById('teacher-dashboard-page');
     
-    // Utilise i18next.t() pour le message d'accueil dynamique
     const greeting = i18next.t('teacherDashboard.greeting', { name: window.currentUser.firstName });
 
     p.innerHTML = `
@@ -70,12 +69,9 @@ export async function renderTeacherDashboard() {
     changePage('teacher-dashboard-page');
     
     p.querySelector('#open-grading-module-btn').addEventListener('click', renderGradingModulePage);
-
     p.querySelector('#open-class-modal').addEventListener('click', showCreateClassModal);
     p.querySelector('#open-gen-modal').addEventListener('click', () => showGenerationModal());
     p.querySelector('#open-planner-btn').addEventListener('click', renderPlannerPage);
-
-    // Pas besoin d'appliquer les traductions ici car elles sont insérées directement en HTML
 
     try {
         teacherClasses = await apiRequest(`/teacher/classes?teacherEmail=${window.currentUser.email}`);
@@ -96,7 +92,6 @@ export async function renderTeacherDashboard() {
         const classCardsHtml = teacherClasses.map(c => {
             const completionRate = calculateCompletionRate(c);
             
-            // MODIFIÉ : Traductions des cartes
             const studentString = i18next.t('teacherDashboard.studentsCount', { count: c.students.length });
             const contentString = i18next.t('teacherDashboard.contentCount', { count: (c.content || []).length });
             const completionString = i18next.t('teacherDashboard.completionRate');
@@ -118,7 +113,6 @@ export async function renderTeacherDashboard() {
         
         grid.innerHTML = classCardsHtml;
 
-        // ... (partie Sortable inchangée) ...
         grid.addEventListener('click', (e) => {
             const card = e.target.closest('.dashboard-card');
             if (card && card.dataset.classId) {
@@ -126,6 +120,7 @@ export async function renderTeacherDashboard() {
                 renderClassDetailsPage(card.dataset.classId);
             }
         });
+
         if (typeof Sortable !== 'undefined') {
              new Sortable(grid, {
                 animation: 150,
@@ -147,7 +142,6 @@ export async function renderTeacherDashboard() {
                 }
             });
         }
-        // ... (fin partie Sortable) ...
 
     } catch (error) {
         p.querySelector('#class-grid').innerHTML = `<p class="error-message">Impossible de charger le tableau de bord: ${error.message}</p>`;
@@ -183,7 +177,6 @@ async function showCreateClassModal() {
 
 export async function renderClassDetailsPage(id) {
     const page = document.getElementById('class-details-page');
-    // MODIFIÉ : Traduction du bouton retour
     const backButtonText = i18next.t('classDetails.backButton');
     page.innerHTML = `<button id="back-to-teacher" class="btn btn-secondary" data-i18n="classDetails.backButton"><i class="fa-solid fa-arrow-left"></i> ${backButtonText}</button>${spinnerHtml}`;
     page.querySelector('#back-to-teacher').addEventListener('click', renderTeacherDashboard);
@@ -192,7 +185,6 @@ export async function renderClassDetailsPage(id) {
     try {
         currentClassData = await apiRequest(`/teacher/classes/${id}?teacherEmail=${window.currentUser.email}`);
         
-        // MODIFIÉ : Traduction des onglets
         page.innerHTML = `
             <button id="back-to-teacher" class="btn btn-secondary" data-i18n="classDetails.backButton"><i class="fa-solid fa-arrow-left"></i> ${backButtonText}</button>
             <h2>${currentClassData.className}</h2>
@@ -223,18 +215,13 @@ export async function renderClassDetailsPage(id) {
         const pendingCorrections = (currentClassData.results || []).filter(r => r.status === 'pending_validation');
         const pendingCountSpan = page.querySelector('#pending-count');
         if (pendingCorrections.length > 0) {
-            // MODIFIÉ : Traduction du tag "en attente"
             pendingCountSpan.textContent = `${pendingCorrections.length} ${i18next.t('classDetails.pendingCount')}`;
             pendingCountSpan.classList.remove('hidden');
-            // Note: Le code original attache le span au bouton, ce qui est étrange. Je le laisse tel quel.
             page.querySelector('[data-tab="corrections-panel"]').appendChild(pendingCountSpan);
         }
         
-        // Pas besoin de re-traduire les éléments statiques, c'est fait au-dessus
-
         page.querySelector('#back-to-teacher').addEventListener('click', renderTeacherDashboard);
         page.querySelector('#open-add-student-modal-btn').addEventListener('click', () => {
-            // MODIFIÉ : Traduction de la modale d'ajout
             const title = i18next.t('addStudentModal.title');
             const label = i18next.t('addStudentModal.label');
             const button = i18next.t('addStudentModal.button');
@@ -252,7 +239,6 @@ export async function renderClassDetailsPage(id) {
             document.getElementById('add-student-form').addEventListener('submit', handleAddStudent);
         });
 
-        // ... (partie gestion des onglets inchangée) ...
         page.querySelectorAll('.tab-button').forEach(button => {
             button.addEventListener('click', (e) => {
                 page.querySelectorAll('.tab-button').forEach(btn => btn.classList.remove('active'));
@@ -268,7 +254,6 @@ export async function renderClassDetailsPage(id) {
         });
 
     } catch (error) {
-         const backButtonText = i18next.t('classDetails.backButton');
          page.innerHTML = `<button id="back-to-teacher" class="btn btn-secondary" data-i18n="classDetails.backButton"><i class="fa-solid fa-arrow-left"></i> ${backButtonText}</button><p class="error-message" style="margin-top: 1rem;">Impossible de charger les détails de la classe: ${error.message}</p>`;
          page.querySelector('#back-to-teacher').addEventListener('click', renderTeacherDashboard);
     }
@@ -280,7 +265,6 @@ function renderStudentListPanel() {
         const assignedContentCount = (currentClassData.content || []).length;
         const completionRate = assignedContentCount > 0 ? (studentResults.length / assignedContentCount) * 100 : 0;
         
-        // MODIFIÉ : Traductions des cartes élève
         const completionString = i18next.t('classDetails.completionRate');
         const submissionsString = i18next.t('classDetails.submissionsCount', { count: studentResults.length, total: assignedContentCount });
         const deleteTitle = i18next.t('classDetails.deleteStudentTitle');
@@ -296,7 +280,6 @@ function renderStudentListPanel() {
     }).join('');
     
     const studentListContainer = document.getElementById('student-list');
-    // MODIFIÉ : Traduction message "aucun élève"
     studentListContainer.innerHTML = (currentClassData.studentsWithDetails || []).length > 0 ? studentCardsHtml : `<p data-i18n="classDetails.noStudents">${i18next.t('classDetails.noStudents')}</p>`;
     
     studentListContainer.querySelectorAll('.dashboard-card').forEach(card => {
@@ -313,7 +296,6 @@ function renderStudentListPanel() {
             const studentEmail = button.dataset.studentEmail;
             const student = currentClassData.studentsWithDetails.find(s => s.email === studentEmail);
             
-            // MODIFIÉ : Traduction modale suppression
             const title = i18next.t('deleteStudentModal.title');
             const confirmText = i18next.t('deleteStudentModal.confirmText', { name: student.firstName, email: student.email });
             const warning = i18next.t('deleteStudentModal.warning');
@@ -334,7 +316,6 @@ function renderStudentListPanel() {
     });
 }
 
-// ... (handleAddStudent et handleRemoveStudent inchangés) ...
 async function handleAddStudent(e) { 
     e.preventDefault(); 
     const email = document.getElementById('student-email-input').value; 
@@ -348,6 +329,7 @@ async function handleAddStudent(e) {
         if(errP) errP.textContent = err.message; 
     } 
 }
+
 async function handleRemoveStudent(studentEmail) {
     try {
         await apiRequest(`/teacher/classes/${currentClassData.id}/remove-student`, 'POST', { studentEmail, teacherEmail: window.currentUser.email });
@@ -359,18 +341,17 @@ async function handleRemoveStudent(studentEmail) {
 }
 
 
-// ... (renderCompetencyReport inchangé) ...
 async function renderCompetencyReport(classId) {
     const panel = document.getElementById('competencies-panel');
     panel.innerHTML = spinnerHtml;
     try {
         const report = await apiRequest(`/teacher/classes/${classId}/competency-report?teacherEmail=${window.currentUser.email}`);
         if (report.length === 0) {
-            panel.innerHTML = '<p>Aucun résultat pour analyser les compétences. Les élèves doivent d\'abord compléter des exercices.</p>';
+            panel.innerHTML = `<p data-i18n="classDetails.noCompetencyResults">${i18next.t('classDetails.noCompetencyResults')}</p>`;
             return;
         }
         
-        let reportHtml = '<table><thead><tr><th>Compétence</th><th>Taux de réussite moyen</th></tr></thead><tbody>';
+        let reportHtml = `<table><thead><tr><th data-i18n="classDetails.competencyHeader">${i18next.t('classDetails.competencyHeader')}</th><th data-i18n="classDetails.competencyRateHeader">${i18next.t('classDetails.competencyRateHeader')}</th></tr></thead><tbody>`;
         report.forEach(item => {
             reportHtml += `<tr>
                 <td>${item.competence} <small>(${item.level})</small></td>
@@ -392,25 +373,23 @@ async function renderCompetencyReport(classId) {
     }
 }
 
-
 function renderContentListPanel() {
     const panel = document.getElementById('contents-panel');
     const contents = currentClassData.content || [];
     if (contents.length === 0) {
-        // MODIFIÉ : Traduction
         panel.innerHTML = `<p data-i18n="classDetails.noContent">${i18next.t('classDetails.noContent')}</p>`;
         return;
     }
 
-    // MODIFIÉ : Traduction des titres de boutons
     const shareTitle = i18next.t('classDetails.shareTitle');
     const deleteTitle = i18next.t('classDetails.deleteTitle');
-    const typeLabel = i18next.t('library.typeLabel'); // Réutilise la clé de la bibliothèque
+    const typeLabel = i18next.t('library.typeLabel');
     const assignedLabel = i18next.t('classDetails.assignedLabel');
 
     let html = '<div class="dashboard-grid">';
     contents.forEach(content => {
         const assignedDate = new Date(content.assignedAt).toLocaleDateString();
+        const typeDisplay = i18next.t(`contentTypes.${content.type.toLowerCase()}`, content.type);
         html += `
             <div class="dashboard-card">
                 <div class="dashboard-card-title">
@@ -420,7 +399,7 @@ function renderContentListPanel() {
                         <button class="btn-icon delete-content-btn" data-content-id="${content.id}" title="${deleteTitle}"><i class="fa-solid fa-trash-alt"></i></button>
                      </div>
                 </div>
-                <p>${typeLabel} ${content.type}</p>
+                <p>${typeLabel} ${typeDisplay}</p>
                 <p>${assignedLabel} ${assignedDate}</p>
             </div>
         `;
@@ -433,7 +412,7 @@ function renderContentListPanel() {
             e.stopPropagation();
             const contentId = button.dataset.contentId;
             const content = contents.find(c => c.id === contentId);
-            // MODIFIÉ : Traduction modale suppression
+            
             const title = i18next.t('deleteContentModal.title');
             const confirmText = i18next.t('deleteContentModal.confirmText', { title: content.title });
             const warning = i18next.t('deleteContentModal.warning');
@@ -462,7 +441,6 @@ function renderContentListPanel() {
     });
 }
 
-// ... (handleDeleteContent inchangé) ...
 async function handleDeleteContent(contentId) {
      try {
         await apiRequest(`/teacher/classes/${currentClassData.id}/content/${contentId}?teacherEmail=${window.currentUser.email}`, 'DELETE');
@@ -473,14 +451,12 @@ async function handleDeleteContent(contentId) {
     }
 }
 
-
 async function handlePublishContent(contentId) {
     const content = currentClassData.content.find(c => c.id === contentId);
     if (!content) return;
 
     const subjectInfo = getSubjectInfo(content.title);
     
-    // MODIFIÉ : Traduction modale publication
     const title = i18next.t('publishModal.title');
     const confirmText = i18next.t('publishModal.confirmText', { title: content.title });
     const categoryText = i18next.t('publishModal.categoryText', { subject: subjectInfo.name });
@@ -520,12 +496,10 @@ function renderCorrectionsPanel() {
     const pendingCorrections = (currentClassData.results || []).filter(r => r.status === 'pending_validation');
 
     if (pendingCorrections.length === 0) {
-        // MODIFIÉ : Traduction
         panel.innerHTML = `<p data-i18n="classDetails.noCorrections">${i18next.t('classDetails.noCorrections')}</p>`;
         return;
     }
 
-    // MODIFIÉ : Traduction
     const studentLabel = i18next.t('classDetails.studentLabel');
     const submittedLabel = i18next.t('classDetails.submittedLabel');
     const viewCopyButton = i18next.t('classDetails.viewCopyButton');
@@ -564,7 +538,7 @@ function renderCorrectionsPanel() {
 }
 
 function showValidationModal(result, content) {
-    // MODIFIÉ : Traduction
+    // MODIFIÉ : Utilisation des NOUVELLES clés (correction du bug)
     const studentAnswersTitle = i18next.t('validationModal.studentAnswersTitle');
     const questionLabel = i18next.t('validationModal.questionLabel');
     const studentAnswerLabel = i18next.t('validationModal.studentAnswerLabel');
@@ -600,7 +574,6 @@ function showValidationModal(result, content) {
          detailsHtml = `<p>${noDetailLabel}</p>`;
     }
 
-    // MODIFIÉ : Traduction
     const validationTitle = i18next.t('validationModal.validationTitle');
     const commentLabel = i18next.t('validationModal.commentLabel');
     const submitButton = i18next.t('validationModal.submitButton');
@@ -642,7 +615,6 @@ function showValidationModal(result, content) {
 
     renderModal(getModalTemplate('validation-modal', `${i18next.t('validationModal.modalTitlePrefix')} : ${result.title}`, detailsHtml + validationHtml));
     
-    // ... (logique de soumission du formulaire inchangée) ...
     document.getElementById('validation-form').addEventListener('submit', async (e) => {
         e.preventDefault();
         const appreciation = document.querySelector('input[name="appreciation"]:checked').value;
@@ -667,7 +639,7 @@ function showValidationModal(result, content) {
 }
 
 function showValidatedResultModal(result, content) {
-    // MODIFIÉ : Traductions (réutilisation des clés de la modale de validation)
+    // MODIFIÉ : Utilisation des NOUVELLES clés (correction du bug)
     const studentAnswersTitle = i18next.t('validationModal.studentAnswersTitle');
     const questionLabel = i18next.t('validationModal.questionLabel');
     const studentAnswerLabel = i18next.t('validationModal.studentAnswerLabel');
@@ -703,7 +675,6 @@ function showValidatedResultModal(result, content) {
          detailsHtml = `<p>${noDetailLabel}</p>`;
     }
 
-    // MODIFIÉ : Traduction
     const feedbackTitle = i18next.t('validatedModal.feedbackTitle');
     const appreciationLabel = i18next.t('validatedModal.appreciationLabel');
     const commentLabel = i18next.t('validatedModal.commentLabel');
@@ -724,7 +695,6 @@ function renderStudentDetailsPage(studentEmail) {
     const student = currentClassData.studentsWithDetails.find(s => s.email === studentEmail);
     const studentResults = (currentClassData.results || []).filter(r => r.studentEmail === studentEmail);
     
-    // MODIFIÉ : Traduction
     const backButton = i18next.t('studentDetails.backButton');
     const profileTitle = i18next.t('studentDetails.profileTitle', { name: student.firstName });
     const resultsTitle = i18next.t('studentDetails.resultsTitle');
@@ -823,7 +793,6 @@ function showGenerationModal(prefillData = null) {
         return;
     }
     
-    // MODIFIÉ : Traductions
     const chooseText = i18next.t('genModal.choose');
     const h = `
         <div class="tabs">
@@ -890,14 +859,13 @@ function showGenerationModal(prefillData = null) {
         typeSelect.addEventListener('change', () => {
             const selectedType = typeSelect.value;
             countGroup.classList.toggle('hidden', !typesWithCount.includes(selectedType));
-            // MODIFIÉ : Utilise i18next pour changer le label
             if(selectedType === 'quiz') {
                 countLabel.textContent = i18next.t('genModal.countLabelQuiz');
-                countLabel.dataset.i18n = 'genModal.countLabelQuiz'; // Met à jour la clé
+                countLabel.dataset.i18n = 'genModal.countLabelQuiz';
             }
             else if (selectedType === 'exercices' || selectedType === 'dm') {
                  countLabel.textContent = i18next.t('genModal.countLabelExercices');
-                 countLabel.dataset.i18n = 'genModal.countLabelExercices'; // Met à jour la clé
+                 countLabel.dataset.i18n = 'genModal.countLabelExercices';
             }
         });
         typeSelect.dispatchEvent(new Event('change'));
@@ -905,9 +873,9 @@ function showGenerationModal(prefillData = null) {
     setupContentTypeListener('content-type-select', 'exercise-count-group', 'exercise-count-label');
     setupContentTypeListener('teacher-content-type-upload', 'exercise-count-group-upload', 'exercise-count-label-upload');
     
-    // ... (Reste de la logique de la modale de génération inchangée) ...
     const cy = document.getElementById('cycle-select'), n = document.getElementById('niveau-select'), m = document.getElementById('matiere-select'), no = document.getElementById('notion-select'), co = document.getElementById('competence-select'), gen = document.getElementById('generate-btn');
     const competenceInput = document.getElementById('competence-input');
+
     Object.keys(window.programmes).forEach(c => cy.add(new Option(c, c)));
     cy.addEventListener('change', () => { resetSelects([n, m, no, co]); const s = cy.value; if (s) { Object.keys(window.programmes[s]).forEach(l => n.add(new Option(l, l))); n.disabled = false; } });
     n.addEventListener('change', () => { resetSelects([m, no, co]); const d = window.programmes[cy.value][n.value]; if (d) { Object.keys(d).forEach(k => m.add(new Option(d[k].nom, k))); m.disabled = false; } });
@@ -925,6 +893,7 @@ function showGenerationModal(prefillData = null) {
         resetSelects([co]);
         const d = window.programmes[cy.value][n.value]?.[m.value]?.[no.value];
         if (!d) return;
+
         if (d.sous_notions) {
             Object.values(d.sous_notions).forEach(sn => {
                 (sn.competences || []).forEach(c => co.add(new Option(c, c)));
@@ -943,6 +912,7 @@ function showGenerationModal(prefillData = null) {
         const form = e.currentTarget;
         let comp = '';
         let levelForInfo = '';
+
         const isFreeMode = !document.getElementById('free-competence-field').classList.contains('hidden');
         if (isFreeMode) {
             comp = competenceInput.value;
@@ -951,12 +921,15 @@ function showGenerationModal(prefillData = null) {
             comp = co.value;
             levelForInfo = n.value;
         }
+
         selectedCompetenceInfo = { level: levelForInfo, competence: comp };
         const contentType = document.getElementById('content-type-select').value;
         const exerciseCount = document.getElementById('exercise-count').value;
+        
         const matiereSelect = document.getElementById('matiere-select');
         const selectedMatiereText = isFreeMode ? '' : matiereSelect.options[matiereSelect.selectedIndex].text;
-        let language = i18next.language; // MODIFIÉ: Utilise la langue globale
+        
+        let language = i18next.language; // Utilise la langue globale par défaut
         if (selectedMatiereText.includes('Anglais')) language = 'en';
         else if (selectedMatiereText.includes('Arabe')) language = 'ar';
         else if (selectedMatiereText.includes('Espagnol')) language = 'es';
@@ -979,15 +952,17 @@ function showGenerationModal(prefillData = null) {
         spinner.classList.remove('hidden'); 
         const formData = new FormData(); 
         const fileInput = document.getElementById('document-upload-input');
+
         if (!fileInput.files.length) {
             alert("Veuillez charger un fichier.");
             spinner.classList.add('hidden');
             return;
         }
+
         formData.append('document', fileInput.files[0]); 
         formData.append('contentType', document.getElementById('teacher-content-type-upload').value); 
         formData.append('exerciseCount', document.getElementById('exercise-count-upload').value); 
-        formData.append('language', i18next.language); // MODIFIÉ: Envoie la langue
+        formData.append('language', i18next.language); // Envoie la langue
         
         try { 
             const response = await fetch(`${window.backendUrl}/api/ai/generate-from-upload`, { method: 'POST', body: formData }); 
@@ -1015,7 +990,9 @@ function showGenerationModal(prefillData = null) {
     if (prefillData) {
         document.getElementById('content-type-select').value = prefillData.type;
         document.getElementById('content-type-select').dispatchEvent(new Event('change'));
+
         let found = false;
+        
         if (!found) {
             document.getElementById('program-fields').classList.add('hidden');
             const freeField = document.getElementById('free-competence-field');
@@ -1028,7 +1005,6 @@ function showGenerationModal(prefillData = null) {
 }
 
 function showEditModal() {
-    // MODIFIÉ : Traductions
     const titleLabel = i18next.t('editModal.titleLabel');
     const revisionLabel = i18next.t('editModal.revisionLabel');
     const structureError = i18next.t('editModal.structureError');
@@ -1062,7 +1038,6 @@ function showEditModal() {
 
     renderModal(getModalTemplate('edit-modal', i18next.t('editModal.title'), editHtml));
 
-    // ... (logique de soumission du formulaire d'édition inchangée) ...
     document.getElementById('edit-form').addEventListener('submit', (e) => {
         e.preventDefault();
         try {
@@ -1099,7 +1074,6 @@ function showAssignModal(contentToAssign) {
     defaultDueDate.setDate(defaultDueDate.getDate() + 7); 
     const formattedDefaultDate = defaultDueDate.toISOString().split('T')[0]; 
     
-    // MODIFIÉ : Traductions
     const classLabel = i18next.t('assignModal.classLabel');
     const dueDateLabel = i18next.t('assignModal.dueDateLabel');
     const evaluatedLabel = i18next.t('assignModal.evaluatedLabel');
@@ -1130,7 +1104,6 @@ function showAssignModal(contentToAssign) {
                 contentData: { ...content, dueDate, isEvaluated, competence: content.competence || selectedCompetenceInfo } 
             }); 
             window.modalContainer.innerHTML = ''; 
-            // MODIFIÉ : Traduction
             renderModal(getModalTemplate('assign-confirm', i18next.t('assignModal.successTitle'), `<p>${i18next.t('assignModal.successText')}</p>`)); 
             setTimeout(() => { window.modalContainer.innerHTML = ''; renderTeacherDashboard(); }, 2000); 
         } catch (error) { 
@@ -1143,7 +1116,6 @@ export async function renderPlannerPage() {
     const page = document.getElementById('planner-page');
     changePage('planner-page');
     
-    // MODIFIÉ : Traductions
     const title = i18next.t('planner.title');
     const backButton = i18next.t('planner.backButton');
     const themeLabel = i18next.t('planner.themeLabel');
@@ -1179,7 +1151,6 @@ export async function renderPlannerPage() {
         const level = document.getElementById('planner-level').value;
         const numSessions = document.getElementById('planner-sessions').value;
         try {
-            // MODIFIÉ : Envoie la langue actuelle à l'API
             const data = await apiRequest('/ai/generate-lesson-plan', 'POST', { theme, level, numSessions, lang: i18next.language });
             const plan = data.structured_plan;
             let outputHtml = `<h3>${plan.planTitle} (Niveau ${plan.level})</h3>`;
@@ -1206,7 +1177,6 @@ export async function renderPlannerPage() {
             });
             outputContainer.innerHTML = outputHtml;
 
-            // ... (logique du bouton "Générer" inchangée) ...
             outputContainer.querySelectorAll('.btn-generate-planner').forEach(button => {
                 button.addEventListener('click', (e) => {
                     const resourceString = e.currentTarget.dataset.resource;
@@ -1229,6 +1199,7 @@ export async function renderPlannerPage() {
 
 // --- 2. FONCTIONS ÉLÈVE (Dashboard, Vues, Soumission) ---
 
+// CORRIGÉ : Logique restaurée depuis le fichier utilisateur et traduite
 export async function renderStudentDashboard() {
     const page = document.getElementById('student-dashboard-page');
     page.innerHTML = spinnerHtml;
@@ -1237,14 +1208,13 @@ export async function renderStudentDashboard() {
     try {
         studentDashboardData = await apiRequest(`/student/dashboard?studentEmail=${window.currentUser.email}`);
         
-        // MODIFIÉ : Traductions
         const title = i18next.t('studentDashboard.title', { name: window.currentUser.firstName });
-        const todoTitle = i18next.t('Todo');
-        const pendingTitle = i18next.t('Pending');
-        const archiveTitle = i18next.t('Achive');
-        const filterAll = i18next.t('Filter All');
-        const filterMonth = i18next.t('Filter Month');
-        const filterWeek = i18next.t('Filter Week');
+        const todoTitle = i18next.t('studentDashboard.todo');
+        const pendingTitle = i18next.t('studentDashboard.pending');
+        const archiveTitle = i18next.t('studentDashboard.archive');
+        const filterAll = i18next.t('studentDashboard.filterAll');
+        const filterMonth = i18next.t('studentDashboard.filterMonth');
+        const filterWeek = i18next.t('studentDashboard.filterWeek');
 
         let todoHtml = `<h3>${todoTitle}</h3>`;
         if (studentDashboardData.todo.length === 0) {
@@ -1252,7 +1222,7 @@ export async function renderStudentDashboard() {
         } else {
             todoHtml += '<div class="dashboard-grid">';
             studentDashboardData.todo.forEach(item => {
-                todoHtml += createStudentCard(item, 'todo');
+                todoHtml += createStudentCard(item, 'todo'); // Appelle la fonction corrigée
             });
             todoHtml += '</div>';
         }
@@ -1283,8 +1253,7 @@ export async function renderStudentDashboard() {
         
         renderFilteredArchives('all'); 
         
-        // ... (logique des filtres et boutons inchangée) ...
-        page.querySelector('#archive-filters').addEventListener('click', (e) => { // Corrigé le sélecteur
+        page.querySelector('#archive-filters').addEventListener('click', (e) => {
             if (e.target.tagName === 'BUTTON') {
                 page.querySelectorAll('#archive-filters button').forEach(btn => btn.classList.remove('active'));
                 e.target.classList.add('active');
@@ -1312,10 +1281,10 @@ export async function renderStudentDashboard() {
     }
 }
 
+// CORRIGÉ : Logique restaurée et traduite
 function renderFilteredArchives(filter) {
     const container = document.getElementById('student-completed-list');
     if (!studentDashboardData || !studentDashboardData.completed || studentDashboardData.completed.length === 0) {
-        // MODIFIÉ : Traduction
         container.innerHTML = `<p data-i18n="studentDashboard.noArchive">${i18next.t('studentDashboard.noArchive')}</p>`;
         return;
     }
@@ -1336,7 +1305,6 @@ function renderFilteredArchives(filter) {
     });
 
     if (filteredItems.length === 0) {
-        // MODIFIÉ : Traduction
         container.innerHTML = `<p data-i18n="studentDashboard.noArchivePeriod">${i18next.t('studentDashboard.noArchivePeriod')}</p>`;
         return;
     }
@@ -1361,7 +1329,6 @@ function renderFilteredArchives(filter) {
     }
     container.innerHTML = completedHtml;
     
-    // ... (logique des boutons de correction inchangée) ...
     container.querySelectorAll('.view-correction-btn').forEach(button => {
          button.addEventListener('click', (e) => {
             const contentId = e.target.dataset.contentId;
@@ -1371,14 +1338,13 @@ function renderFilteredArchives(filter) {
     });
 }
 
-
+// CORRIGÉ : Logique restaurée et traduite (corrige le bug de la date)
 function createStudentCard(c, status) {
     const subjectInfo = getSubjectInfo(c.title);
     
-    // MODIFIÉ : Traductions
-    const typeLabel = i18next.t('contentTypes.' + c.type.toLowerCase()) || c.type;
-    const classLabel = i18next.t('Class');
-    const dueDateText = i18next.t('DueDate', { date: new Date(c.dueDate).toLocaleDateString() });
+    // Traduction du type
+    const typeLabel = i18next.t(`contentTypes.${c.type.toLowerCase()}`, c.type.charAt(0).toUpperCase() + c.type.slice(1));
+    const classLabel = i18next.t('studentCard.classLabel');
 
     let dateInfoHtml = '';
     let buttonHtml = '';
@@ -1389,26 +1355,26 @@ function createStudentCard(c, status) {
             const today = new Date(); today.setHours(0,0,0,0);
             const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate() + 1);
             let statusClass = 'status-ontime';
-            // MODIFIÉ : Traductions
-            let statusText = i18next.t('Todo_date', { date: dueDate.toLocaleDateString() });
+            
+            let statusText = i18next.t('studentCard.status_todo_date', { date: dueDate.toLocaleDateString() });
             if (dueDate < today) {
                 statusClass = 'status-overdue';
-                statusText = i18next.t('Late_date', { date: dueDate.toLocaleDateString() });
+                statusText = i18next.t('studentCard.status_late_date', { date: dueDate.toLocaleDateString() });
             } else if (dueDate <= tomorrow) {
                 statusClass = 'status-due-soon';
-                statusText = i18next.t('Due_soon');
+                statusText = i18next.t('studentCard.status_due_soon');
             }
             dateInfoHtml = `<span class="deadline-status ${statusClass}">${statusText}</span>`;
-            buttonHtml = `<button class="btn btn-main start-btn" data-content-id="${c.id}" data-i18n="studentCard.button_start">${i18next.t('studentCard.button_start')}</button>`;
+            buttonHtml = `<button class="btn btn-main start-btn" data-content-id="${c.id}">${i18next.t('studentCard.button_start')}</button>`;
             break;
         case 'pending':
-            dateInfoHtml = `<span class="deadline-status status-pending" data-i18n="studentCard.status_pending">${i18next.t('studentCard.status_pending')}</span>`;
-            buttonHtml = `<button class="btn btn-secondary" disabled data-i18n="studentCard.status_pending">${i18next.t('studentCard.status_pending')}</button>`;
+            dateInfoHtml = `<span class="deadline-status status-pending">${i18next.t('studentCard.status_pending')}</span>`;
+            buttonHtml = `<button class="btn btn-secondary" disabled>${i18next.t('studentCard.status_pending')}</button>`;
             break;
         case 'completed':
             const appreciationText = c.appreciation ? getAppreciationText(c.appreciation) : i18next.t('studentCard.status_completed_simple');
             dateInfoHtml = `<span class="deadline-status status-completed">${appreciationText}</span>`;
-            buttonHtml = `<button class="btn btn-secondary view-correction-btn" data-content-id="${c.id}" data-i18n="studentCard.button_correction">${i18next.t('studentCard.button_correction')}</button>`;
+            buttonHtml = `<button class="btn btn-secondary view-correction-btn" data-content-id="${c.id}">${i18next.t('studentCard.button_correction')}</button>`;
             break;
     }
 
@@ -1429,6 +1395,7 @@ function createStudentCard(c, status) {
 }
 
 
+// CORRIGÉ : Appel à showAidaHelpModal
 async function handleHelpRequest(e) { 
     e.preventDefault(); 
     helpUsedInQuiz = true; 
@@ -1438,18 +1405,10 @@ async function handleHelpRequest(e) {
     const q = button.dataset.question || button.dataset.questionText;
     const level = button.dataset.level || 'N/A';
     
-    // MODIFIÉ : Transmet l'objet 'content' et 'assignment' complet si possible
-    // Pour l'instant, nous n'avons que le texte.
-    // Nous devons trouver le 'content' et 'assignment' pour `showAidaHelpModal`
-    
-    // Simulé pour l'instant - showAidaHelpModal doit être importé et géré
-    // console.log("Demande d'aide pour :", q, "Niveau:", level);
-    // showAidaHelpModal(q, level); // 'q' est le texte, 'level' est le niveau
-    
-    // Appel corrigé - `showAidaHelpModal` attend (content, assignment)
-    // Nous allons tricher et lui passer un objet partiel pour qu'il fonctionne
+    // Recrée un objet 'content' et 'assignment' partiel pour la modale
     const fakeContent = { title: q };
-    const fakeAssignment = { isEvaluated: false }; // Supposons non évalué si le bouton est là
+    // L'assignment est non-évalué car le bouton d'aide est spécifique à la question
+    const fakeAssignment = { isEvaluated: false }; 
     showAidaHelpModal(fakeContent, fakeAssignment);
 }
 
@@ -1474,6 +1433,7 @@ async function handleSubmitQuiz(c) {
     }
 }
 
+// CORRIGÉ : Entièrement traduit
 function renderContentViewer(c) {
     const p = document.getElementById('content-viewer-page');
     
@@ -1494,10 +1454,9 @@ function renderContentViewer(c) {
     const isInteractiveHomework = c.type === 'exercices' || c.type === 'dm';
     const contentLevel = c.competence?.level || 'Niveau non spécifié';
 
-    // MODIFIÉ : Traductions
     const helpButtonText = i18next.t('contentViewer.helpButton');
-    const submitQuizButton = i18next.t('contentViewer.submitButton'); // Réutilise
-    const submitHomeworkButton = i18next.t('contentViewer.submitButton'); // Réutilise
+    const submitQuizButton = i18next.t('contentViewer.submitButton');
+    const submitHomeworkButton = i18next.t('contentViewer.submitButton');
     const markAsReadButton = i18next.t('contentViewer.markAsReadButton');
 
     if (c.type === 'quiz') {
@@ -1541,7 +1500,7 @@ function renderContentViewer(c) {
                         ` : ''}
                     </div>
                     <p class="enonce">${exo.enonce}</p>
-                    <textarea class="reponse-eleve" data-exercice-index="${i}" placeholder="${i18next.t('Answer Placeholder')}"></textarea>
+                    <textarea class="reponse-eleve" data-exercice-index="${i}" placeholder="${i18next.t('contentViewer.answerPlaceholder')}"></textarea>
                 </div>
             `;
         });
@@ -1557,7 +1516,6 @@ function renderContentViewer(c) {
         footerHtml = `<button type="button" id="finish-exercise-btn" class="btn btn-main"><i class="fa-solid fa-check"></i> ${markAsReadButton}</button>`;
     }
 
-    // MODIFIÉ : Traduction
     const backButton = i18next.t('contentViewer.backButton');
     
     p.innerHTML = `<button id="back-to-student" class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> ${backButton}</button>
@@ -1596,8 +1554,10 @@ function renderContentViewer(c) {
     if (aidaHelpBtn) {
         aidaHelpBtn.addEventListener('click', () => {
             helpUsedInHomework = true;
-            // MODIFIÉ : Appel à showAidaHelpModal
-            const assignment = studentDashboardData.todo.find(item => item.id === c.id) || c; // Retrouve l'objet assignment
+            // Trouve l'objet 'assignment' correspondant à ce 'content'
+            const assignment = studentDashboardData.todo.find(item => item.id === c.id) || 
+                             studentDashboardData.pending.find(item => item.id === c.id) || 
+                             c;
             showAidaHelpModal(c, assignment);
         });
     }
@@ -1627,7 +1587,6 @@ function renderContentViewer(c) {
     changePage('content-viewer-page');
 }
 
-// ... (handleSubmitNonQuiz inchangé) ...
 async function handleSubmitNonQuiz(c) {
     sessionStorage.removeItem('isEvaluatedSession');
     const answerTextareas = document.querySelectorAll('#content-form .reponse-eleve');
@@ -1664,7 +1623,6 @@ export async function renderLibraryPage() {
     const page = document.getElementById('library-page');
     changePage('library-page');
     
-    // MODIFIÉ : Traductions
     page.innerHTML = `
         <div class="page-header">
             <h2 data-i18n="library.title"><i class="fa-solid fa-book-bookmark"></i> ${i18next.t('library.title')}</h2>
@@ -1702,12 +1660,10 @@ async function loadLibraryContents() {
         const results = await apiRequest(`/library?searchTerm=${encodeURIComponent(searchTerm)}&subject=${encodeURIComponent(subject)}`);
         grid.innerHTML = '';
         if (results.length === 0) {
-            // MODIFIÉ : Traduction
             grid.innerHTML = `<p data-i18n="library.noContent">${i18next.t('library.noContent')}</p>`;
             return;
         }
         
-        // MODIFIÉ : Traductions
         const typeLabel = i18next.t('library.typeLabel');
         const authorLabel = i18next.t('library.authorLabel');
         const importButton = i18next.t('library.importButton');
@@ -1717,10 +1673,11 @@ async function loadLibraryContents() {
             const card = document.createElement('div');
             card.className = 'dashboard-card';
             const contentString = JSON.stringify(content).replace(/"/g, '&quot;');
+            const typeDisplay = i18next.t(`contentTypes.${content.type.toLowerCase()}`, content.type);
             card.innerHTML = `
                 <div class="dashboard-card-title"><h4>${content.title}</h4></div>
                 <p><span class="subject-tag ${subjectInfo.cssClass}">${subjectInfo.name}</span></p>
-                <p>${typeLabel} ${content.type}</p>
+                <p>${typeLabel} ${typeDisplay}</p>
                 <p>${authorLabel} ${content.authorName}</p>
                 <div style="text-align:right; margin-top: 1rem;">
                    <button class="btn btn-secondary import-content-btn" data-content="${contentString}">${importButton}</button>
@@ -1747,7 +1704,6 @@ function renderGradingModulePage() {
     const page = document.getElementById('grading-module-page');
     changePage('grading-module-page');
     
-    // MODIFIÉ : Traductions
     page.innerHTML = `
         <div class="page-header">
             <h2 data-i18n="grading.title"><i class="fa-solid fa-magic-sparkles"></i> ${i18next.t('grading.title')}</h2>
@@ -1797,7 +1753,6 @@ async function handleGradingAnalysis(e) {
     const files = document.getElementById('grading-file').files;
 
     if (!files || files.length === 0 || !sujet || !criteres) {
-        // MODIFIÉ : Traduction
         resultsContainer.innerHTML = `<p class="error-message" data-i18n="grading.errorFillFields">${i18next.t('grading.errorFillFields')}</p>`;
         return;
     }
@@ -1805,7 +1760,7 @@ async function handleGradingAnalysis(e) {
     const formData = new FormData();
     formData.append('sujet', sujet);
     formData.append('criteres', criteres);
-    formData.append('lang', i18next.language); // MODIFIÉ : Envoie la langue
+    formData.append('lang', i18next.language);
     
     for (const file of files) {
         formData.append('copies', file);
@@ -1824,9 +1779,8 @@ async function handleGradingAnalysis(e) {
 
         const results = await response.json(); 
         
-        // MODIFIÉ : Traductions
         const resultTitle = i18next.t('grading.resultTitle');
-        const resultSubtitle = i18next.t('grading.resultSubtitle', { file: files[0].name, count: files.length - 1 });
+        const resultSubtitle = i18next.t('grading.resultSubtitle', { file: files[0].name, count: files.length > 0 ? files.length - 1 : 0 });
         const globalAnalysis = i18next.t('grading.globalAnalysis');
         const detailedAnalysis = i18next.t('grading.detailedAnalysis');
         const noCriteria = i18next.t('grading.noCriteria');
