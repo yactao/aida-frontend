@@ -33,7 +33,7 @@
     "signupButton": "S'inscrire",
     "hasAccount": "Déjà un compte ? <a href=\"#\" id=\"show-login\">Connectez-vous</a>"
   },
- "teacherDashboard": {
+  "teacherDashboard": {
     "greeting": "Bonjour {{name}}!",
     "plannerButton": "Planificateur de Cours",
     "newContentButton": "Nouveau Contenu",
@@ -63,7 +63,17 @@
     "noCorrections": "Aucun devoir à corriger pour le moment. Bravo !",
     "completionRate": "Taux de complétion",
     "submissionsCount": "{{count}} / {{total}} exercice(s) fait(s)",
-    "pendingCount": "en attente"
+    "pendingCount": "en attente",
+    "deleteStudentTitle": "Supprimer l'élève",
+    "shareTitle": "Partager dans la bibliothèque",
+    "deleteTitle": "Supprimer le contenu",
+    "assignedLabel": "Assigné le:",
+    "studentLabel": "Élève",
+    "submittedLabel": "Soumis le",
+    "viewCopyButton": "Voir la copie",
+    "noCompetencyResults": "Aucun résultat pour analyser les compétences. Les élèves doivent d'abord compléter des exercices.",
+    "competencyHeader": "Compétence",
+    "competencyRateHeader": "Taux de réussite moyen"
   },
   "addStudentModal": {
     "title": "Ajouter un élève",
@@ -77,13 +87,26 @@
     "cancelButton": "Annuler",
     "deleteButton": "Confirmer la suppression"
   },
-
+  "deleteContentModal": {
+    "title": "Confirmer la suppression",
+    "confirmText": "Êtes-vous sûr de vouloir supprimer \"<strong>{{title}}</strong>\" ?",
+    "warning": "Cette action est irréversible et supprimera également tous les résultats des élèves pour ce devoir.",
+    "cancelButton": "Annuler",
+    "deleteButton": "Confirmer"
+  },
   "studentDashboard": {
     "title": "Tableau de Bord de {{name}}",
     "subtitle": "Tes devoirs et exercices en un seul endroit.",
+    "todo": "À Faire",
+    "pending": "En Attente",
+    "archive": "Archives",
     "noTodo": "Tu n'as aucun devoir à faire pour le moment. Bon travail !",
     "noPending": "Aucun devoir en attente de correction.",
-    "noArchive": "Aucun devoir terminé dans tes archives."
+    "noArchive": "Aucun devoir terminé dans tes archives.",
+    "filterAll": "Tout",
+    "filterMonth": "Ce mois-ci",
+    "filterWeek": "Cette semaine",
+    "noArchivePeriod": "Aucun exercice terminé pour cette période."
   },
   "studentCard": {
     "status": "Statut :",
@@ -95,7 +118,12 @@
     "dueDate": "À rendre le : {{date}}",
     "button_start": "Commencer",
     "button_view": "Voir le devoir",
-    "button_correction": "Voir la correction"
+    "button_correction": "Voir la correction",
+    "classLabel": "Classe",
+    "status_todo_date": "À faire pour le {{date}}",
+    "status_late_date": "En retard (pour le {{date}})",
+    "status_due_soon": "À rendre bientôt",
+    "status_completed_simple": "Validé"
   },
   "contentViewer": {
     "backButton": "Retour au tableau de bord",
@@ -106,7 +134,9 @@
     "submitConfirmTitle": "Confirmer la soumission",
     "submitConfirmText": "Es-tu sûr de vouloir soumettre ce devoir ? Tu ne pourras plus le modifier.",
     "submitConfirmButton": "Soumettre",
-    "cancelButton": "Annuler"
+    "cancelButton": "Annuler",
+    "markAsReadButton": "Marquer comme lu",
+    "answerPlaceholder": "Rédige ta réponse ici..."
   },
   "aidaHelp": {
     "title": "Aide AIDA",
@@ -116,8 +146,7 @@
     "initialMessageTrust": "Bonjour ! Je vois que tu prépares le devoir '{{title}}'. Pose-moi tes questions, je te guiderai étape par étape.",
     "sendButton": "Envoyer"
   },
-
-"planner": {
+  "planner": {
     "title": "Planificateur de Cours",
     "backButton": "Retour",
     "themeLabel": "Thème de la séquence",
@@ -238,7 +267,21 @@
     "appreciationLabel": "Appréciation",
     "commentLabel": "Commentaire",
     "modalTitlePrefix": "Résultat pour"
+  },
+  "appreciations": {
+    "acquis": "Acquis",
+    "en_cours": "En cours d'acquisition",
+    "non_acquis": "Non acquis",
+    "a_revoir": "À revoir"
+  },
+  "studentDetails": {
+    "backButton": "Retour à la classe",
+    "profileTitle": "Profil de {{name}}",
+    "resultsTitle": "Résultats des exercices terminés",
+    "noResults": "Aucun exercice terminé pour le moment.",
+    "completedLabel": "Terminé le:",
+    "scoreLabel": "Score",
+    "helpUsedTitle": "L'élève a demandé de l'aide pour ce devoir",
+    "viewDetailsButton": "Voir les détails"
   }
 }
-
-

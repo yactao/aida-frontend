@@ -63,7 +63,17 @@
     "noCorrections": "No assignments to grade for now. Well done!",
     "completionRate": "Completion Rate",
     "submissionsCount": "{{count}} / {{total}} assignment(s) done",
-    "pendingCount": "pending"
+    "pendingCount": "pending",
+    "deleteStudentTitle": "Remove student",
+    "shareTitle": "Share to library",
+    "deleteTitle": "Delete content",
+    "assignedLabel": "Assigned on:",
+    "studentLabel": "Student",
+    "submittedLabel": "Submitted on",
+    "viewCopyButton": "View submission",
+    "noCompetencyResults": "No results to analyze skills. Students must complete exercises first.",
+    "competencyHeader": "Skill",
+    "competencyRateHeader": "Average success rate"
   },
   "addStudentModal": {
     "title": "Add Student",
@@ -77,13 +87,26 @@
     "cancelButton": "Cancel",
     "deleteButton": "Confirm Deletion"
   },
-
+  "deleteContentModal": {
+    "title": "Confirm deletion",
+    "confirmText": "Are you sure you want to delete \"<strong>{{title}}</strong>\"?",
+    "warning": "This action is irreversible and will also delete all student results for this assignment.",
+    "cancelButton": "Cancel",
+    "deleteButton": "Confirm"
+  },
   "studentDashboard": {
     "title": "{{name}}'s Dashboard",
     "subtitle": "Your assignments and exercises in one place.",
+    "todo": "To Do",
+    "pending": "Pending",
+    "archive": "Archives",
     "noTodo": "You have no assignments to do right now. Good job!",
     "noPending": "No assignments awaiting correction.",
-    "noArchive": "No completed assignments in your archive."
+    "noArchive": "No completed assignments in your archive.",
+    "filterAll": "All",
+    "filterMonth": "This month",
+    "filterWeek": "This week",
+    "noArchivePeriod": "No assignments completed for this period."
   },
   "studentCard": {
     "status": "Status:",
@@ -95,7 +118,12 @@
     "dueDate": "Due on: {{date}}",
     "button_start": "Start",
     "button_view": "View",
-    "button_correction": "View Correction"
+    "button_correction": "View Correction",
+    "classLabel": "Class",
+    "status_todo_date": "Due on {{date}}",
+    "status_late_date": "Overdue (was due {{date}})",
+    "status_due_soon": "Due soon",
+    "status_completed_simple": "Graded"
   },
   "contentViewer": {
     "backButton": "Back to dashboard",
@@ -106,7 +134,9 @@
     "submitConfirmTitle": "Confirm Submission",
     "submitConfirmText": "Are you sure you want to submit this assignment? You will not be able to edit it afterward.",
     "submitConfirmButton": "Submit",
-    "cancelButton": "Cancel"
+    "cancelButton": "Cancel",
+    "markAsReadButton": "Mark as read",
+    "answerPlaceholder": "Write your answer here..."
   },
   "aidaHelp": {
     "title": "AIDA Help",
@@ -116,8 +146,7 @@
     "initialMessageTrust": "Hello! I see you are preparing the assignment '{{title}}'. Ask me your questions, and I will guide you step by step.",
     "sendButton": "Send"
   },
-
-"planner": {
+  "planner": {
     "title": "Lesson Planner",
     "backButton": "Back",
     "themeLabel": "Sequence Theme",
@@ -238,5 +267,21 @@
     "appreciationLabel": "Appreciation",
     "commentLabel": "Comment",
     "modalTitlePrefix": "Result for"
+  },
+  "appreciations": {
+    "acquis": "Mastered",
+    "en_cours": "In progress",
+    "non_acquis": "Not acquired",
+    "a_revoir": "Needs review"
+  },
+  "studentDetails": {
+    "backButton": "Back to class",
+    "profileTitle": "{{name}}'s Profile",
+    "resultsTitle": "Completed assignment results",
+    "noResults": "No completed assignments yet.",
+    "completedLabel": "Completed on:",
+    "scoreLabel": "Score",
+    "helpUsedTitle": "Student asked for help on this assignment",
+    "viewDetailsButton": "View details"
   }
 }

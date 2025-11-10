@@ -71,7 +71,17 @@
     "noCorrections": "لا توجد واجبات لتصحيحها في الوقت الحالي. أحسنت!",
     "completionRate": "معدل الإنجاز",
     "submissionsCount": "{{count}} / {{total}} تمرين (تمارين) منجزة",
-    "pendingCount": "معلقة"
+    "pendingCount": "معلقة",
+    "deleteStudentTitle": "إزالة الطالب",
+    "shareTitle": "مشاركة في المكتبة",
+    "deleteTitle": "حذف المحتوى",
+    "assignedLabel": "عُيّن في:",
+    "studentLabel": "الطالب",
+    "submittedLabel": "سُلّم في",
+    "viewCopyButton": "عرض الإجابة",
+    "noCompetencyResults": "لا توجد نتائج لتحليل المهارات. يجب على الطلاب إكمال التمارين أولاً.",
+    "competencyHeader": "المهارة",
+    "competencyRateHeader": "متوسط معدل النجاح"
   },
   "addStudentModal": {
     "title": "إضافة طالب",
@@ -85,13 +95,26 @@
     "cancelButton": "إلغاء",
     "deleteButton": "تأكيد الحذف"
   },
-
+  "deleteContentModal": {
+    "title": "تأكيد الحذف",
+    "confirmText": "هل أنت متأكد من رغبتك في حذف \"<strong>{{title}}</strong>\"؟",
+    "warning": "هذا الإجراء لا يمكن التراجع عنه وسيحذف أيضًا جميع نتائج الطلاب لهذا الواجب.",
+    "cancelButton": "إلغاء",
+    "deleteButton": "تأكيد"
+  },
   "studentDashboard": {
     "title": "لوحة تحكم {{name}}",
     "subtitle": "واجباتك وتمارينك في مكان واحد.",
+    "todo": "الواجبات المطلوبة",
+    "pending": "قيد الانتظار",
+    "archive": "الأرشيف",
     "noTodo": "ليس لديك واجبات للقيام بها الآن. عمل جيد!",
     "noPending": "لا توجد واجبات بانتظار التصحيح.",
-    "noArchive": "لا توجد واجبات مكتملة في أرشيفك."
+    "noArchive": "لا توجد واجبات مكتملة في أرشيفك.",
+    "filterAll": "الكل",
+    "filterMonth": "هذا الشهر",
+    "filterWeek": "هذا الأسبوع",
+    "noArchivePeriod": "لا توجد واجبات مكتملة لهذه الفترة."
   },
   "studentCard": {
     "status": "الحالة:",
@@ -103,7 +126,12 @@
     "dueDate": "يُسلم في: {{date}}",
     "button_start": "ابدأ",
     "button_view": "عرض الواجب",
-    "button_correction": "عرض التصحيح"
+    "button_correction": "عرض التصحيح",
+    "classLabel": "الفصل",
+    "status_todo_date": "يُسلم في {{date}}",
+    "status_late_date": "متأخر (كان التسليم في {{date}})",
+    "status_due_soon": "يُسلم قريباً",
+    "status_completed_simple": "تم التقييم"
   },
   "contentViewer": {
     "backButton": "العودة إلى لوحة التحكم",
@@ -114,7 +142,9 @@
     "submitConfirmTitle": "تأكيد التسليم",
     "submitConfirmText": "هل أنت متأكد من رغبتك في تسليم هذا الواجب؟ لن تتمكن من تعديله لاحقاً.",
     "submitConfirmButton": "تسليم",
-    "cancelButton": "إلغاء"
+    "cancelButton": "إلغاء",
+    "markAsReadButton": "تحديد كمقروء",
+    "answerPlaceholder": "اكتب إجابتك هنا..."
   },
   "aidaHelp": {
     "title": "مساعدة AIDA",
@@ -245,5 +275,21 @@
     "appreciationLabel": "التقييم",
     "commentLabel": "التعليق",
     "modalTitlePrefix": "نتيجة لـ"
+  },
+  "appreciations": {
+    "acquis": "مكتسب",
+    "en_cours": "قيد الاكتساب",
+    "non_acquis": "غير مكتسب",
+    "a_revoir": "يحتاج مراجعة"
+  },
+  "studentDetails": {
+    "backButton": "العودة إلى الفصل",
+    "profileTitle": "ملف {{name}}",
+    "resultsTitle": "نتائج الواجبات المكتملة",
+    "noResults": "لا توجد واجبات مكتملة بعد.",
+    "completedLabel": "أُكمل في:",
+    "scoreLabel": "النتيجة",
+    "helpUsedTitle": "طلب الطالب المساعدة في هذا الواجب",
+    "viewDetailsButton": "عرض التفاصيل"
   }
 }
