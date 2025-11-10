@@ -313,16 +313,36 @@
         const pitchValue = document.getElementById('pitch-value');
         const trustModeBanner = document.getElementById('trust-mode-banner');
         
-        // NOUVEAUX sélecteurs pour l'historique
         const newChatBtn = document.getElementById('new-chat-btn');
         const historyList = document.getElementById('history-list');
         
-        // NOUVEAUX sélecteurs pour la barre rétractable
         const toggleSidebarBtn = document.getElementById('toggle-sidebar-btn');
         const contentWrapper = document.querySelector('.playground-content-wrapper');
 
-        // --- 2. ÉTAT DE L'APPLICATION (Refonte) ---
-        const STORAGE_KEY = 'aidaPlaygroundHistory';
+        // --- 2. ÉTAT DE L'APPLICATION (Refonte avec Clé Dynamique) ---
+        
+        // ▼▼▼ CORRECTION : Clé de stockage dynamique par utilisateur ▼▼▼
+        let STORAGE_KEY = 'aidaPlaygroundHistory_default'; // Clé par défaut (ne sera pas utilisée si connecté)
+        let currentUser = null;
+        
+        try {
+            // Tente de lire l'utilisateur depuis le localStorage de l'app principale
+            const storedUser = localStorage.getItem('currentUser');
+            if (storedUser) {
+                currentUser = JSON.parse(storedUser);
+                if (currentUser && currentUser.email) {
+                    // Crée une clé unique, ex: "aidaPlaygroundHistory_prof@email.com"
+                    STORAGE_KEY = `aidaPlaygroundHistory_${currentUser.email}`; 
+                } else {
+                    currentUser = null; // Utilisateur invalide
+                }
+            }
+        } catch (e) {
+            console.error("Erreur lors de la lecture de l'utilisateur :", e);
+            currentUser = null;
+        }
+        // ▲▲▲ FIN DE LA CORRECTION ▲▲▲
+
         let allChatsHistory = []; // Stocke TOUS les chats
         let currentChatId = null;   // ID du chat en cours
         let currentMessages = []; // Messages du chat en cours (pour l'API)
@@ -331,9 +351,8 @@
         let currentAudio = null;
         let currentListenBtn = null;
         
-        // --- 3. FONCTIONS DE L'HISTORIQUE (Nouvelles) ---
+        // --- 3. FONCTIONS DE L'HISTORIQUE (Inchangées - utilisent la nouvelle STORAGE_KEY) ---
 
-        // Génère un ID unique
         function uuidv4() {
             return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
                 var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
@@ -341,18 +360,15 @@
             });
         }
 
-        // Charge l'historique depuis le localStorage
         function loadHistoryFromStorage() {
-            const storedHistory = localStorage.getItem(STORAGE_KEY);
+            const storedHistory = localStorage.getItem(STORAGE_KEY); // Lit depuis la clé unique
             allChatsHistory = storedHistory ? JSON.parse(storedHistory) : [];
         }
 
-        // Sauvegarde l'historique dans le localStorage
         function saveHistoryToStorage() {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(allChatsHistory));
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(allChatsHistory)); // Sauvegarde sur la clé unique
         }
 
-        // Met à jour la barre latérale
         function renderHistorySidebar() {
             historyList.innerHTML = '';
             if (allChatsHistory.length === 0) {
@@ -376,34 +392,30 @@
             });
         }
 
-        // Charge un chat spécifique depuis l'historique
         function loadChat(chatId) {
             const chat = allChatsHistory.find(c => c.id === chatId);
             if (!chat) return;
 
             currentChatId = chatId;
-            currentMessages = chat.messages; // Charge les messages pour l'API
+            currentMessages = chat.messages;
             
-            chatWindow.innerHTML = ''; // Vide la fenêtre
-            // Re-génère les messages du chat chargé
+            chatWindow.innerHTML = '';
             currentMessages.forEach(msg => {
                 if (msg.role === 'user') {
-                    // Extrait le message utilisateur simple (sans le préfixe de mode)
                     const userMsg = msg.content.startsWith('(Mode:') ? msg.content.substring(msg.content.indexOf(')') + 2) : msg.content;
-                    addMessage('user', userMsg, false); // 'false' pour ne pas l'ajouter à l'historique
+                    addMessage('user', userMsg, false);
                 } else if (msg.role === 'assistant') {
-                    addMessage('aida', msg.content, false); // 'false' pour ne pas l'ajouter à l'historique
+                    addMessage('aida', msg.content, false);
                 }
             });
             
-            renderHistorySidebar(); // Met à jour la classe 'active'
+            renderHistorySidebar();
             chatWindow.scrollTop = chatWindow.scrollHeight;
         }
 
-        // Sauvegarde le chat actuel (création ou mise à jour)
         function saveCurrentChat() {
             const userMessage = currentMessages.find(m => m.role === 'user');
-            if (!userMessage) return; // Ne pas sauvegarder un chat vide
+            if (!userMessage) return;
 
             const title = userMessage.content.substring(userMessage.content.indexOf(')') + 2, 60) + '...';
             const existingChat = allChatsHistory.find(c => c.id === currentChatId);
@@ -411,7 +423,7 @@
             if (existingChat) {
                 existingChat.messages = currentMessages;
                 existingChat.timestamp = Date.now();
-                existingChat.title = title; // Mettre à jour le titre au cas où
+                existingChat.title = title;
             } else {
                 allChatsHistory.push({
                     id: currentChatId,
@@ -422,10 +434,9 @@
             }
             
             saveHistoryToStorage();
-            renderHistorySidebar(); // Rafraîchit la liste
+            renderHistorySidebar();
         }
 
-        // Démarre une nouvelle discussion
         function startNewChat(isTrustMode = false, welcomeMessage = "Bonjour ! Je suis AIDA. Comment puis-je t'aider aujourd'hui ?") {
             currentChatId = null;
             currentMessages = [];
@@ -433,32 +444,24 @@
             userInput.value = '';
             
             if (!isTrustMode) {
-                renderHistorySidebar(); // Dé-sélectionne tout item 'active'
+                renderHistorySidebar();
             } else {
-                // Désactive l'UI de l'historique en mode "devoir"
                 newChatBtn.disabled = true;
                 historyList.innerHTML = '<li style="color: #888; text-align: center; font-style: italic; user-select: none;">Historique désactivé en mode devoir.</li>';
-                
-                // Cache aussi le bouton de bascule en mode devoir
                 toggleSidebarBtn.classList.add('hidden');
                 contentWrapper.classList.add('sidebar-collapsed');
             }
             addMessage('aida', welcomeMessage, false);
         }
 
-        // --- 4. FONCTIONS DE L'INTERFACE (Modifiées) ---
+        // --- 4. FONCTIONS DE L'INTERFACE (Inchangées) ---
 
-        // addMessage est MODIFIÉE pour ne pas ajouter à l'historique si 'addToHistory' est faux
-        // C'est utile lors du re-chargement d'un chat
         function addMessage(sender, text, addToHistory = true) {
             const messageDiv = document.createElement('div');
             messageDiv.className = `chat-message ${sender}`;
             const bubble = document.createElement('div');
             bubble.className = 'message-bubble';
-            
-            // Nettoyage simple pour l'affichage (le markdown sera géré côté IA si possible)
             bubble.innerHTML = text.replace(/\n/g, '<br>'); 
-            
             messageDiv.appendChild(bubble);
             
             if (sender === 'aida') {
@@ -475,11 +478,8 @@
             
             chatWindow.appendChild(messageDiv);
             chatWindow.scrollTop = chatWindow.scrollHeight;
-
-            // Logique d'historique déplacée vers sendMessage()
         }
 
-        // showTypingIndicator (INCHANGÉE)
         function showTypingIndicator() {
             const typingDiv = document.createElement('div');
             typingDiv.id = 'typing-indicator';
@@ -491,7 +491,6 @@
             chatWindow.appendChild(typingDiv);
             chatWindow.scrollTop = chatWindow.scrollHeight;
         }
-        // removeTypingIndicator (INCHANGÉE)
         function removeTypingIndicator() {
             const indicator = document.getElementById('typing-indicator');
             if (indicator) {
@@ -499,7 +498,6 @@
             }
         }
 
-        // sendMessage est REFAITE pour gérer le nouvel état
         async function sendMessage() {
             const message = userInput.value.trim();
             if (!message) return;
@@ -511,19 +509,15 @@
             userInput.value = '';
             showTypingIndicator();
 
-            // Gère le nouvel ID de chat si c'est le premier message
             if (currentChatId === null) {
                 currentChatId = uuidv4();
             }
-
-            // Ajoute le message à l'historique de l'état local
             currentMessages.push({ role: 'user', content: fullMessage });
             
             try {
                 const response = await fetch(`${backendUrl}/ai/playground-chat`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    // Envoie l'historique du chat *actuel*
                     body: JSON.stringify({ history: currentMessages }) 
                 });
                 
@@ -537,8 +531,6 @@
                 currentMessages.push({ role: 'assistant', content: data.reply });
                 removeTypingIndicator();
                 addMessage('aida', data.reply);
-                
-                // Sauvegarde la conversation (création ou mise à jour)
                 saveCurrentChat();
 
             } catch (error) {
@@ -547,7 +539,7 @@
             }
         }
         
-        // --- 5. FONCTIONS VOCALES (INCHANGÉES) ---
+        // --- 5. FONCTIONS VOCALES (Inchangées) ---
         function setupSpeechRecognition() {
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
             if (!SpeechRecognition) {
@@ -580,7 +572,6 @@
                 recognition.start();
             }
         }
-
         async function togglePlayback(text, buttonEl) {
             if (currentListenBtn === buttonEl) {
                 if(currentAudio) currentAudio.pause();
@@ -590,46 +581,36 @@
                 currentListenBtn = null;
                 return;
             }
-
             if (currentAudio) {
                 currentAudio.pause();
                 currentListenBtn.innerHTML = '<i class="fa-solid fa-volume-high"></i>';
                 currentListenBtn.classList.remove('active-speaker');
             }
-
             currentListenBtn = buttonEl;
             buttonEl.innerHTML = `<div class="spinner-dots" style="transform: scale(0.6);"><span></span><span></span><span></span></div>`;
-
             try {
                 const rate = localStorage.getItem('aida-rate') || 1;
                 const pitch = localStorage.getItem('aida-pitch') || 1;
                 const voice = localStorage.getItem('aida-voice-name');
-
                 const response = await fetch(`${backendUrl}/ai/synthesize-speech`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ text, voice, rate, pitch })
                 });
-                
                 if (!response.ok) { throw new Error(`Erreur du serveur vocal (status: ${response.status}).`); }
-                
                 const data = await response.json();
                 const audioBlob = await (await fetch(`data:audio/mp3;base64,${data.audioContent}`)).blob();
                 const audioUrl = URL.createObjectURL(audioBlob);
-                
                 currentAudio = new Audio(audioUrl);
                 currentAudio.play();
-                
                 buttonEl.innerHTML = '<i class="fa-solid fa-stop"></i>';
                 buttonEl.classList.add('active-speaker');
-
                 currentAudio.onended = () => {
                     buttonEl.innerHTML = '<i class="fa-solid fa-volume-high"></i>';
                     buttonEl.classList.remove('active-speaker');
                     currentAudio = null;
                     currentListenBtn = null;
                 };
-
             } catch (error) {
                 console.error("Erreur lors de la lecture de l'audio neuronal:", error);
                 alert(`Impossible de jouer la voix d'AIDA : ${error.message}`);
@@ -638,8 +619,7 @@
             }
         }
 
-
-        // --- 6. FONCTIONS DE LA MODALE (INCHANGÉES) ---
+        // --- 6. FONCTIONS DE LA MODALE (Inchangées) ---
         function populateVoiceList() {
              const googleVoices = [
                 { name: 'Français (France, Femme)', value: 'fr-FR-Wavenet-E', lang: 'fr-FR' },
@@ -649,7 +629,6 @@
                 { name: 'Arabe (Femme)', value: 'ar-XA-Wavenet-A', lang: 'ar-SA' },
                 { name: 'Arabe (Homme)', value: 'ar-XA-Wavenet-B', lang: 'ar-SA' },
             ];
-            
             voiceSelect.innerHTML = '';
             googleVoices.forEach(voice => {
                 const option = document.createElement('option');
@@ -658,12 +637,11 @@
                 option.dataset.lang = voice.lang;
                 voiceSelect.appendChild(option);
             });
-
             const savedVoiceName = localStorage.getItem('aida-voice-name');
             if (savedVoiceName) {
                 voiceSelect.value = savedVoiceName;
             } else {
-                voiceSelect.value = 'fr-FR-Wavenet-E'; // Valeur par défaut
+                voiceSelect.value = 'fr-FR-Wavenet-E';
                 localStorage.setItem('aida-voice-name', 'fr-FR-Wavenet-E');
             }
         }
@@ -679,13 +657,10 @@
             voiceSettingsModal.classList.add('hidden');
         }
         
-        // --- 7. ÉCOUTEURS D'ÉVÉNEMENTS (Mis à jour) ---
+        // --- 7. ÉCOUTEURS D'ÉVÉNEMENTS (Inchangés) ---
         
-        // NOUVEL écouteur pour le bouton de bascule
         toggleSidebarBtn.addEventListener('click', () => {
             contentWrapper.classList.toggle('sidebar-collapsed');
-            
-            // Sauvegarde l'état dans le localStorage
             const isCollapsed = contentWrapper.classList.contains('sidebar-collapsed');
             localStorage.setItem('aidaSidebarCollapsed', isCollapsed);
         });
@@ -694,7 +669,6 @@
              startNewChat(false, "Bonjour ! Je suis AIDA. Comment puis-je t'aider aujourd'hui ?");
         });
 
-        // INCHANGÉS
         backToDashboardBtn.addEventListener('click', () => { window.location.href = 'index.html'; });
         sendBtn.addEventListener('click', sendMessage);
         userInput.addEventListener('keydown', (e) => {
@@ -705,37 +679,27 @@
         docUpload.addEventListener('change', async (e) => {
             const file = e.target.files[0];
             if (!file) return;
-
-            // En mode "Trust", on ne permet pas l'upload
             const isEvaluatedSession = sessionStorage.getItem('isEvaluatedSession') === 'true';
             if(isEvaluatedSession) {
                 addMessage('aida', "Désolé, l'upload de documents est désactivé pendant un devoir évalué.", false);
                 return;
             }
-
             addMessage('user', `Analyse du document: ${file.name}`);
             showTypingIndicator();
-
-            // Gère le nouvel ID de chat si c'est le premier message
             if (currentChatId === null) {
                 currentChatId = uuidv4();
             }
-
             const formData = new FormData();
             formData.append('document', file);
             try {
                 const response = await fetch(`${backendUrl}/ai/playground-extract-text`, { method: 'POST', body: formData });
                 const data = await response.json();
                 if (!response.ok) throw new Error(data.error || 'Erreur du serveur');
-                
                 const message = `Voici le texte extrait du document. Que veux-tu faire avec ?\n\n---\n${data.extractedText}`;
-                
                 currentMessages.push({ role: 'user', content: `(Mode: upload) ${message}` });
-                
                 removeTypingIndicator();
                 addMessage('aida', `J'ai lu le document ! Le texte est maintenant dans notre conversation. Dis-moi comment je peux t'aider avec.`);
-                
-                saveCurrentChat(); // Sauvegarde le chat après l'upload
+                saveCurrentChat();
             } catch (err) {
                 removeTypingIndicator();
                 addMessage('aida', `Désolé, je n'ai pas pu lire ce document. Erreur : ${err.message}`);
@@ -756,7 +720,6 @@
             const selectedOption = voiceSelect.options[voiceSelect.selectedIndex];
             const voiceName = selectedOption.value;
             localStorage.setItem('aida-voice-name', voiceName);
-
             if (recognition) {
                 const lang = selectedOption.dataset.lang;
                 recognition.lang = lang;
@@ -764,45 +727,53 @@
             }
         });
 
-        // --- 8. INITIALISATION (Mise à jour) ---
+        // --- 8. INITIALISATION (Mise à jour avec Sécurité) ---
         
-        // Configuration initiale de la voix et de la parole
-        populateVoiceList();
-        setupSpeechRecognition();
-
-        // NOUVEAU : Vérifie si l'utilisateur avait masqué le panneau
-        const savedCollapsedState = localStorage.getItem('aidaSidebarCollapsed');
-        if (savedCollapsedState === 'true') {
-            contentWrapper.classList.add('sidebar-collapsed');
-        }
-
-        // Charge tout l'historique depuis le localStorage
-        loadHistoryFromStorage();
-
-        // Vérifie si on est en mode "Devoir Évalué"
-        const urlParams = new URLSearchParams(window.location.search);
-        const modeFromUrl = urlParams.get('mode');
-        const topic = urlParams.get('topic');
-        const isEvaluatedSession = sessionStorage.getItem('isEvaluatedSession') === 'true';
-
-        if (isEvaluatedSession || modeFromUrl === 'coach') {
-            // MODE DEVOIR SÉCURISÉ
-            trustModeBanner.classList.remove('hidden');
-            document.getElementById('mode-coach').checked = true;
-            modeSelector.querySelectorAll('input').forEach(input => input.disabled = true);
-            
-            const initialMessage = topic ? `Bonjour ! Je suis prêt à t'aider à préparer ton devoir sur "${topic}". Comment puis-je t'aider à commencer (sans te donner la réponse, bien sûr) ?` : "Bonjour ! Le mode 'Préparation de devoir' est activé. Comment puis-je t'aider ?";
-            
-            // Démarre un nouveau chat en mode "Trust", ce qui désactive l'historique
-            startNewChat(true, initialMessage);
-
+        // ▼▼▼ AJOUT : Vérification de l'utilisateur connecté ▼▼▼
+        if (!currentUser) {
+            // Si personne n'est connecté, on bloque tout
+            document.querySelector('.playground-container').innerHTML = `
+                <div class="card" style="margin: 2rem auto; max-width: 500px; text-align: center; padding: 2rem;">
+                    <h2>Accès non autorisé</h2>
+                    <p style="margin-top: 1rem;">Vous devez être connecté pour accéder à l'Espace de Travail.</p>
+                    <a href="index.html" class="btn btn-main" style="margin-top: 1.5rem;">Retour à l'accueil</a>
+                </div>
+            `;
+            // Cache le banner s'il existe
+            trustModeBanner.classList.add('hidden');
         } else {
-            // MODE NORMAL
-            // Affiche la barre latérale avec tous les chats
-            renderHistorySidebar();
-            // Démarre un nouveau chat (sans message, il sera ajouté ensuite)
-            startNewChat(false, "Bonjour ! Je suis AIDA. Comment puis-je t'aider aujourd'hui ?");
-        }
+        // ▲▲▲ FIN DE L'AJOUT ▲▲▲
+
+            // Le reste de l'initialisation ne s'exécute que si un utilisateur est connecté
+            populateVoiceList();
+            setupSpeechRecognition();
+
+            const savedCollapsedState = localStorage.getItem('aidaSidebarCollapsed');
+            if (savedCollapsedState === 'true') {
+                contentWrapper.classList.add('sidebar-collapsed');
+            }
+
+            loadHistoryFromStorage(); // Charge l'historique de l'utilisateur connecté
+
+            const urlParams = new URLSearchParams(window.location.search);
+            const modeFromUrl = urlParams.get('mode');
+            const topic = urlParams.get('topic');
+            const isEvaluatedSession = sessionStorage.getItem('isEvaluatedSession') === 'true';
+
+            if (isEvaluatedSession || modeFromUrl === 'coach') {
+                trustModeBanner.classList.remove('hidden');
+                document.getElementById('mode-coach').checked = true;
+                modeSelector.querySelectorAll('input').forEach(input => input.disabled = true);
+                
+                const initialMessage = topic ? `Bonjour ! Je suis prêt à t'aider à préparer ton devoir sur "${topic}". Comment puis-je t'aider à commencer (sans te donner la réponse, bien sûr) ?` : "Bonjour ! Le mode 'Préparation de devoir' est activé. Comment puis-je t'aider ?";
+                
+                startNewChat(true, initialMessage);
+
+            } else {
+                renderHistorySidebar();
+                startNewChat(false, "Bonjour ! Je suis AIDA. Comment puis-je t'aider aujourd'hui ?");
+            }
+        } // Fin du 'else' de la vérification de sécurité
     </script>
 </body>
 </html>
