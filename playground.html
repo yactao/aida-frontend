@@ -35,11 +35,11 @@
             display: flex; 
             flex-direction: column; 
             flex-grow: 1; 
-            max-width: 1200px; /* Élargi pour la sidebar */
+            max-width: 1200px;
             width: 100%; 
             margin: 0 auto; 
             padding: 1rem; 
-            overflow: hidden; /* Empêche le double scroll */
+            overflow: hidden;
         }
         
         .playground-header { display: flex; justify-content: space-between; align-items: center; padding: 1rem 0; border-bottom: 1px solid var(--border-color); flex-shrink: 0; }
@@ -101,19 +101,19 @@
             text-align: center;
             font-size: 0.9rem;
             font-weight: 600;
-            flex-shrink: 0; /* S'assure que le banner ne rétrécit pas */
+            flex-shrink: 0;
         }
 
         /* --- Styles pour l'Historique --- */
         
         .playground-content-wrapper {
             display: flex;
-            flex-grow: 1; /* Prend la place restante sous le header */
-            height: 1px; /* Astuce pour que flex-grow fonctionne avec la hauteur */
-            min-height: 0; /* Empêche le dépassement */
+            flex-grow: 1;
+            height: 1px;
+            min-height: 0;
             border: 1px solid var(--border-color);
             border-radius: 12px;
-            overflow: hidden; /* Important */
+            overflow: hidden;
             background-color: var(--card-bg-color);
             margin-top: 1rem;
             transition: all 0.3s ease;
@@ -121,7 +121,7 @@
         
         .playground-sidebar {
             flex: 0 0 280px;
-            background: var(--background-color); /* Un fond légèrement différent */
+            background: var(--background-color);
             padding: 1rem;
             border-right: 1px solid var(--border-color);
             overflow-y: auto;
@@ -131,7 +131,7 @@
             flex-shrink: 0;
         }
         body.dark-mode .playground-sidebar {
-             background: #191919; /* Un fond sombre mais distinct */
+             background: #191919;
         }
 
         .history-list {
@@ -155,10 +155,10 @@
             color: var(--text-color);
         }
         .history-list li:hover {
-            background-color: #E9F2FF; /* Plus clair */
+            background-color: #E9F2FF;
         }
         body.dark-mode .history-list li:hover {
-            background-color: #2C2C2C; /* Plus clair en sombre */
+            background-color: #2C2C2C;
         }
 
         .history-list li.active {
@@ -174,13 +174,13 @@
             flex-grow: 1;
             display: flex;
             flex-direction: column;
-            height: 100%; /* Important */
-            overflow: hidden; /* Le scroll sera dans #chat-window */
+            height: 100%;
+            overflow: hidden;
             position: relative; 
         }
         
          #chat-window {
-            background-color: var(--card-bg-color); /* S'assure que c'est cohérent */
+            background-color: var(--card-bg-color);
          }
 
         /* --- Styles pour la Sidebar Rétractable --- */
@@ -217,7 +217,19 @@
             background-color: #333;
         }
 
-        /* Style pour la carte d'accès non autorisé */
+        /* ▼▼▼ NOUVEAU STYLE POUR LE TAG DE L'AGENT ▼▼▼ */
+        .agent-label {
+            font-size: 0.75rem;
+            color: var(--primary-color);
+            margin-left: 5px;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+        body.dark-mode .agent-label {
+            color: var(--secondary-color);
+        }
+        /* ▲▲▲ FIN DU NOUVEAU STYLE ▲▲▲ */
+
         .unauthorized-card {
             margin: 2rem auto; 
             max-width: 500px; 
@@ -324,7 +336,7 @@
         
         const toggleSidebarBtn = document.getElementById('toggle-sidebar-btn');
         const contentWrapper = document.querySelector('.playground-content-wrapper');
-        const playgroundContainer = document.querySelector('.playground-container'); // Ajouté pour le blocage
+        const playgroundContainer = document.querySelector('.playground-container');
 
         // --- 2. ÉTAT DE L'APPLICATION (Avec Clé Dynamique) ---
         
@@ -399,14 +411,19 @@
             currentChatId = chatId;
             currentMessages = chat.messages;
             chatWindow.innerHTML = '';
+            
+            // ▼ MODIFIÉ : Lit l'agent depuis l'historique
             currentMessages.forEach(msg => {
                 if (msg.role === 'user') {
                     const userMsg = msg.content.startsWith('(Mode:') ? msg.content.substring(msg.content.indexOf(')') + 2) : msg.content;
-                    addMessage('user', userMsg, false);
+                    addMessage('user', userMsg, null, false); // Pas de nom d'agent pour l'utilisateur
                 } else if (msg.role === 'assistant') {
-                    addMessage('aida', msg.content, false);
+                    // Passe le nom de l'agent sauvegardé, ou un fallback
+                    addMessage('aida', msg.content, msg.agent || 'Aïda (Archivé)', false);
                 }
             });
+            // ▲ FIN DE LA MODIFICATION
+            
             renderHistorySidebar();
             chatWindow.scrollTop = chatWindow.scrollHeight;
         }
@@ -446,14 +463,26 @@
                 toggleSidebarBtn.classList.add('hidden');
                 contentWrapper.classList.add('sidebar-collapsed');
             }
-            addMessage('aida', welcomeMessage, false);
+            // ▼ MODIFIÉ : Passe le tag par défaut et addToHistory=false
+            addMessage('aida', welcomeMessage, 'Aïda-deep', false);
         }
 
         // --- 4. FONCTIONS DE L'INTERFACE ---
 
-        function addMessage(sender, text, addToHistory = true) {
+        // ▼ MODIFIÉ : Accepte agentName comme 3ème paramètre
+        function addMessage(sender, text, agentName = 'Aïda-deep', addToHistory = true) {
             const messageDiv = document.createElement('div');
             messageDiv.className = `chat-message ${sender}`;
+
+            // ▼ NOUVEAU : Ajout de l'étiquette de l'agent
+            if (sender === 'aida') {
+                const agentLabel = document.createElement('small');
+                agentLabel.className = 'agent-label';
+                agentLabel.textContent = `Réponse de : ${agentName}`;
+                messageDiv.appendChild(agentLabel);
+            }
+            // ▲ FIN DE L'AJOUT
+
             const bubble = document.createElement('div');
             bubble.className = 'message-bubble';
             bubble.innerHTML = text.replace(/\n/g, '<br>'); 
@@ -500,7 +529,8 @@
             const selectedMode = document.querySelector('input[name="mode"]:checked').value;
             const fullMessage = `(Mode: ${selectedMode}) ${message}`;
             
-            addMessage('user', message);
+            // ▼ MODIFIÉ : Passe 'null' pour agentName
+            addMessage('user', message, null, true);
             userInput.value = '';
             showTypingIndicator();
 
@@ -510,7 +540,7 @@
             currentMessages.push({ role: 'user', content: fullMessage });
             
             try {
-                // APPEL À L'AGENT MANAGER (le backend s'occupe de router)
+                // APPEL À L'AGENT MANAGER
                 const response = await fetch(`${backendUrl}/ai/playground-chat`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -522,20 +552,30 @@
                     throw new Error(errData.error || "Erreur de communication avec l'API");
                 }
                 
+                // ▼ MODIFIÉ : Lit la nouvelle structure de réponse
                 const data = await response.json();
+                const aidaMessage = data.reply;
+                const agentName = data.agent || 'Aïda (Erreur)'; // Récupère le nom
+
+                // Sauvegarde la réponse ET l'agent dans l'historique
+                currentMessages.push({ role: 'assistant', content: aidaMessage, agent: agentName });
                 
-                currentMessages.push({ role: 'assistant', content: data.reply });
                 removeTypingIndicator();
-                addMessage('aida', data.reply);
+                
+                // Affiche le message ET le nom de l'agent
+                addMessage('aida', aidaMessage, agentName, true);
+                
                 saveCurrentChat();
+                // ▲ FIN DE LA MODIFICATION
 
             } catch (error) {
                 removeTypingIndicator();
-                addMessage('aida', `Désolé, une erreur est survenue: ${error.message}. Veuillez réessayer.`);
+                // ▼ MODIFIÉ : Passe 'Système' comme nom d'agent
+                addMessage('aida', `Désolé, une erreur est survenue: ${error.message}. Veuillez réessayer.`, 'Système', true);
             }
         }
         
-        // --- 5. FONCTIONS VOCALES ---
+        // --- 5. FONCTIONS VOCALES (Inchangées) ---
         function setupSpeechRecognition() {
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
             if (!SpeechRecognition) {
@@ -544,11 +584,9 @@
                 return;
             }
             recognition = new SpeechRecognition();
-            
             const selectedOption = voiceSelect.options[voiceSelect.selectedIndex];
             recognition.lang = selectedOption ? selectedOption.dataset.lang : 'fr-FR';
             recognition.interimResults = false;
-
             recognition.onresult = (event) => {
                 const transcript = event.results[0][0].transcript;
                 userInput.value = transcript;
@@ -615,7 +653,7 @@
             }
         }
 
-        // --- 6. FONCTIONS DE LA MODALE ---
+        // --- 6. FONCTIONS DE LA MODALE (Inchangées) ---
         function populateVoiceList() {
              const googleVoices = [
                 { name: 'Français (France, Femme)', value: 'fr-FR-Wavenet-E', lang: 'fr-FR' },
@@ -655,7 +693,7 @@
         
         // --- 7. ÉCOUTEURS D'ÉVÉNEMENTS ---
         
-        // Exécute le code uniquement si l'utilisateur est connecté
+        // On n'attache les listeners que si l'utilisateur est connecté
         if (currentUser) {
             toggleSidebarBtn.addEventListener('click', () => {
                 contentWrapper.classList.toggle('sidebar-collapsed');
@@ -675,17 +713,17 @@
             micBtn.addEventListener('click', toggleListening);
             uploadBtn.addEventListener('click', () => docUpload.click());
             
+            // ▼ MODIFIÉ : Gestion de l'upload pour l'Agent Kimi
             docUpload.addEventListener('change', async (e) => {
                 const file = e.target.files[0];
                 if (!file) return;
                 const isEvaluatedSession = sessionStorage.getItem('isEvaluatedSession') === 'true';
                 if(isEvaluatedSession) {
-                    addMessage('aida', "Désolé, l'upload de documents est désactivé pendant un devoir évalué.", false);
+                    addMessage('aida', "Désolé, l'upload de documents est désactivé...", 'Système', true);
                     return;
                 }
                 
-                // Affiche un message de chargement à l'utilisateur
-                addMessage('user', `Chargement du document: ${file.name}...`);
+                addMessage('user', `Chargement du document: ${file.name}...`, null, true);
                 showTypingIndicator();
 
                 if (currentChatId === null) {
@@ -700,18 +738,19 @@
                     const data = await extractResponse.json();
                     if (!extractResponse.ok) throw new Error(data.error || 'Erreur du serveur');
                     
+                    // 2. PRÉPARE LE MESSAGE POUR L'AGENT MANAGER (avec le mot-clé "kimi")
+                    // Ce message est ce que l'IA verra, pas l'utilisateur.
                     const message = `(Mode: upload) J'ai chargé le document "${file.name}". Voici son contenu : \n\n--- DÉBUT DU DOCUMENT ---\n${data.extractedText}\n--- FIN DU DOCUMENT ---\n\n Maintenant, Kimi, analyse ce document et fais-moi un résumé.`;
                     
-                    // 2. Ajoute le texte extrait à l'historique et envoie à l'Agent Manager
                     currentMessages.push({ role: 'user', content: message });
                     
-                    // Informe l'utilisateur (le message complet est dans l'historique mais pas dans le chat)
+                    // Informe l'utilisateur
                     removeTypingIndicator();
-                    addMessage('aida', `J'ai lu le document "${file.name}" ! Je l'envoie à l'Agent Kimi pour analyse...`);
+                    addMessage('aida', `J'ai lu le document "${file.name}" ! Je l'envoie à l'Agent Aïda-kimi pour analyse...`, 'Système', true);
                     showTypingIndicator();
 
                     // 3. Appel à l'Agent Manager (qui va router vers Kimi)
-                    const chatResponse = await fetch(`${backendUrl}/api/ai/playground-chat`, {
+                    const chatResponse = await fetch(`${backendUrl}/ai/playground-chat`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ history: currentMessages }) 
@@ -721,16 +760,20 @@
                     const chatData = await chatResponse.json();
                     
                     // 4. Affiche la réponse de Kimi
-                    currentMessages.push({ role: 'assistant', content: chatData.reply });
+                    const aidaMessage = chatData.reply;
+                    const agentName = chatData.agent || 'Aïda-kimi (Erreur)';
+                    
+                    currentMessages.push({ role: 'assistant', content: aidaMessage, agent: agentName });
                     removeTypingIndicator();
-                    addMessage('aida', chatData.reply);
+                    addMessage('aida', aidaMessage, agentName, true);
                     saveCurrentChat();
 
                 } catch (err) {
                     removeTypingIndicator();
-                    addMessage('aida', `Désolé, je n'ai pas pu lire ce document. Erreur : ${err.message}`);
+                    addMessage('aida', `Désolé, je n'ai pas pu lire ce document. Erreur : ${err.message}`, 'Système', true);
                 }
             });
+            // ▲ FIN DE LA MODIFICATION
             
             settingsBtn.addEventListener('click', openSettingsModal);
             voiceSettingsModal.querySelector('.close-modal').addEventListener('click', closeSettingsModal);
@@ -796,7 +839,7 @@
                 renderHistorySidebar();
                 startNewChat(false, "Bonjour ! Je suis AIDA. Comment puis-je t'aider aujourd'hui ?");
             }
-        }); // Fin du DOMContentLoaded
+        });
     </script>
 </body>
 </html>
