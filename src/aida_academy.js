@@ -698,6 +698,7 @@ async function loadActivityContent(activityId) {
 
     let activity = null;
     let episode = null;
+    let isDialogue = false;
     
     for (const ep of courseData.episodes) {
         activity = ep.activities.find(a => a.id === activityId);
@@ -722,17 +723,15 @@ async function loadActivityContent(activityId) {
             renderMemorizationPage(contentArea, activity);
             break;
         case 'dialogue':
-            // L'activité est un dialogue, on NE VEUT PAS de narrateur
-            narratorBox.classList.add('hidden'); // CACHE LE NARRATEUR
+            isDialogue = true;
             if (activity.scenarioData) {
-                // Votre fonction renderScenarioViewer est correcte et gère le 'context' undefined
                 renderScenarioViewer(contentArea, activity, false);
             } else {
                 contentArea.innerHTML = `<p class="error-message">Erreur : Données de dialogue non trouvées.</p>`;
             }
             break;
         case 'quiz':
-            // L'activité est un quiz, on appelle la nouvelle fonction
+            // Appelle la fonction de quiz que nous avons ajoutée
             renderAcademyQuiz(contentArea, activity);
             break;
         default:
