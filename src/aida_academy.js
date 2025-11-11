@@ -736,7 +736,7 @@ async function loadActivityContent(activityId) {
             }
             break;
         case 'quiz':
-            contentArea.innerHTML = `<h3>${activity.title}</h3><p>Le module Quiz n'est pas encore implémenté.</p>`;
+            renderAcademyQuiz(contentArea, activity);
             break;
         default:
             contentArea.innerHTML = `<p class="error-message">Type d'activité non reconnu.</p>`;
@@ -803,6 +803,115 @@ function renderMemorizationPage(container, activity) {
             </table>
         </div>
     `;
+}
+
+/**
+ * NOUVEAU : Affiche le Quiz
+ */
+function renderAcademyQuiz(container, activity) {
+    let questionsHtml = '';
+    
+    activity.data.questions.forEach((q, index) => {
+        const optionsHtml = q.options.map((option, i) => `
+            <label class="quiz-option">
+                <input type="radio" name="q${index}" value="${i}" required>
+                <div class="option-label">${option}</div>
+            </label>
+        `).join('');
+
+        questionsHtml += `
+            <div class="quiz-question">
+                <div class="question-header">
+                    <p><strong>${index + 1}. ${q.question_text}</strong></p>
+                </div>
+                <div class="quiz-options-grid">${optionsHtml}</div>
+            </div>
+        `;
+    });
+
+    container.innerHTML = `
+        <h3>${activity.title}</h3>
+        <form id="academy-quiz-form">
+            ${questionsHtml}
+            <div style="text-align: right; margin-top: 2rem;">
+                <button type="submit" class="btn btn-main">
+                    <i class="fa-solid fa-check"></i> Valider le Quiz
+                </button>
+            </div>
+        </form>
+    `;
+    
+    // Attache l'écouteur de soumission
+    document.getElementById('academy-quiz-form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        handleAcademyQuizSubmit(activity);
+    });
+}
+
+/**
+ * NOUVEAU : Gère la soumission du Quiz
+ */
+async function handleAcademyQuizSubmit(activity) {
+    const form = document.getElementById('academy-quiz-form');
+    if (!form) return;
+
+    let score = 0;
+    const totalQuestions = activity.data.questions.length;
+    const userAnswers = [];
+
+    for (let i = 0; i < totalQuestions; i++) {
+        const selected = form.querySelector(`input[name="q${i}"]:checked`);
+        if (selected) {
+            const answerIndex = parseInt(selected.value, 10);
+            userAnswers.push(answerIndex);
+            if (answerIndex === activity.data.questions[i].correct_answer_index) {
+                score++;
+            }
+        } else {
+            userAnswers.push(-1); // Aucune réponse
+        }
+    }
+
+    const percentage = Math.round((score / totalQuestions) * 100);
+    const resultText = `Quiz terminé ! Votre score : ${score}/${totalQuestions} (${percentage}%)`;
+
+    try {
+        // Affiche le résultat
+        document.getElementById('activity-content-area').innerHTML = `
+            <div class="card" style="text-align: center; margin: 0;">
+                <h2>Quiz Terminé !</h2>
+                <p style="font-size: 1.5rem; font-weight: 600; margin: 1rem 0;">
+                    Votre score : ${score} / ${totalQuestions}
+                </p>
+                <p class="subtitle" style="margin-bottom: 2rem;">(${percentage}%)</p>
+                <button id="next-activity-btn" class="btn btn-main">Activité suivante <i class="fa-solid fa-arrow-right"></i></button>
+            </div>
+        `;
+        
+        document.getElementById('next-activity-btn').addEventListener('click', () => {
+            // Logique pour passer à l'activité suivante (vous pouvez affiner cela)
+            const currentItem = document.querySelector('.activity-item.active');
+            if (currentItem && currentItem.nextElementSibling) {
+                currentItem.nextElementSibling.click();
+            } else {
+                alert("Fin de l'épisode !");
+            }
+        });
+
+        // Sauvegarde la session
+        await saveAcademySession(activity.id, {
+            type: 'quiz',
+            score: percentage,
+            details: resultText
+        });
+        
+        // Met à jour la sidebar pour montrer que c'est complété
+        updateActivityStatusInSidebar(activity.id, true);
+
+    } catch (err) {
+        console.error("Erreur lors de la sauvegarde du quiz:", err);
+        alert(`Erreur: ${err.message}`);
+    }
 }
 
 
@@ -963,21 +1072,18 @@ export async function renderAcademyParentDashboard() {
     await renderAcademyTeacherDashboard();
 }
 
-
 // MODIFIÉ : La vue du chat IA est maintenant injectée dans une 'div'
 // Accepte 'scenarioData' (pour la série) OU 'scenario' (pour les scénarios personnalisés)
 // Accepte 'isCustomScenario' pour savoir s'il faut afficher le bouton 'Retour'
 function renderScenarioViewer(container, scenarioOrData, isCustomScenario = false) {
-    // Au lieu de 'changePage', nous injectons dans le conteneur
     container.innerHTML = ''; // Vide la zone d'activité
 
-    // Gère les deux types de données (Série ou Scénario Perso)
     const scenarioData = isCustomScenario ? scenarioOrData : scenarioOrData.scenarioData;
     const scenarioId = isCustomScenario ? scenarioOrData.id : scenarioOrData.id;
     const title = isCustomScenario ? scenarioOrData.title : scenarioData.title;
     const context = isCustomScenario ? scenarioOrData.context : scenarioData.context;
     const intro = isCustomScenario ? scenarioOrData.characterIntro : scenarioData.characterIntro;
-    const imageUrl = isCustomScenario ? scenarioOrData.imageUrl : null; // Les dialogues de série n'ont pas d'image
+    const imageUrl = isCustomScenario ? scenarioOrData.imageUrl : null; 
 
     const history = [{ role: "system", content: getAcademySystemPrompt(scenarioData) }];
     
@@ -986,15 +1092,15 @@ function renderScenarioViewer(container, scenarioOrData, isCustomScenario = fals
         imageHtml = `<img src="${imageUrl}" alt="${title}" class="scenario-main-image">`;
     }
     
-    // Crée la structure du chat
     const chatWrapper = document.createElement('div');
     chatWrapper.innerHTML = `
         ${isCustomScenario ? `<button id="back-to-academy-dash" class="btn btn-secondary" style="margin-bottom: 1rem;"><i class="fa-solid fa-arrow-left"></i> Retour</button>` : ''}
         
         <h3>${title}</h3>
         ${imageHtml}
-        <p class="subtitle">${context}</p>
-        <p style="font-size: 0.9em; color: var(--primary-color); margin-bottom: 1rem;">
+        
+                ${context ? `<p class="subtitle">${context}</p>` : ''}
+                <p style="font-size: 0.9em; color: var(--primary-color); margin-bottom: 1rem;">
             <i class="fa-solid fa-microphone-alt"></i> **Mode Vocal Activé.** Appuyez sur le micro pour enregistrer.
         </p>
 
@@ -1026,7 +1132,6 @@ function renderScenarioViewer(container, scenarioOrData, isCustomScenario = fals
     const micBtn = chatWrapper.querySelector('#mic-btn');
     const endSessionBtn = chatWrapper.querySelector('#end-session-btn');
     
-    // Attache le bouton Retour (s'il existe)
     const backBtn = chatWrapper.querySelector('#back-to-academy-dash');
     if (backBtn) {
         backBtn.addEventListener('click', () => {
@@ -1037,6 +1142,7 @@ function renderScenarioViewer(container, scenarioOrData, isCustomScenario = fals
     }
 
     // Initialisation du Push-to-Talk
+    // Assurez-vous que ces fonctions (setupSpeechRecognition, etc.) existent dans votre fichier.
     setupSpeechRecognition(micBtn, userInput, chatForm); 
     micBtn.addEventListener('mousedown', startListening);
     micBtn.addEventListener('mouseup', stopListening);
@@ -1075,11 +1181,6 @@ function renderScenarioViewer(container, scenarioOrData, isCustomScenario = fals
             chatWrapper.querySelector('#scenario-spinner').classList.add('hidden');
         }
     });
-
-    // Prompt Initial du Personnage IA
-    appendMessage('aida', intro, true); 
-    history.push({ role: 'assistant', content: intro });
-}
 
 
 // MODIFIÉ : 'appendMessage' doit être conscient du conteneur

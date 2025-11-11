@@ -24,7 +24,7 @@ export const courseData = {
                     scenarioData: {
                         characterName: "Fahim, le Gardien-Djinn",
                         context: "Tu es Fahim. Tu viens d'être réveillé par l'élève. Tu es confus. Demande-lui qui il est et d'où il vient.",
-                        characterIntro: "Où suis-je ? Qui es-tu ? <PHONETIQUE>Ayna ana? Man anta?</PHONETIQUE> <TRADUCTION>Où suis-je ? Qui es-tu ?</TRADUCTION>",
+                        characterIntro: "؟ أَيْنَ أَنَا؟ مَنْ أَنْتَ <PHONETIQUE>Ayna anta? Man anta?</PHONETIQUE> <TRADUCTION>Où suis-je ? Qui es-tu ?</TRADUCTION>",
                         objectives: ["Dire son nom", "Dire d'où il vient"]
                     }
                 }
