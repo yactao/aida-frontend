@@ -116,7 +116,6 @@
             overflow: hidden; /* Important */
             background-color: var(--card-bg-color);
             margin-top: 1rem;
-            /* NOUVEAU : Transition pour le wrapper */
             transition: all 0.3s ease;
         }
         
@@ -128,7 +127,6 @@
             overflow-y: auto;
             display: flex;
             flex-direction: column;
-            /* NOUVEAU : Transitions */
             transition: all 0.3s ease;
             flex-shrink: 0;
         }
@@ -178,7 +176,6 @@
             flex-direction: column;
             height: 100%; /* Important */
             overflow: hidden; /* Le scroll sera dans #chat-window */
-            /* NOUVEAU : Position relative pour le bouton */
             position: relative; 
         }
         
@@ -186,19 +183,17 @@
             background-color: var(--card-bg-color); /* S'assure que c'est cohérent */
          }
 
-        /* --- NOUVEAU : Styles pour la Sidebar Rétractable --- */
+        /* --- Styles pour la Sidebar Rétractable --- */
         
-        /* État lorsque le panneau EST masqué */
         .playground-content-wrapper.sidebar-collapsed .playground-sidebar {
             flex-basis: 0;
             width: 0;
-            padding: 1rem 0; /* Enlève le padding horizontal */
-            overflow: hidden; /* Cache le contenu qui dépasse */
+            padding: 1rem 0;
+            overflow: hidden;
             opacity: 0;
-            border-right-width: 0; /* Cache aussi la bordure */
+            border-right-width: 0;
         }
         
-        /* Positionnement du nouveau bouton */
         #toggle-sidebar-btn {
             position: absolute;
             top: 0.5rem;
@@ -208,7 +203,7 @@
             border-radius: 50%;
             width: 40px;
             height: 40px;
-            font-size: 1rem; /* Taille de l'icône */
+            font-size: 1rem;
             box-shadow: var(--shadow);
             border: 1px solid var(--border-color);
         }
@@ -220,6 +215,17 @@
         }
         body.dark-mode #toggle-sidebar-btn:hover {
             background-color: #333;
+        }
+
+        /* Style pour la carte d'accès non autorisé */
+        .unauthorized-card {
+            margin: 2rem auto; 
+            max-width: 500px; 
+            text-align: center; 
+            padding: 2rem;
+            background-color: var(--card-bg-color);
+            border-radius: 12px;
+            box-shadow: var(--shadow);
         }
 
     </style>
@@ -294,7 +300,7 @@
     </div>
 
     <script>
-        // --- 1. SÉLECTEURS DOM (Anciens et Nouveaux) ---
+        // --- 1. SÉLECTEURS DOM ---
         const backendUrl = 'https://aida-backend-bqd0fnd2a3c7dadf.francecentral-01.azurewebsites.net/api';
         const chatWindow = document.getElementById('chat-window');
         const userInput = document.getElementById('user-input');
@@ -318,40 +324,37 @@
         
         const toggleSidebarBtn = document.getElementById('toggle-sidebar-btn');
         const contentWrapper = document.querySelector('.playground-content-wrapper');
+        const playgroundContainer = document.querySelector('.playground-container'); // Ajouté pour le blocage
 
-        // --- 2. ÉTAT DE L'APPLICATION (Refonte avec Clé Dynamique) ---
+        // --- 2. ÉTAT DE L'APPLICATION (Avec Clé Dynamique) ---
         
-        // ▼▼▼ CORRECTION : Clé de stockage dynamique par utilisateur ▼▼▼
-        let STORAGE_KEY = 'aidaPlaygroundHistory_default'; // Clé par défaut (ne sera pas utilisée si connecté)
+        let STORAGE_KEY = 'aidaPlaygroundHistory_default';
         let currentUser = null;
         
         try {
-            // Tente de lire l'utilisateur depuis le localStorage de l'app principale
             const storedUser = localStorage.getItem('currentUser');
             if (storedUser) {
                 currentUser = JSON.parse(storedUser);
                 if (currentUser && currentUser.email) {
-                    // Crée une clé unique, ex: "aidaPlaygroundHistory_prof@email.com"
                     STORAGE_KEY = `aidaPlaygroundHistory_${currentUser.email}`; 
                 } else {
-                    currentUser = null; // Utilisateur invalide
+                    currentUser = null;
                 }
             }
         } catch (e) {
             console.error("Erreur lors de la lecture de l'utilisateur :", e);
             currentUser = null;
         }
-        // ▲▲▲ FIN DE LA CORRECTION ▲▲▲
 
-        let allChatsHistory = []; // Stocke TOUS les chats
-        let currentChatId = null;   // ID du chat en cours
-        let currentMessages = []; // Messages du chat en cours (pour l'API)
+        let allChatsHistory = [];
+        let currentChatId = null;
+        let currentMessages = [];
 
         let recognition;
         let currentAudio = null;
         let currentListenBtn = null;
         
-        // --- 3. FONCTIONS DE L'HISTORIQUE (Inchangées - utilisent la nouvelle STORAGE_KEY) ---
+        // --- 3. FONCTIONS DE L'HISTORIQUE ---
 
         function uuidv4() {
             return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
@@ -361,12 +364,12 @@
         }
 
         function loadHistoryFromStorage() {
-            const storedHistory = localStorage.getItem(STORAGE_KEY); // Lit depuis la clé unique
+            const storedHistory = localStorage.getItem(STORAGE_KEY);
             allChatsHistory = storedHistory ? JSON.parse(storedHistory) : [];
         }
 
         function saveHistoryToStorage() {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(allChatsHistory)); // Sauvegarde sur la clé unique
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(allChatsHistory));
         }
 
         function renderHistorySidebar() {
@@ -375,9 +378,7 @@
                 historyList.innerHTML = '<li style="color: #888; text-align: center; font-style: italic; cursor: default; user-select: none;">Aucun historique</li>';
                 return;
             }
-            
-            allChatsHistory.sort((a, b) => b.timestamp - a.timestamp); // Du plus récent au plus ancien
-
+            allChatsHistory.sort((a, b) => b.timestamp - a.timestamp);
             allChatsHistory.forEach(chat => {
                 const li = document.createElement('li');
                 li.textContent = chat.title;
@@ -395,10 +396,8 @@
         function loadChat(chatId) {
             const chat = allChatsHistory.find(c => c.id === chatId);
             if (!chat) return;
-
             currentChatId = chatId;
             currentMessages = chat.messages;
-            
             chatWindow.innerHTML = '';
             currentMessages.forEach(msg => {
                 if (msg.role === 'user') {
@@ -408,7 +407,6 @@
                     addMessage('aida', msg.content, false);
                 }
             });
-            
             renderHistorySidebar();
             chatWindow.scrollTop = chatWindow.scrollHeight;
         }
@@ -416,10 +414,8 @@
         function saveCurrentChat() {
             const userMessage = currentMessages.find(m => m.role === 'user');
             if (!userMessage) return;
-
             const title = userMessage.content.substring(userMessage.content.indexOf(')') + 2, 60) + '...';
             const existingChat = allChatsHistory.find(c => c.id === currentChatId);
-
             if (existingChat) {
                 existingChat.messages = currentMessages;
                 existingChat.timestamp = Date.now();
@@ -432,7 +428,6 @@
                     timestamp: Date.now()
                 });
             }
-            
             saveHistoryToStorage();
             renderHistorySidebar();
         }
@@ -454,7 +449,7 @@
             addMessage('aida', welcomeMessage, false);
         }
 
-        // --- 4. FONCTIONS DE L'INTERFACE (Inchangées) ---
+        // --- 4. FONCTIONS DE L'INTERFACE ---
 
         function addMessage(sender, text, addToHistory = true) {
             const messageDiv = document.createElement('div');
@@ -515,6 +510,7 @@
             currentMessages.push({ role: 'user', content: fullMessage });
             
             try {
+                // APPEL À L'AGENT MANAGER (le backend s'occupe de router)
                 const response = await fetch(`${backendUrl}/ai/playground-chat`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -539,7 +535,7 @@
             }
         }
         
-        // --- 5. FONCTIONS VOCALES (Inchangées) ---
+        // --- 5. FONCTIONS VOCALES ---
         function setupSpeechRecognition() {
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
             if (!SpeechRecognition) {
@@ -619,7 +615,7 @@
             }
         }
 
-        // --- 6. FONCTIONS DE LA MODALE (Inchangées) ---
+        // --- 6. FONCTIONS DE LA MODALE ---
         function populateVoiceList() {
              const googleVoices = [
                 { name: 'Français (France, Femme)', value: 'fr-FR-Wavenet-E', lang: 'fr-FR' },
@@ -657,123 +653,150 @@
             voiceSettingsModal.classList.add('hidden');
         }
         
-        // --- 7. ÉCOUTEURS D'ÉVÉNEMENTS (Inchangés) ---
+        // --- 7. ÉCOUTEURS D'ÉVÉNEMENTS ---
         
-        toggleSidebarBtn.addEventListener('click', () => {
-            contentWrapper.classList.toggle('sidebar-collapsed');
-            const isCollapsed = contentWrapper.classList.contains('sidebar-collapsed');
-            localStorage.setItem('aidaSidebarCollapsed', isCollapsed);
-        });
-        
-        newChatBtn.addEventListener('click', () => {
-             startNewChat(false, "Bonjour ! Je suis AIDA. Comment puis-je t'aider aujourd'hui ?");
-        });
+        // Exécute le code uniquement si l'utilisateur est connecté
+        if (currentUser) {
+            toggleSidebarBtn.addEventListener('click', () => {
+                contentWrapper.classList.toggle('sidebar-collapsed');
+                const isCollapsed = contentWrapper.classList.contains('sidebar-collapsed');
+                localStorage.setItem('aidaSidebarCollapsed', isCollapsed);
+            });
+            
+            newChatBtn.addEventListener('click', () => {
+                startNewChat(false, "Bonjour ! Je suis AIDA. Comment puis-je t'aider aujourd'hui ?");
+            });
 
-        backToDashboardBtn.addEventListener('click', () => { window.location.href = 'index.html'; });
-        sendBtn.addEventListener('click', sendMessage);
-        userInput.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
-        });
-        micBtn.addEventListener('click', toggleListening);
-        uploadBtn.addEventListener('click', () => docUpload.click());
-        docUpload.addEventListener('change', async (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-            const isEvaluatedSession = sessionStorage.getItem('isEvaluatedSession') === 'true';
-            if(isEvaluatedSession) {
-                addMessage('aida', "Désolé, l'upload de documents est désactivé pendant un devoir évalué.", false);
-                return;
-            }
-            addMessage('user', `Analyse du document: ${file.name}`);
-            showTypingIndicator();
-            if (currentChatId === null) {
-                currentChatId = uuidv4();
-            }
-            const formData = new FormData();
-            formData.append('document', file);
-            try {
-                const response = await fetch(`${backendUrl}/ai/playground-extract-text`, { method: 'POST', body: formData });
-                const data = await response.json();
-                if (!response.ok) throw new Error(data.error || 'Erreur du serveur');
-                const message = `Voici le texte extrait du document. Que veux-tu faire avec ?\n\n---\n${data.extractedText}`;
-                currentMessages.push({ role: 'user', content: `(Mode: upload) ${message}` });
-                removeTypingIndicator();
-                addMessage('aida', `J'ai lu le document ! Le texte est maintenant dans notre conversation. Dis-moi comment je peux t'aider avec.`);
-                saveCurrentChat();
-            } catch (err) {
-                removeTypingIndicator();
-                addMessage('aida', `Désolé, je n'ai pas pu lire ce document. Erreur : ${err.message}`);
-            }
-        });
-        
-        settingsBtn.addEventListener('click', openSettingsModal);
-        voiceSettingsModal.querySelector('.close-modal').addEventListener('click', closeSettingsModal);
-        rateSlider.addEventListener('input', () => {
-            rateValue.textContent = rateSlider.value;
-            localStorage.setItem('aida-rate', rateSlider.value);
-        });
-        pitchSlider.addEventListener('input', () => {
-            pitchValue.textContent = pitchSlider.value;
-            localStorage.setItem('aida-pitch', pitchSlider.value);
-        });
-        voiceSelect.addEventListener('change', () => {
-            const selectedOption = voiceSelect.options[voiceSelect.selectedIndex];
-            const voiceName = selectedOption.value;
-            localStorage.setItem('aida-voice-name', voiceName);
-            if (recognition) {
-                const lang = selectedOption.dataset.lang;
-                recognition.lang = lang;
-                console.log(`Langue de reconnaissance vocale changée en : ${lang}`);
-            }
-        });
+            backToDashboardBtn.addEventListener('click', () => { window.location.href = 'index.html'; });
+            sendBtn.addEventListener('click', sendMessage);
+            userInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+            });
+            micBtn.addEventListener('click', toggleListening);
+            uploadBtn.addEventListener('click', () => docUpload.click());
+            
+            docUpload.addEventListener('change', async (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                const isEvaluatedSession = sessionStorage.getItem('isEvaluatedSession') === 'true';
+                if(isEvaluatedSession) {
+                    addMessage('aida', "Désolé, l'upload de documents est désactivé pendant un devoir évalué.", false);
+                    return;
+                }
+                
+                // Affiche un message de chargement à l'utilisateur
+                addMessage('user', `Chargement du document: ${file.name}...`);
+                showTypingIndicator();
 
-        // --- 8. INITIALISATION (Mise à jour avec Sécurité) ---
-        
-        // ▼▼▼ AJOUT : Vérification de l'utilisateur connecté ▼▼▼
-        if (!currentUser) {
-            // Si personne n'est connecté, on bloque tout
-            document.querySelector('.playground-container').innerHTML = `
-                <div class="card" style="margin: 2rem auto; max-width: 500px; text-align: center; padding: 2rem;">
-                    <h2>Accès non autorisé</h2>
-                    <p style="margin-top: 1rem;">Vous devez être connecté pour accéder à l'Espace de Travail.</p>
-                    <a href="index.html" class="btn btn-main" style="margin-top: 1.5rem;">Retour à l'accueil</a>
-                </div>
-            `;
-            // Cache le banner s'il existe
-            trustModeBanner.classList.add('hidden');
-        } else {
-        // ▲▲▲ FIN DE L'AJOUT ▲▲▲
+                if (currentChatId === null) {
+                    currentChatId = uuidv4();
+                }
+                
+                const formData = new FormData();
+                formData.append('document', file);
+                try {
+                    // 1. Appel à l'extraction de texte
+                    const extractResponse = await fetch(`${backendUrl}/api/ai/playground-extract-text`, { method: 'POST', body: formData });
+                    const data = await extractResponse.json();
+                    if (!extractResponse.ok) throw new Error(data.error || 'Erreur du serveur');
+                    
+                    const message = `(Mode: upload) J'ai chargé le document "${file.name}". Voici son contenu : \n\n--- DÉBUT DU DOCUMENT ---\n${data.extractedText}\n--- FIN DU DOCUMENT ---\n\n Maintenant, Kimi, analyse ce document et fais-moi un résumé.`;
+                    
+                    // 2. Ajoute le texte extrait à l'historique et envoie à l'Agent Manager
+                    currentMessages.push({ role: 'user', content: message });
+                    
+                    // Informe l'utilisateur (le message complet est dans l'historique mais pas dans le chat)
+                    removeTypingIndicator();
+                    addMessage('aida', `J'ai lu le document "${file.name}" ! Je l'envoie à l'Agent Kimi pour analyse...`);
+                    showTypingIndicator();
 
-            // Le reste de l'initialisation ne s'exécute que si un utilisateur est connecté
+                    // 3. Appel à l'Agent Manager (qui va router vers Kimi)
+                    const chatResponse = await fetch(`${backendUrl}/api/ai/playground-chat`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ history: currentMessages }) 
+                    });
+                    if (!chatResponse.ok) throw new Error((await chatResponse.json()).error);
+                    
+                    const chatData = await chatResponse.json();
+                    
+                    // 4. Affiche la réponse de Kimi
+                    currentMessages.push({ role: 'assistant', content: chatData.reply });
+                    removeTypingIndicator();
+                    addMessage('aida', chatData.reply);
+                    saveCurrentChat();
+
+                } catch (err) {
+                    removeTypingIndicator();
+                    addMessage('aida', `Désolé, je n'ai pas pu lire ce document. Erreur : ${err.message}`);
+                }
+            });
+            
+            settingsBtn.addEventListener('click', openSettingsModal);
+            voiceSettingsModal.querySelector('.close-modal').addEventListener('click', closeSettingsModal);
+            rateSlider.addEventListener('input', () => {
+                rateValue.textContent = rateSlider.value;
+                localStorage.setItem('aida-rate', rateSlider.value);
+            });
+            pitchSlider.addEventListener('input', () => {
+                pitchValue.textContent = pitchSlider.value;
+                localStorage.setItem('aida-pitch', pitchSlider.value);
+            });
+            voiceSelect.addEventListener('change', () => {
+                const selectedOption = voiceSelect.options[voiceSelect.selectedIndex];
+                const voiceName = selectedOption.value;
+                localStorage.setItem('aida-voice-name', voiceName);
+                if (recognition) {
+                    const lang = selectedOption.dataset.lang;
+                    recognition.lang = lang;
+                    console.log(`Langue de reconnaissance vocale changée en : ${lang}`);
+                }
+            });
+        } // Fin du 'if (currentUser)'
+
+        // --- 8. INITIALISATION ---
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            if (!currentUser) {
+                // BLOCAGE DE L'ACCÈS
+                playgroundContainer.innerHTML = `
+                    <div class="unauthorized-card">
+                        <h2>Accès non autorisé</h2>
+                        <p style="margin-top: 1rem;">Vous devez être connecté pour accéder à l'Espace de Travail.</p>
+                        <a href="index.html" class="btn btn-main" style="margin-top: 1.5rem;">Retour à l'accueil</a>
+                    </div>
+                `;
+                trustModeBanner.classList.add('hidden');
+                return; // Stoppe l'exécution
+            }
+    
+            // Exécution normale si l'utilisateur est connecté
             populateVoiceList();
             setupSpeechRecognition();
-
+    
             const savedCollapsedState = localStorage.getItem('aidaSidebarCollapsed');
             if (savedCollapsedState === 'true') {
                 contentWrapper.classList.add('sidebar-collapsed');
             }
-
-            loadHistoryFromStorage(); // Charge l'historique de l'utilisateur connecté
-
+    
+            loadHistoryFromStorage();
+    
             const urlParams = new URLSearchParams(window.location.search);
             const modeFromUrl = urlParams.get('mode');
             const topic = urlParams.get('topic');
             const isEvaluatedSession = sessionStorage.getItem('isEvaluatedSession') === 'true';
-
+    
             if (isEvaluatedSession || modeFromUrl === 'coach') {
                 trustModeBanner.classList.remove('hidden');
                 document.getElementById('mode-coach').checked = true;
                 modeSelector.querySelectorAll('input').forEach(input => input.disabled = true);
-                
                 const initialMessage = topic ? `Bonjour ! Je suis prêt à t'aider à préparer ton devoir sur "${topic}". Comment puis-je t'aider à commencer (sans te donner la réponse, bien sûr) ?` : "Bonjour ! Le mode 'Préparation de devoir' est activé. Comment puis-je t'aider ?";
-                
                 startNewChat(true, initialMessage);
-
             } else {
                 renderHistorySidebar();
                 startNewChat(false, "Bonjour ! Je suis AIDA. Comment puis-je t'aider aujourd'hui ?");
             }
-        } // Fin du 'else' de la vérification de sécurité
+        }); // Fin du DOMContentLoaded
     </script>
 </body>
 </html>
