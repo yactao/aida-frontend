@@ -16,7 +16,28 @@ export const courseData = {
             activities: [
                 { id: "ep1-vid", title: "Épisode principal N°1 (Vidéo)", type: "video", url: "https://player.vimeo.com/video/1133827184" },
                 { id: "ep1-mem", title: "Mots de Pouvoir N°1", type: "memorization", data: "ep1-data" },
-                { id: "ep1-quiz", title: "Quiz N°1", type: "quiz", data: {} },
+                { id: 'ep1-quiz', title: 'Quiz N°1', type: 'quiz', description: "Testez vos connaissances sur le premier épisode.",
+    // AJOUTEZ CE BLOC DE DONNÉES :
+                data: {
+                questions: [
+            {
+                question_text: "Que signifie 'مَرْحَبًا' (Marhaban) ?",
+                options: ["Au revoir", "Bonjour", "Merci", "S'il te plaît"],
+                correct_answer_index: 1 
+            },
+            {
+                question_text: "Comment dit-on 'Je m'appelle...' en arabe ?",
+                options: ["مَا اسْمُكَ؟ (Ma ismuka?)", "كَيْفَ حَالُكَ؟ (Kayfa haluka?)", "اِسْمِي... (Ismi...)", "مَعَ ٱلسَّلَامَةِ (Ma'a salama)"],
+                correct_answer_index: 2
+            },
+            {
+                question_text: "Qui est Fahim ?",
+                options: ["Le narrateur", "Un marchand", "Un gardien", "Le père de Zayd"],
+                correct_answer_index: 0
+            }
+        ]
+    }
+},
                 { 
                     id: "ep1-dialogue", 
                     title: "Dialogue : Parler à Fahim", 

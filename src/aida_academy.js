@@ -699,7 +699,6 @@ async function loadActivityContent(activityId) {
     let activity = null;
     let episode = null;
     
-    // Trouver l'activité ET l'épisode parent dans la SÉRIE
     for (const ep of courseData.episodes) {
         activity = ep.activities.find(a => a.id === activityId);
         if (activity) {
@@ -714,18 +713,7 @@ async function loadActivityContent(activityId) {
         return;
     }
     
-    // --- 1. Chargement du Narrateur ---
-    // MODIFIÉ : N'affiche le narrateur que si l'activité a une description
-    // (le narrateurIntro de l'épisode est utilisé pour le 'description' de l'activité)
-    if (activity.description) {
-        narratorText.textContent = activity.description;
-        narratorBtn.onclick = () => playNarratorAudio(activity.description, narratorBtn);
-        narratorBox.classList.remove('hidden');
-    } else {
-        narratorBox.classList.add('hidden'); // Cache la boîte
-    }
-
-    // --- 2. Chargement du contenu de l'activité ---
+    // --- 1. Chargement du contenu de l'activité (AVANT le narrateur) ---
     switch (activity.type) {
         case 'video':
             renderVideoPage(contentArea, activity);
@@ -734,18 +722,29 @@ async function loadActivityContent(activityId) {
             renderMemorizationPage(contentArea, activity);
             break;
         case 'dialogue':
+            // L'activité est un dialogue, on NE VEUT PAS de narrateur
+            narratorBox.classList.add('hidden'); // CACHE LE NARRATEUR
             if (activity.scenarioData) {
-                renderScenarioViewer(contentArea, activity, false); 
+                // Votre fonction renderScenarioViewer est correcte et gère le 'context' undefined
+                renderScenarioViewer(contentArea, activity, false);
             } else {
-                contentArea.innerHTML = `<p class="error-message">Erreur : Données de dialogue non trouvées pour cette activité.</p>`;
+                contentArea.innerHTML = `<p class="error-message">Erreur : Données de dialogue non trouvées.</p>`;
             }
             break;
         case 'quiz':
-            // CORRIGÉ : Appelle la nouvelle fonction de quiz
+            // L'activité est un quiz, on appelle la nouvelle fonction
             renderAcademyQuiz(contentArea, activity);
             break;
         default:
             contentArea.innerHTML = `<p class="error-message">Type d'activité non reconnu.</p>`;
+    }
+
+    // --- 2. Chargement du Narrateur (SEULEMENT si ce n'est pas un dialogue) ---
+    if (activity.type !== 'dialogue') {
+        const narratorPrompt = activity.description || episode.narratorIntro;
+        narratorText.textContent = narratorPrompt;
+        narratorBtn.onclick = () => playNarratorAudio(narratorPrompt, narratorBtn);
+        narratorBox.classList.remove('hidden'); // AFFICHE LE NARRATEUR
     }
 }
 
