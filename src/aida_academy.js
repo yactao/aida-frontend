@@ -572,7 +572,9 @@ async function loadCustomScenarios() {
                 const selectedScenario = customScenarios.find(s => s.id === scenarioId);
                 if (selectedScenario) {
                     // Lance le visualiseur de dialogue IA
+                    // MODIFIÉ : Cible la page 'content-viewer-page'
                     renderScenarioViewer(document.getElementById('content-viewer-page'), selectedScenario, true);
+                    changePage('content-viewer-page'); // Assure que la page est visible
                 }
             });
         });
@@ -684,7 +686,6 @@ function renderAcademyCoursePlayer(selectedActivityId = null) {
     });
     
     // --- Chargement du contenu de l'activité ---
-    // CORRIGÉ : Utilise 'selectedActivityId'
     loadActivityContent(selectedActivityId);
 }
 
@@ -714,10 +715,15 @@ async function loadActivityContent(activityId) {
     }
     
     // --- 1. Chargement du Narrateur ---
-    const narratorPrompt = episode.narratorIntro; // Récupère le texte de l'épisode
-    narratorText.textContent = narratorPrompt;
-    narratorBtn.onclick = () => playNarratorAudio(narratorPrompt, narratorBtn);
-
+    // MODIFIÉ : N'affiche le narrateur que si l'activité a une description
+    // (le narrateurIntro de l'épisode est utilisé pour le 'description' de l'activité)
+    if (activity.description) {
+        narratorText.textContent = activity.description;
+        narratorBtn.onclick = () => playNarratorAudio(activity.description, narratorBtn);
+        narratorBox.classList.remove('hidden');
+    } else {
+        narratorBox.classList.add('hidden'); // Cache la boîte
+    }
 
     // --- 2. Chargement du contenu de l'activité ---
     switch (activity.type) {
@@ -728,14 +734,14 @@ async function loadActivityContent(activityId) {
             renderMemorizationPage(contentArea, activity);
             break;
         case 'dialogue':
-            // MODIFIÉ : Le 'scenarioData' est maintenant DANS l'activité
             if (activity.scenarioData) {
-                renderScenarioViewer(contentArea, activity, false); // Affiche le chat IA (false = n'est pas un scénario personnalisé)
+                renderScenarioViewer(contentArea, activity, false); 
             } else {
                 contentArea.innerHTML = `<p class="error-message">Erreur : Données de dialogue non trouvées pour cette activité.</p>`;
             }
             break;
         case 'quiz':
+            // CORRIGÉ : Appelle la nouvelle fonction de quiz
             renderAcademyQuiz(contentArea, activity);
             break;
         default:
@@ -805,13 +811,26 @@ function renderMemorizationPage(container, activity) {
     `;
 }
 
+//
+// --- DÉBUT DES NOUVELLES FONCTIONS (Quiz et Dialogue) ---
+// (Placées ici, au niveau supérieur, pour corriger l'erreur de syntaxe)
+//
+
 /**
  * NOUVEAU : Affiche le Quiz
  */
 function renderAcademyQuiz(container, activity) {
-    let questionsHtml = '';
+    // Les données du quiz sont dans activity.data (ex: { questions: [...] })
+    // Assurez-vous que series_data.js contient bien cette structure.
+    const quizData = activity.data; 
     
-    activity.data.questions.forEach((q, index) => {
+    if (!quizData || !quizData.questions) {
+        container.innerHTML = `<p class="error-message">Erreur : Données de quiz non trouvées.</p>`;
+        return;
+    }
+
+    let questionsHtml = '';
+    quizData.questions.forEach((q, index) => {
         const optionsHtml = q.options.map((option, i) => `
             <label class="quiz-option">
                 <input type="radio" name="q${index}" value="${i}" required>
@@ -830,15 +849,17 @@ function renderAcademyQuiz(container, activity) {
     });
 
     container.innerHTML = `
-        <h3>${activity.title}</h3>
-        <form id="academy-quiz-form">
-            ${questionsHtml}
-            <div style="text-align: right; margin-top: 2rem;">
-                <button type="submit" class="btn btn-main">
-                    <i class="fa-solid fa-check"></i> Valider le Quiz
-                </button>
-            </div>
-        </form>
+        <div class="card" style="margin: 0;">
+            <h3>${activity.title}</h3>
+            <form id="academy-quiz-form">
+                ${questionsHtml}
+                <div style="text-align: right; margin-top: 2rem;">
+                    <button type="submit" class="btn btn-main">
+                        <i class="fa-solid fa-check"></i> Valider le Quiz
+                    </button>
+                </div>
+            </form>
+        </div>
     `;
     
     // Attache l'écouteur de soumission
@@ -874,10 +895,11 @@ async function handleAcademyQuizSubmit(activity) {
 
     const percentage = Math.round((score / totalQuestions) * 100);
     const resultText = `Quiz terminé ! Votre score : ${score}/${totalQuestions} (${percentage}%)`;
+    const container = document.getElementById('activity-content-area'); // Cible le conteneur principal
 
     try {
         // Affiche le résultat
-        document.getElementById('activity-content-area').innerHTML = `
+        container.innerHTML = `
             <div class="card" style="text-align: center; margin: 0;">
                 <h2>Quiz Terminé !</h2>
                 <p style="font-size: 1.5rem; font-weight: 600; margin: 1rem 0;">
@@ -889,12 +911,21 @@ async function handleAcademyQuizSubmit(activity) {
         `;
         
         document.getElementById('next-activity-btn').addEventListener('click', () => {
-            // Logique pour passer à l'activité suivante (vous pouvez affiner cela)
             const currentItem = document.querySelector('.activity-item.active');
             if (currentItem && currentItem.nextElementSibling) {
+                // Tente de cliquer sur le prochain élément de la liste
                 currentItem.nextElementSibling.click();
             } else {
-                alert("Fin de l'épisode !");
+                // S'il n'y a pas de "nextElementSibling", cherche dans le groupe suivant
+                const currentGroup = currentItem.closest('.episode-group');
+                const nextGroup = currentGroup.nextElementSibling;
+                if (nextGroup && nextGroup.classList.contains('episode-group')) {
+                    // Ouvre le groupe suivant et clique sur le premier item
+                    nextGroup.querySelector('.episode-title').click(); // Ouvre l'accordéon
+                    nextGroup.querySelector('.activity-item').click(); // Clique sur la première activité
+                } else {
+                    alert("Fin de la série !");
+                }
             }
         });
 
@@ -902,7 +933,8 @@ async function handleAcademyQuizSubmit(activity) {
         await saveAcademySession(activity.id, {
             type: 'quiz',
             score: percentage,
-            details: resultText
+            details: resultText,
+            fullAnswers: userAnswers
         });
         
         // Met à jour la sidebar pour montrer que c'est complété
@@ -910,7 +942,7 @@ async function handleAcademyQuizSubmit(activity) {
 
     } catch (err) {
         console.error("Erreur lors de la sauvegarde du quiz:", err);
-        alert(`Erreur: ${err.message}`);
+        container.innerHTML = `<p class="error-message">Erreur: ${err.message}</p>`;
     }
 }
 
@@ -1072,9 +1104,7 @@ export async function renderAcademyParentDashboard() {
     await renderAcademyTeacherDashboard();
 }
 
-// MODIFIÉ : La vue du chat IA est maintenant injectée dans une 'div'
-// Accepte 'scenarioData' (pour la série) OU 'scenario' (pour les scénarios personnalisés)
-// Accepte 'isCustomScenario' pour savoir s'il faut afficher le bouton 'Retour'
+// CORRIGÉ : Correction du bug "undefined"
 function renderScenarioViewer(container, scenarioOrData, isCustomScenario = false) {
     container.innerHTML = ''; // Vide la zone d'activité
 
@@ -1099,8 +1129,9 @@ function renderScenarioViewer(container, scenarioOrData, isCustomScenario = fals
         <h3>${title}</h3>
         ${imageHtml}
         
-                ${context ? `<p class="subtitle">${context}</p>` : ''}
-                <p style="font-size: 0.9em; color: var(--primary-color); margin-bottom: 1rem;">
+        ${context ? `<p class="subtitle">${context}</p>` : ''} 
+        
+        <p style="font-size: 0.9em; color: var(--primary-color); margin-bottom: 1rem;">
             <i class="fa-solid fa-microphone-alt"></i> **Mode Vocal Activé.** Appuyez sur le micro pour enregistrer.
         </p>
 
@@ -1141,8 +1172,6 @@ function renderScenarioViewer(container, scenarioOrData, isCustomScenario = fals
         });
     }
 
-    // Initialisation du Push-to-Talk
-    // Assurez-vous que ces fonctions (setupSpeechRecognition, etc.) existent dans votre fichier.
     setupSpeechRecognition(micBtn, userInput, chatForm); 
     micBtn.addEventListener('mousedown', startListening);
     micBtn.addEventListener('mouseup', stopListening);
@@ -1152,7 +1181,6 @@ function renderScenarioViewer(container, scenarioOrData, isCustomScenario = fals
 
     endSessionBtn.addEventListener('click', () => endScenarioSession(scenarioData, history, scenarioId));
 
-    // Gestion de l'envoi de message
     chatForm.addEventListener('submit', async (e) => {
         e.preventDefault();
         const message = userInput.value.trim();
@@ -1182,99 +1210,83 @@ function renderScenarioViewer(container, scenarioOrData, isCustomScenario = fals
         }
     });
 
-
-// MODIFIÉ : 'appendMessage' doit être conscient du conteneur
-const appendMessage = (sender, text, canListen = false) => {
-    // MODIFIÉ : Trouve le chat window dans la page active
-    const chatWindow = document.getElementById('scenario-chat-window'); 
-    if (!chatWindow) return; // Sécurité si le chat n'est pas affiché
-    
-    const msgDiv = document.createElement('div');
-    msgDiv.className = `chat-message ${sender === 'user' ? 'user' : 'aida'}`;
-    
-    const bubble = document.createElement('div');
-    bubble.className = sender === 'user' ? 'user-message' : 'aida-message';
-    
-    
-    let displayedText = text.replace(/\n/g, '<br>');
-    let helpContent = ''; 
-    let isAidaMessage = sender === 'aida' && (text.includes('<PHONETIQUE>') || text.includes('<TRADUCTION>'));
-
-
-    // --- 1. Détection, Extraction et Remplissage du Contenu ---
-    if (isAidaMessage) {
+    // La fonction 'appendMessage' est DÉFINIE À L'INTÉRIEUR de 'renderScenarioViewer'
+    // C'est une fonction imbriquée (nested function).
+    const appendMessage = (sender, text, canListen = false) => {
+        const chatWindow = document.getElementById('scenario-chat-window'); 
+        if (!chatWindow) return;
         
-        // Trouver la partie Arabe pure (ce qui est avant la première balise)
-        const firstTagIndex = Math.min(
-            text.indexOf('<PHONETIQUE>') > -1 ? text.indexOf('<PHONETIQUE>') : Infinity,
-            text.indexOf('<TRADUCTION>') > -1 ? text.indexOf('<TRADUCTION>') : Infinity
-        );
-        const arabicPart = text.substring(0, firstTagIndex).trim();
-
-        // Extraction de l'aide
-        const phoneticMatch = text.match(/<PHONETIQUE>(.*?)<\/PHONETIQUE>/);
-        const traductionMatch = text.match(/<TRADUCTION>(.*?)<\/TRADUCTION>/);
+        const msgDiv = document.createElement('div');
+        msgDiv.className = `chat-message ${sender === 'user' ? 'user' : 'aida'}`;
         
-        if (phoneticMatch) { helpContent += `<p class="help-phonetic">Phonétique: ${phoneticMatch[1].trim()}</p>`; }
-        if (traductionMatch) { helpContent += `<p class="help-translation">Traduction: ${traductionMatch[1].trim()}</p>`; }
-
-        // Correction de la régression de l'aide
-        displayedText = `<p class="arabic-text-only">${arabicPart}</p>`;
-    } else if (sender === 'user') {
-        // Correction de la régression de la taille de police utilisateur
-        displayedText = `<p>${text}</p>`;
-    }
-    
-    bubble.innerHTML = displayedText;
-    
-    // Aligner le message
-    msgDiv.style.alignSelf = sender === 'user' ? 'flex-end' : 'flex-start';
-    msgDiv.style.marginLeft = sender === 'user' ? 'auto' : 'unset';
-
-
-    // --- 2. AJOUT DES CONTRÔLES (Boutons) à la BUBBLE ---
-    if (sender === 'aida' && canListen) {
+        const bubble = document.createElement('div');
+        bubble.className = sender === 'user' ? 'user-message' : 'aida-message';
         
-        // 2a. Activation du FLEX pour aligner le texte et les boutons
-        bubble.style.display = 'flex';
-        bubble.style.alignItems = 'center';
-        bubble.style.gap = '10px';
-        
-        // 2b. BOUTON ÉCOUTER (Haut-parleur)
-        const listenBtn = document.createElement('button');
-        listenBtn.className = 'btn-icon';
-        listenBtn.innerHTML = '<i class="fa-solid fa-volume-high"></i>';
-        listenBtn.title = 'Écouter la réponse (Arabe Littéraire)';
-        listenBtn.onclick = () => togglePlayback(text, listenBtn);  
-        bubble.appendChild(listenBtn);
+        let displayedText = text.replace(/\n/g, '<br>');
+        let helpContent = ''; 
+        let isAidaMessage = sender === 'aida' && (text.includes('<PHONETIQUE>') || text.includes('<TRADUCTION>'));
 
-
-        // 2c. BOUTON AIDE (Ampoule) et son Div Masqué
-        if (helpContent) {
-            const helpBtn = document.createElement('button');
-            helpBtn.className = 'btn-icon toggle-help-btn';
-            helpBtn.innerHTML = '<i class="fa-solid fa-lightbulb"></i>';
-            helpBtn.title = 'Afficher l\'aide (Phonétique / Traduction)';
+        if (isAidaMessage) {
+            const firstTagIndex = Math.min(
+                text.indexOf('<PHONETIQUE>') > -1 ? text.indexOf('<PHONETIQUE>') : Infinity,
+                text.indexOf('<TRADUCTION>') > -1 ? text.indexOf('<TRADUCTION>') : Infinity
+            );
+            const arabicPart = text.substring(0, firstTagIndex).trim();
+            const phoneticMatch = text.match(/<PHONETIQUE>(.*?)<\/PHONETIQUE>/);
+            const traductionMatch = text.match(/<TRADUCTION>(.*?)<\/TRADUCTION>/);
             
-            helpBtn.onclick = () => {
-                // MODIFIÉ : Cible le div d'aide relatif à ce message
-                const helpDiv = msgDiv.querySelector('.aida-help-div');
-                if (helpDiv) helpDiv.classList.toggle('hidden');
-                helpBtn.classList.toggle('active');
-            };
-            
-            bubble.appendChild(helpBtn);
-            
-            // Ajout du DIV d'aide masqué au MESSAGE (à la div parente)
-            const helpDiv = document.createElement('div');
-            helpDiv.className = 'aida-help-div hidden'; 
-            helpDiv.innerHTML = helpContent;
-            msgDiv.appendChild(helpDiv);
+            if (phoneticMatch) { helpContent += `<p class="help-phonetic">Phonétique: ${phoneticMatch[1].trim()}</p>`; }
+            if (traductionMatch) { helpContent += `<p class="help-translation">Traduction: ${traductionMatch[1].trim()}</p>`; }
+
+            displayedText = `<p class="arabic-text-only">${arabicPart}</p>`;
+        } else if (sender === 'user') {
+            displayedText = `<p>${text}</p>`;
         }
-    }
+        
+        bubble.innerHTML = displayedText;
+        
+        msgDiv.style.alignSelf = sender === 'user' ? 'flex-end' : 'flex-start';
+        msgDiv.style.marginLeft = sender === 'user' ? 'auto' : 'unset';
 
-    // 3. ATTACHEMENT FINAL au DOM
-    msgDiv.appendChild(bubble); 
-    chatWindow.appendChild(msgDiv);
-    chatWindow.scrollTop = chatWindow.scrollHeight;
-};
+        if (sender === 'aida' && canListen) {
+            bubble.style.display = 'flex';
+            bubble.style.alignItems = 'center';
+            bubble.style.gap = '10px';
+            
+            const listenBtn = document.createElement('button');
+            listenBtn.className = 'btn-icon';
+            listenBtn.innerHTML = '<i class="fa-solid fa-volume-high"></i>';
+            listenBtn.title = 'Écouter la réponse (Arabe Littéraire)';
+            listenBtn.onclick = () => togglePlayback(text, listenBtn); 
+            bubble.appendChild(listenBtn);
+
+            if (helpContent) {
+                const helpBtn = document.createElement('button');
+                helpBtn.className = 'btn-icon toggle-help-btn';
+                helpBtn.innerHTML = '<i class="fa-solid fa-lightbulb"></i>';
+                helpBtn.title = 'Afficher l\'aide (Phonétique / Traduction)';
+                
+                helpBtn.onclick = () => {
+                    const helpDiv = msgDiv.querySelector('.aida-help-div');
+                    if (helpDiv) helpDiv.classList.toggle('hidden');
+                    helpBtn.classList.toggle('active');
+                };
+                
+                bubble.appendChild(helpBtn);
+                
+                const helpDiv = document.createElement('div');
+                helpDiv.className = 'aida-help-div hidden'; 
+                helpDiv.innerHTML = helpContent;
+                msgDiv.appendChild(helpDiv);
+            }
+        }
+
+        msgDiv.appendChild(bubble); 
+        chatWindow.appendChild(msgDiv);
+        chatWindow.scrollTop = chatWindow.scrollHeight;
+    }; // Fin de la fonction imbriquée appendMessage
+
+    // Prompt Initial du Personnage IA
+    appendMessage('aida', intro, true); 
+    history.push({ role: 'assistant', content: intro });
+}
