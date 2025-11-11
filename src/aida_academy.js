@@ -12,16 +12,11 @@ let narratorAudio = null; // Audio distinct pour le narrateur
 
 // --- Fonctions de Configuration et d'Aide ---
 
-// MODIFIÉ : Accepte un objet 'scenarioData' (plus léger) au lieu d'un 'scenario' complet
 function getAcademySystemPrompt(scenarioData) {
-    
-    // NOTE: Le mode Répétiteur n'est pas dans la série principale,
-    // mais pourrait être dans un scénario personnalisé.
     const isRepeaterMode = scenarioData.id === 'scen-0'; 
 
     return `Tu es un tuteur expert en immersion linguistique. Ton rôle actuel est celui de "${scenarioData.characterName}" dans le contexte suivant : "${scenarioData.context}". La conversation doit se dérouler **UNIQUEMENT en Arabe Littéraire (Al-Fusha)**. 
     
-    // Instructions spécifiques au mode Répétiteur
     ${isRepeaterMode ? 
         "TON OBJECTIF PRINCIPAL est de fournir une phrase ou un mot, puis d'attendre que l'élève le **répète le plus fidèlement possible**. Tu dois féliciter pour la réussite ('ممتاز!') et encourager pour l'échec ('حاول مجدداً.'). Passe à la phrase cible suivante seulement après la réussite." 
         : 
@@ -45,7 +40,6 @@ function getAcademySystemPrompt(scenarioData) {
 
 // --- 2. Fonctions Vocales (Push-to-Talk et TTS) ---
 
-// NOUVEAU : Fonction TTS dédiée au Narrateur (voix française)
 async function playNarratorAudio(text, buttonEl) {
     if (narratorAudio && !narratorAudio.paused) {
         narratorAudio.pause();
@@ -57,12 +51,11 @@ async function playNarratorAudio(text, buttonEl) {
     buttonEl.innerHTML = `<div class="spinner-dots" style="transform: scale(0.6);"><span></span><span></span><span></span></div>`;
     
     try {
-        // Utilise une voix française pour le narrateur "Fahim"
         const response = await apiRequest('/api/ai/synthesize-speech', 'POST', { 
             text: text, 
-            voice: 'fr-FR-Wavenet-E', // Voix de Conteur (Homme)
-            rate: 0.95, // Légèrement plus lent pour un style conteur
-            pitch: -2.0 // Voix légèrement plus grave
+            voice: 'fr-FR-Wavenet-E', 
+            rate: 0.95,
+            pitch: -2.0
         });
         
         const audioBlob = await (await fetch(`data:audio/mp3;base64,${response.audioContent}`)).blob(); 
@@ -84,7 +77,6 @@ async function playNarratorAudio(text, buttonEl) {
     }
 }
 
-// Fonctions vocales inchangées
 function setupSpeechRecognition(micBtn, userInput, chatForm) {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
@@ -192,7 +184,6 @@ async function togglePlayback(text, buttonEl) {
 
 // --- 3. Logique de Bilan et de Sauvegarde ---
 
-// MODIFIÉ : Accepte 'scenarioData' et un 'id' pour la sauvegarde
 async function endScenarioSession(scenarioData, history, scenarioId = 'custom') {
     const spinner = document.getElementById('scenario-spinner');
     const errorDisplay = document.getElementById('scenario-error');
@@ -231,7 +222,7 @@ async function endScenarioSession(scenarioData, history, scenarioId = 'custom') 
         try {
              await apiRequest('/api/academy/session/save', 'POST', {
                 userId: window.currentUser.id,
-                scenarioId: scenarioId, // Utilise l'ID (ex: "ep1-dialogue" ou "scen-12345")
+                scenarioId: scenarioId,
                 report: report,
                 fullHistory: history 
             });
@@ -239,7 +230,6 @@ async function endScenarioSession(scenarioData, history, scenarioId = 'custom') 
             console.warn("Erreur lors de la sauvegarde du bilan (Vérifiez server.js):", e.message);
         }
 
-        // Afficher le Bilan à l'élève
         showSessionReportModal(report);
 
     } catch (err) {
@@ -275,7 +265,7 @@ function showSessionReportModal(report) {
 
 
 // --- 4. Outil de Création de Scénarios (Inchangé) ---
-// (L'enseignant peut toujours créer des scénarios personnalisés)
+
 function getScenarioCreatorTemplate() {
     return `
         <form id="scenario-creator-form">
@@ -381,21 +371,18 @@ function renderScenarioCreatorModal() {
     });
 }
 
-// MODIFIÉ : Corrige le bug du spinner
 async function renderTeacherScenarioManagement(page) {
     const managementSection = page.querySelector('.scenario-management-section');
-    if (!managementSection) return; // Sécurité
+    if (!managementSection) return;
     
     let availableScenarios = [];
     try {
-        // Récupérer tous les scénarios
         availableScenarios = await apiRequest('/api/academy/scenarios', 'GET'); 
     } catch (e) {
         managementSection.innerHTML = `<h3 class="error-message">Erreur : Impossible de charger les scénarios.</h3>`;
         return;
     }
     
-    // Filtrage: Ne montrer que les scénarios custom créés par l'enseignant
     const customScenarios = availableScenarios.filter(s => s.id !== 'scen-0' && s.id !== 'scen-1');
 
     let html = `
@@ -406,11 +393,9 @@ async function renderTeacherScenarioManagement(page) {
     `;
 
     if (customScenarios.length === 0) {
-        // CORRECTION : Affiche ce message si la liste est vide (corrige le bug du spinner)
         html += `<p style="margin-top: 1rem; color: var(--text-color-secondary);">Aucun scénario créé. Utilisez le bouton "Créer un Scénario" ci-dessus.</p>`;
     } else {
         customScenarios.forEach(scen => {
-            // Affichage de l'aperçu du scénario (sans bouton "Commencer" pour le prof)
             const introPreview = scen.characterIntro.replace(/<PHONETIQUE>.*?<\/PHONETIQUE>|<TRADUCTION>.*?<\/TRADUCTION>/g, '').trim();
             
             html += `
@@ -430,21 +415,16 @@ async function renderTeacherScenarioManagement(page) {
     
     html += '</div>';
     
-    // Remplace le spinner par le contenu HTML
     managementSection.innerHTML = html;
-    
-    // NOTE: Ajouter ici les listeners pour l'assignation si vous créez cette fonctionnalité.
 }
 
 
 // --- 5. NOUVELLES Fonctions de Rendu du Dashboard (Élève et Enseignant) ---
 
-// MODIFIÉ : Affiche la "Série" ET les scénarios personnalisés (Modèle Hybride)
 export async function renderAcademyStudentDashboard() {
     const page = document.getElementById('student-dashboard-page');
     changePage('student-dashboard-page'); 
 
-    // --- SECTION 1 : LA SÉRIE "ZAYD ET YASMINA" ---
     let html = `
         <h2>Bienvenue ${window.currentUser.firstName} sur l'Académie ! 📚</h2>
         <p class="subtitle">Prêt à commencer ton aventure ?</p>
@@ -453,9 +433,7 @@ export async function renderAcademyStudentDashboard() {
             
             <div class="scenario-card card" id="start-series-btn" style="cursor: pointer;">
                 <div class="scenario-card-image-wrapper">
-                    
                     <img src="assets/images/zayd_yasmina_cover.png" alt="Zayd et Yasmina" class="scenario-card-image">
-
                 </div>
                 <div class="scenario-card-content">
                     <h3 class="scenario-card-title">${courseData.title}</h3>
@@ -469,10 +447,8 @@ export async function renderAcademyStudentDashboard() {
         <div id="custom-scenarios-grid" class="dashboard-grid">
             ${spinnerHtml}
         </div>
-
         `;
     
-    // Ajout de l'historique des sessions (logique existante)
     const sessions = window.currentUser.academyProgress?.sessions || []; 
     sessions.sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt)); 
     if (sessions.length > 0) {
@@ -503,15 +479,11 @@ export async function renderAcademyStudentDashboard() {
 
     page.innerHTML = html;
 
-    // --- Listeners ---
-
-    // Listener pour la Série
     page.querySelector('#start-series-btn').addEventListener('click', (e) => {
         e.stopPropagation();
-        renderAcademyCoursePlayer(); // Lance la nouvelle page de cours
+        renderAcademyCoursePlayer();
     });
 
-    // Listeners de l'historique des sessions
     page.querySelectorAll('.clickable-session, .view-report-btn').forEach(element => {
         element.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -523,18 +495,15 @@ export async function renderAcademyStudentDashboard() {
         });
     });
 
-    // Appel API pour charger les scénarios personnalisés
     loadCustomScenarios();
 }
 
-// NOUVEAU : Fonction pour charger les scénarios personnalisés dans le dashboard élève
 async function loadCustomScenarios() {
     const grid = document.getElementById('custom-scenarios-grid');
     let customScenarios = [];
     
     try {
         const allScenarios = await apiRequest('/api/academy/scenarios', 'GET');
-        // Filtre pour n'afficher que les scénarios créés par l'enseignant (non-prototypés)
         customScenarios = allScenarios.filter(s => s.id !== 'scen-0' && s.id !== 'scen-1');
         
         if (customScenarios.length === 0) {
@@ -564,17 +533,14 @@ async function loadCustomScenarios() {
         });
         grid.innerHTML = html;
 
-        // Listeners pour les scénarios personnalisés
         grid.querySelectorAll('.start-scenario-btn, .dashboard-card.primary-card').forEach(element => {
             element.addEventListener('click', (e) => {
                 e.stopPropagation();
                 const scenarioId = e.currentTarget.dataset.scenarioId;
                 const selectedScenario = customScenarios.find(s => s.id === scenarioId);
                 if (selectedScenario) {
-                    // Lance le visualiseur de dialogue IA
-                    // MODIFIÉ : Cible la page 'content-viewer-page'
                     renderScenarioViewer(document.getElementById('content-viewer-page'), selectedScenario, true);
-                    changePage('content-viewer-page'); // Assure que la page est visible
+                    changePage('content-viewer-page'); // N'oubliez pas d'afficher la page
                 }
             });
         });
@@ -586,24 +552,20 @@ async function loadCustomScenarios() {
 }
 
 
-// MODIFIÉ : Affiche la page de cours (style image_46eeed.jpg)
 function renderAcademyCoursePlayer(selectedActivityId = null) {
-    const page = document.getElementById('content-viewer-page'); // Réutilise la page viewer
+    const page = document.getElementById('content-viewer-page');
     changePage('content-viewer-page');
     
-    // Si aucune activité n'est sélectionnée, prend la première de la série
     if (!selectedActivityId) {
         selectedActivityId = courseData.episodes[0].activities[0].id;
     }
 
-    // NOUVEAU : Trouver l'épisode actif pour le laisser ouvert
     let activeEpisode = courseData.episodes.find(ep => ep.activities.some(a => a.id === selectedActivityId));
     const activeEpisodeId = activeEpisode ? activeEpisode.id : courseData.episodes[0].id;
 
-    // --- Construction de la barre de navigation de gauche ---
     let navHtml = '';
     courseData.episodes.forEach(episode => {
-        const isEpisodeOpen = episode.id === activeEpisodeId; // L'épisode actif est ouvert
+        const isEpisodeOpen = episode.id === activeEpisodeId;
 
         navHtml += `<div class="episode-group ${isEpisodeOpen ? 'open' : ''}">
                         <h4 class="episode-title" data-episode-id="${episode.id}">
@@ -614,7 +576,7 @@ function renderAcademyCoursePlayer(selectedActivityId = null) {
         
         episode.activities.forEach(activity => {
             const isActive = activity.id === selectedActivityId;
-            let icon = 'fa-solid fa-circle-notch'; // Icône par défaut
+            let icon = 'fa-solid fa-circle-notch';
             if (activity.type === 'video') icon = 'fa-solid fa-play-circle';
             if (activity.type === 'memorization') icon = 'fa-solid fa-book-open';
             if (activity.type === 'quiz') icon = 'fa-solid fa-pen-to-square';
@@ -629,7 +591,6 @@ function renderAcademyCoursePlayer(selectedActivityId = null) {
         navHtml += `</ul></div>`;
     });
 
-    // --- Structure de la page ---
     page.innerHTML = `
         <div class="course-player-container">
             <nav class="course-player-nav">
@@ -656,22 +617,18 @@ function renderAcademyCoursePlayer(selectedActivityId = null) {
         </div>
     `;
     
-    // --- Ajout des Listeners ---
     page.querySelector('#back-to-academy-dash').addEventListener('click', renderAcademyStudentDashboard);
     
-    // NOUVEAU : Listener pour l'accordéon
     page.querySelectorAll('.episode-title').forEach(title => {
         title.addEventListener('click', (e) => {
             const clickedGroup = e.currentTarget.closest('.episode-group');
             
-            // Ferme tous les autres groupes
             page.querySelectorAll('.episode-group.open').forEach(group => {
                 if (group !== clickedGroup) {
                     group.classList.remove('open');
                 }
             });
             
-            // Ouvre ou ferme le groupe cliqué
             clickedGroup.classList.toggle('open');
         });
     });
@@ -679,17 +636,20 @@ function renderAcademyCoursePlayer(selectedActivityId = null) {
     page.querySelectorAll('.activity-item').forEach(item => {
         item.addEventListener('click', (e) => {
             const activityId = e.currentTarget.dataset.activityId;
-            // Arrêter l'audio du narrateur s'il joue
             if (narratorAudio) narratorAudio.pause();
-            renderAcademyCoursePlayer(activityId); // Recharge la page avec la nouvelle activité
+            renderAcademyCoursePlayer(activityId);
         });
     });
     
-    // --- Chargement du contenu de l'activité ---
     loadActivityContent(selectedActivityId);
 }
 
-// MODIFIÉ : Charge le contenu (Série ou Scénario Perso)
+//
+// =========================================================================
+// === CORRECTION PRINCIPALE : GESTION DES BUGS DU NARRATEUR ET DU QUIZ ===
+// =========================================================================
+//
+
 async function loadActivityContent(activityId) {
     const contentArea = document.getElementById('activity-content-area');
     const narratorBox = document.getElementById('narrator-box');
@@ -698,8 +658,8 @@ async function loadActivityContent(activityId) {
 
     let activity = null;
     let episode = null;
-    let isDialogue = false;
     
+    // Trouver l'activité ET l'épisode parent dans la SÉRIE
     for (const ep of courseData.episodes) {
         activity = ep.activities.find(a => a.id === activityId);
         if (activity) {
@@ -714,7 +674,11 @@ async function loadActivityContent(activityId) {
         return;
     }
     
-    // --- 1. Chargement du contenu de l'activité (AVANT le narrateur) ---
+    // --- 1. Gérer le contenu de l'activité ---
+    // On détermine d'abord si on est dans un dialogue pour cacher le narrateur
+    
+    let isDialogue = false; // Drapeau pour gérer le narrateur
+
     switch (activity.type) {
         case 'video':
             renderVideoPage(contentArea, activity);
@@ -723,31 +687,35 @@ async function loadActivityContent(activityId) {
             renderMemorizationPage(contentArea, activity);
             break;
         case 'dialogue':
-            isDialogue = true;
+            isDialogue = true; // C'est un dialogue, on ne veut pas de narrateur
             if (activity.scenarioData) {
-                renderScenarioViewer(contentArea, activity, false);
+                renderScenarioViewer(contentArea, activity, false); // Affiche le chat IA
             } else {
-                contentArea.innerHTML = `<p class="error-message">Erreur : Données de dialogue non trouvées.</p>`;
+                contentArea.innerHTML = `<p class="error-message">Erreur : Données de dialogue non trouvées pour cette activité.</p>`;
             }
             break;
         case 'quiz':
-            // Appelle la fonction de quiz que nous avons ajoutée
+            // Appelle la nouvelle fonction de quiz
             renderAcademyQuiz(contentArea, activity);
             break;
         default:
             contentArea.innerHTML = `<p class="error-message">Type d'activité non reconnu.</p>`;
     }
 
-    // --- 2. Chargement du Narrateur (SEULEMENT si ce n'est pas un dialogue) ---
-    if (activity.type !== 'dialogue') {
-        const narratorPrompt = activity.description || episode.narratorIntro;
+    // --- 2. Gérer le Narrateur ---
+    // S'affiche SEULEMENT si ce n'est PAS un dialogue
+    if (isDialogue) {
+        narratorBox.classList.add('hidden'); // CACHE la boîte (corrige le bug "Tu es Fahim...")
+    } else {
+        // Pour la vidéo, le mémo ou le quiz, on affiche la description de l'épisode
+        const narratorPrompt = episode.narratorIntro;
         narratorText.textContent = narratorPrompt;
         narratorBtn.onclick = () => playNarratorAudio(narratorPrompt, narratorBtn);
-        narratorBox.classList.remove('hidden'); // AFFICHE LE NARRATEUR
+        narratorBox.classList.remove('hidden'); // MONTRE la boîte
     }
 }
 
-// NOUVEAU : Affiche une vidéo (style image_46eeed.jpg)
+// Affiche une vidéo
 function renderVideoPage(container, activity) {
     container.innerHTML = `
         <h3>${activity.title}</h3>
@@ -763,15 +731,14 @@ function renderVideoPage(container, activity) {
     `;
 }
 
-// NOUVEAU : Affiche la fiche de mémorisation (style Fichervision1.pdf)
+// Affiche la fiche de mémorisation
 function renderMemorizationPage(container, activity) {
-    const data = memorizationData[activity.data]; // Récupère les données du PDF
+    const data = memorizationData[activity.data];
     if (!data) {
         container.innerHTML = `<p class="error-message">Données de mémorisation non trouvées.</p>`;
         return;
     }
     
-    // Génère les tableaux HTML
     const phrasesTable = data.phrases.map(p => `
         <tr>
             <td>${p.arabe}</td>
@@ -810,8 +777,7 @@ function renderMemorizationPage(container, activity) {
 }
 
 //
-// --- DÉBUT DES NOUVELLES FONCTIONS (Quiz et Dialogue) ---
-// (Placées ici, au niveau supérieur, pour corriger l'erreur de syntaxe)
+// --- NOUVELLES FONCTIONS QUIZ (Placées à la fin) ---
 //
 
 /**
@@ -819,10 +785,10 @@ function renderMemorizationPage(container, activity) {
  */
 function renderAcademyQuiz(container, activity) {
     // Les données du quiz sont dans activity.data (ex: { questions: [...] })
-    // Assurez-vous que series_data.js contient bien cette structure.
     const quizData = activity.data; 
     
     if (!quizData || !quizData.questions) {
+        // C'est ici que l'erreur "Données de quiz non trouvées" se produit si series_data.js n'est pas à jour
         container.innerHTML = `<p class="error-message">Erreur : Données de quiz non trouvées.</p>`;
         return;
     }
@@ -893,10 +859,9 @@ async function handleAcademyQuizSubmit(activity) {
 
     const percentage = Math.round((score / totalQuestions) * 100);
     const resultText = `Quiz terminé ! Votre score : ${score}/${totalQuestions} (${percentage}%)`;
-    const container = document.getElementById('activity-content-area'); // Cible le conteneur principal
+    const container = document.getElementById('activity-content-area');
 
     try {
-        // Affiche le résultat
         container.innerHTML = `
             <div class="card" style="text-align: center; margin: 0;">
                 <h2>Quiz Terminé !</h2>
@@ -911,23 +876,19 @@ async function handleAcademyQuizSubmit(activity) {
         document.getElementById('next-activity-btn').addEventListener('click', () => {
             const currentItem = document.querySelector('.activity-item.active');
             if (currentItem && currentItem.nextElementSibling) {
-                // Tente de cliquer sur le prochain élément de la liste
                 currentItem.nextElementSibling.click();
             } else {
-                // S'il n'y a pas de "nextElementSibling", cherche dans le groupe suivant
                 const currentGroup = currentItem.closest('.episode-group');
                 const nextGroup = currentGroup.nextElementSibling;
                 if (nextGroup && nextGroup.classList.contains('episode-group')) {
-                    // Ouvre le groupe suivant et clique sur le premier item
-                    nextGroup.querySelector('.episode-title').click(); // Ouvre l'accordéon
-                    nextGroup.querySelector('.activity-item').click(); // Clique sur la première activité
+                    nextGroup.querySelector('.episode-title').click();
+                    nextGroup.querySelector('.activity-item').click();
                 } else {
                     alert("Fin de la série !");
                 }
             }
         });
 
-        // Sauvegarde la session
         await saveAcademySession(activity.id, {
             type: 'quiz',
             score: percentage,
@@ -935,7 +896,6 @@ async function handleAcademyQuizSubmit(activity) {
             fullAnswers: userAnswers
         });
         
-        // Met à jour la sidebar pour montrer que c'est complété
         updateActivityStatusInSidebar(activity.id, true);
 
     } catch (err) {
@@ -951,7 +911,6 @@ export async function renderAcademyTeacherDashboard() {
     const page = document.getElementById('teacher-dashboard-page');
     changePage('teacher-dashboard-page'); 
 
-    // Affiche le HTML de base (structure + spinner)
     let html = `
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
             <div>
@@ -975,13 +934,10 @@ export async function renderAcademyTeacherDashboard() {
     `;
     page.innerHTML = html;
     
-    // Listener pour le bouton de création de scénario
     document.getElementById('create-scenario-btn').addEventListener('click', renderScenarioCreatorModal);
     
-    // PLACEMENT CRITIQUE: Charger la section de gestion des scénarios (asynchrone)
     await renderTeacherScenarioManagement(page); 
 
-    // --- Appel API pour les élèves ---
     let students = [];
     const studentGrid = document.getElementById('teacher-student-grid');
     
@@ -1022,7 +978,6 @@ export async function renderAcademyTeacherDashboard() {
         
         studentGrid.innerHTML = studentHtml;
 
-        // Listeners pour voir le détail de l'élève
         studentGrid.querySelectorAll('.view-student-btn, .student-card').forEach(element => {
             element.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -1083,10 +1038,8 @@ function renderTeacherStudentDetail(student) {
     html += '</div>';
     page.innerHTML = html;
 
-    // Retour au dashboard Enseignant
     document.getElementById('back-to-teacher-dash').addEventListener('click', renderAcademyTeacherDashboard);
 
-    // Gestion de l'affichage du rapport de session (Les sessions sont dans l'objet 'student' local)
     page.querySelectorAll('.clickable-session, .view-report-btn').forEach(element => {
         element.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -1121,6 +1074,10 @@ function renderScenarioViewer(container, scenarioOrData, isCustomScenario = fals
     }
     
     const chatWrapper = document.createElement('div');
+    // On applique la classe 'card' au wrapper pour le style
+    chatWrapper.className = 'card';
+    chatWrapper.style.margin = '0';
+
     chatWrapper.innerHTML = `
         ${isCustomScenario ? `<button id="back-to-academy-dash" class="btn btn-secondary" style="margin-bottom: 1rem;"><i class="fa-solid fa-arrow-left"></i> Retour</button>` : ''}
         
@@ -1133,7 +1090,7 @@ function renderScenarioViewer(container, scenarioOrData, isCustomScenario = fals
             <i class="fa-solid fa-microphone-alt"></i> **Mode Vocal Activé.** Appuyez sur le micro pour enregistrer.
         </p>
 
-        <div id="scenario-chat-window" style="height: 400px; overflow-y: auto; padding: 10px; border: 1px solid #ccc; border-radius: 8px; margin-top: 1.5rem; background-color: var(--aida-chat-bg);">
+        <div id="scenario-chat-window" style="height: 400px; overflow-y: auto; padding: 10px; border: 1px solid var(--border-color); border-radius: 8px; margin-top: 1.5rem; background-color: var(--aida-chat-bg);">
             </div>
 
         <form id="scenario-chat-form" style="display: flex; gap: 0.5rem; margin-top: 1rem;">
@@ -1209,7 +1166,6 @@ function renderScenarioViewer(container, scenarioOrData, isCustomScenario = fals
     });
 
     // La fonction 'appendMessage' est DÉFINIE À L'INTÉRIEUR de 'renderScenarioViewer'
-    // C'est une fonction imbriquée (nested function).
     const appendMessage = (sender, text, canListen = false) => {
         const chatWindow = document.getElementById('scenario-chat-window'); 
         if (!chatWindow) return;
@@ -1229,7 +1185,9 @@ function renderScenarioViewer(container, scenarioOrData, isCustomScenario = fals
                 text.indexOf('<PHONETIQUE>') > -1 ? text.indexOf('<PHONETIQUE>') : Infinity,
                 text.indexOf('<TRADUCTION>') > -1 ? text.indexOf('<TRADUCTION>') : Infinity
             );
-            const arabicPart = text.substring(0, firstTagIndex).trim();
+            // S'il n'y a pas de balise, prend tout le texte
+            const arabicPart = (firstTagIndex === Infinity) ? text.trim() : text.substring(0, firstTagIndex).trim();
+            
             const phoneticMatch = text.match(/<PHONETIQUE>(.*?)<\/PHONETIQUE>/);
             const traductionMatch = text.match(/<TRADUCTION>(.*?)<\/TRADUCTION>/);
             
@@ -1282,7 +1240,7 @@ function renderScenarioViewer(container, scenarioOrData, isCustomScenario = fals
         msgDiv.appendChild(bubble); 
         chatWindow.appendChild(msgDiv);
         chatWindow.scrollTop = chatWindow.scrollHeight;
-    }; // Fin de la fonction imbriquée appendMessage
+    };
 
     // Prompt Initial du Personnage IA
     appendMessage('aida', intro, true); 
