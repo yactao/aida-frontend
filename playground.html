@@ -17,6 +17,7 @@
             --shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
             --warning-color: #F5A623;
             --border-color: #eee;
+            --incorrect-color: #dc3545; /* Ajouté pour la suppression */
         }
         body.dark-mode {
             --primary-color: #58a6ff;
@@ -27,6 +28,7 @@
             --input-bg-color: #2C2C2C;
             --shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
             --border-color: #333;
+            --incorrect-color: #e57373; /* Ajouté pour la suppression */
         }
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: 'Poppins', sans-serif; background-color: var(--background-color); color: var(--text-color); transition: background-color 0.3s, color 0.3s; display: flex; flex-direction: column; height: 100vh; }
@@ -146,13 +148,13 @@
             padding: 0.75rem 1rem;
             margin-bottom: 0.5rem;
             border-radius: 8px;
-            cursor: pointer;
             font-size: 0.9em;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
             transition: background-color 0.2s;
             color: var(--text-color);
+            /* MODIFIÉ : Ajout de Flexbox */
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
         .history-list li:hover {
             background-color: #E9F2FF;
@@ -227,6 +229,67 @@
         }
         body.dark-mode .agent-label {
             color: var(--secondary-color);
+        }
+        
+        /* Styles pour les actions de l'historique */
+        .history-title {
+            flex-grow: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            cursor: pointer;
+            min-width: 0; /* Empêche le titre de rétrécir */
+        }
+        .history-actions {
+            display: none; /* Caché par défaut */
+            flex-shrink: 0;
+        }
+        .history-list li:hover .history-actions,
+        .history-list li.active .history-actions { /* Affiche aussi si actif */
+            display: flex;
+            gap: 4px;
+        }
+        /* Cache les boutons sur un item en cours de renommage */
+        .history-list li.is-renaming .history-actions {
+            display: none;
+        }
+        
+        .btn-icon-small {
+            background: none;
+            border: none;
+            color: var(--text-color);
+            cursor: pointer;
+            padding: 5px;
+            font-size: 0.8rem;
+            border-radius: 4px;
+            opacity: 0.7;
+        }
+        /* Couleur spéciale pour les boutons sur un item actif */
+        .history-list li.active .btn-icon-small {
+            color: white;
+        }
+        
+        .btn-icon-small:hover {
+            opacity: 1;
+            background-color: rgba(0,0,0,0.1);
+        }
+        .btn-icon-small.delete-btn:hover {
+            color: var(--incorrect-color);
+        }
+        body.dark-mode .btn-icon-small { color: var(--text-color); }
+        body.dark-mode .btn-icon-small:hover { background-color: rgba(255,255,255,0.1); }
+        body.dark-mode .history-list li.active .btn-icon-small { color: white; }
+
+        /* Champ pour renommer */
+        .history-title-input {
+            flex-grow: 1;
+            padding: 4px 6px;
+            font-size: 0.9em;
+            background-color: var(--input-bg-color);
+            color: var(--text-color);
+            border: 1px solid var(--primary-color);
+            border-radius: 4px;
+            outline: none;
         }
 
         .unauthorized-card {
@@ -337,7 +400,7 @@
         const contentWrapper = document.querySelector('.playground-content-wrapper');
         const playgroundContainer = document.querySelector('.playground-container');
 
-        // --- 2. ÉTAT DE L'APPLICATION (Avec Clé Dynamique) ---
+        // --- 2. ÉTAT DE L'APPLICATION ---
         
         let STORAGE_KEY = 'aidaPlaygroundHistory_default';
         let currentUser = null;
@@ -360,7 +423,7 @@
         let allChatsHistory = [];
         let currentChatId = null;
         let currentMessages = [];
-        let activeAgent = 'deepseek'; // ▼▼▼ NOUVEAU : Agent de suivi d'état ▼▼▼
+        let activeAgent = 'deepseek';
 
         let recognition;
         let currentAudio = null;
@@ -384,26 +447,45 @@
             localStorage.setItem(STORAGE_KEY, JSON.stringify(allChatsHistory));
         }
 
+        // ▼▼▼ MODIFIÉ : Ajout des boutons Renommer/Supprimer ▼▼▼
         function renderHistorySidebar() {
             historyList.innerHTML = '';
             if (allChatsHistory.length === 0) {
                 historyList.innerHTML = '<li style="color: #888; text-align: center; font-style: italic; cursor: default; user-select: none;">Aucun historique</li>';
                 return;
             }
+            
             allChatsHistory.sort((a, b) => b.timestamp - a.timestamp);
+
             allChatsHistory.forEach(chat => {
                 const li = document.createElement('li');
-                li.textContent = chat.title;
                 li.dataset.chatId = chat.id;
                 if (chat.id === currentChatId) {
                     li.classList.add('active');
                 }
-                li.addEventListener('click', () => {
-                    loadChat(chat.id);
-                });
+                
+                const titleSpan = document.createElement('span');
+                titleSpan.className = 'history-title';
+                titleSpan.textContent = chat.title;
+                titleSpan.dataset.action = "load"; // Action de clic par défaut
+                li.appendChild(titleSpan);
+
+                const actionsDiv = document.createElement('div');
+                actionsDiv.className = 'history-actions';
+                actionsDiv.innerHTML = `
+                    <button class="btn-icon-small" data-action="rename" title="Renommer">
+                        <i class="fa-solid fa-pencil" style="pointer-events: none;"></i>
+                    </button>
+                    <button class="btn-icon-small delete-btn" data-action="delete" title="Supprimer">
+                        <i class="fa-solid fa-trash-can" style="pointer-events: none;"></i>
+                    </button>
+                `;
+                li.appendChild(actionsDiv);
+                
                 historyList.appendChild(li);
             });
         }
+        // ▲▲▲ FIN DE LA MODIFICATION ▲▲▲
 
         function loadChat(chatId) {
             const chat = allChatsHistory.find(c => c.id === chatId);
@@ -412,18 +494,19 @@
             currentMessages = chat.messages;
             chatWindow.innerHTML = '';
             
-            // ▼ MODIFIÉ : Lit l'agent depuis l'historique
-            activeAgent = 'deepseek'; // Par défaut
+            activeAgent = 'deepseek'; 
             currentMessages.forEach(msg => {
                 if (msg.role === 'user') {
                     const userMsg = msg.content.startsWith('(Mode:') ? msg.content.substring(msg.content.indexOf(')') + 2) : msg.content;
                     addMessage('user', userMsg, null, false);
-                    if (msg.content.toLowerCase().includes('kimi')) activeAgent = 'kimi'; // Ré-active Kimi si on charge un historique
+                    // Détecte si la conversation doit être verrouillée sur Kimi
+                    if (msg.content.toLowerCase().includes('kimi') || msg.content.toLowerCase().includes('analyse ce document') || msg.content.toLowerCase().includes('mode: upload')) {
+                        activeAgent = 'kimi';
+                    }
                 } else if (msg.role === 'assistant') {
                     addMessage('aida', msg.content, msg.agent || 'Aïda (Archivé)', false);
                 }
             });
-            // ▲ FIN DE LA MODIFICATION
             
             renderHistorySidebar();
             chatWindow.scrollTop = chatWindow.scrollHeight;
@@ -432,30 +515,38 @@
         function saveCurrentChat() {
             const userMessage = currentMessages.find(m => m.role === 'user');
             if (!userMessage) return;
-            const title = userMessage.content.substring(userMessage.content.indexOf(')') + 2, 60) + '...';
-            const existingChat = allChatsHistory.find(c => c.id === currentChatId);
-            if (existingChat) {
-                existingChat.messages = currentMessages;
-                existingChat.timestamp = Date.now();
-                existingChat.title = title;
-            } else {
-                allChatsHistory.push({
-                    id: currentChatId,
-                    title: title,
-                    messages: currentMessages,
-                    timestamp: Date.now()
-                });
+
+            // Ne renomme pas automatiquement si c'est un nouveau chat (pour éviter l'écrasement)
+            if (currentMessages.length > 2) { // 2 = system + 1er user
+                 const chat = allChatsHistory.find(c => c.id === currentChatId);
+                 if(chat) {
+                    chat.messages = currentMessages;
+                    chat.timestamp = Date.now();
+                    saveHistoryToStorage();
+                    renderHistorySidebar(); // Juste pour rafraîchir l'ordre
+                    return;
+                 }
             }
+
+            // Logique de création de nouveau chat
+            const title = userMessage.content.substring(userMessage.content.indexOf(')') + 2, 60) + '...';
+            allChatsHistory.push({
+                id: currentChatId,
+                title: title,
+                messages: currentMessages,
+                timestamp: Date.now()
+            });
+            
             saveHistoryToStorage();
             renderHistorySidebar();
         }
-
+        
         function startNewChat(isTrustMode = false, welcomeMessage = "Bonjour ! Je suis AIDA. Comment puis-je t'aider aujourd'hui ?") {
             currentChatId = null;
             currentMessages = [];
             chatWindow.innerHTML = '';
             userInput.value = '';
-            activeAgent = 'deepseek'; // ▼▼▼ MODIFIÉ : Réinitialise l'agent ▼▼▼
+            activeAgent = 'deepseek';
             
             if (!isTrustMode) {
                 renderHistorySidebar();
@@ -483,7 +574,15 @@
 
             const bubble = document.createElement('div');
             bubble.className = 'message-bubble';
-            bubble.innerHTML = text.replace(/\n/g, '<br>'); 
+            // Convertit le markdown simple (listes)
+            let html = text.replace(/\n/g, '<br>');
+            html = html.replace(/(\*\*|__)(.*?)\1/g, '<strong>$2</strong>'); // Gras
+            html = html.replace(/(\*|_)(.*?)\1/g, '<em>$2</em>'); // Italique
+            html = html.replace(/^\* (.*?)($|<br>)/gm, '<li>$1</li>'); // Listes
+            html = html.replace(/(<li>.*<\/li>)/gs, '<ul>$1</ul>'); // Enveloppe les listes
+            html = html.replace(/<\/ul><br><ul>/g, ''); // Corrige listes multiples
+            
+            bubble.innerHTML = html; 
             messageDiv.appendChild(bubble);
             
             if (sender === 'aida') {
@@ -537,16 +636,14 @@
             currentMessages.push({ role: 'user', content: fullMessage });
             
             try {
-                // ▼▼▼ MODIFIÉ : Envoie l'agent "préféré" au backend ▼▼▼
                 const response = await fetch(`${backendUrl}/ai/playground-chat`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ 
                         history: currentMessages,
-                        preferredAgent: activeAgent // Envoie l'agent "verrouillé"
+                        preferredAgent: activeAgent
                     }) 
                 });
-                // ▲▲▲ FIN DE LA MODIFICATION ▲▲▲
                 
                 if (!response.ok) {
                     const errData = await response.json();
@@ -725,7 +822,6 @@
                 const formData = new FormData();
                 formData.append('document', file);
                 try {
-                    // 1. Appel à l'extraction de texte
                     const extractResponse = await fetch(`${backendUrl}/ai/playground-extract-text`, { 
                         method: 'POST', 
                         body: formData 
@@ -737,10 +833,8 @@
                         throw new Error(data.error || `Erreur ${extractResponse.status} lors de l'extraction.`);
                     }
                     
-                    // ▼▼▼ MODIFIÉ : Verrouille l'agent sur Kimi ▼▼▼
                     activeAgent = 'kimi';
                     
-                    // 2. PRÉPARE LE MESSAGE POUR L'AGENT MANAGER
                     const message = `(Mode: upload) J'ai chargé le document "${file.name}". Voici son contenu : \n\n--- DÉBUT DU DOCUMENT ---\n${data.extractedText}\n--- FIN DU DOCUMENT ---\n\n Maintenant, Kimi, analyse ce document et fais-moi un résumé.`;
                     
                     currentMessages.push({ role: 'user', content: message });
@@ -749,20 +843,18 @@
                     addMessage('aida', `J'ai lu le document "${file.name}" ! Je l'envoie à l'Agent Aïda-kimi pour analyse...`, 'Système', true);
                     showTypingIndicator();
 
-                    // 3. Appel à l'Agent Manager (qui va router vers Kimi)
                     const chatResponse = await fetch(`${backendUrl}/ai/playground-chat`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ 
                             history: currentMessages,
-                            preferredAgent: activeAgent // Envoie 'kimi'
+                            preferredAgent: activeAgent
                         }) 
                     });
                     if (!chatResponse.ok) throw new Error((await chatResponse.json()).error);
                     
                     const chatData = await chatResponse.json();
                     
-                    // 4. Affiche la réponse de Kimi
                     const aidaMessage = chatData.reply;
                     const agentName = chatData.agent || 'Aïda-kimi (Erreur)';
                     
@@ -801,7 +893,33 @@
                     console.log(`Langue de reconnaissance vocale changée en : ${lang}`);
                 }
             });
-        }
+
+            // ▼▼▼ MODIFIÉ : Écouteur global pour l'historique ▼▼▼
+            historyList.addEventListener('click', (e) => {
+                const target = e.target;
+                // Trouve l'élément cliquable parent (le titre ou un bouton)
+                const actionTarget = target.closest('[data-action]');
+                if (!actionTarget) return;
+
+                const action = actionTarget.dataset.action;
+                const li = target.closest('li');
+                if (!li) return;
+                
+                const chatId = li.dataset.chatId;
+
+                if (action === 'load') {
+                    loadChat(chatId);
+                } else if (action === 'rename') {
+                    e.stopPropagation(); // Empêche 'load' de se déclencher
+                    handleRenameChat(chatId, li);
+                } else if (action === 'delete') {
+                    e.stopPropagation(); // Empêche 'load' de se déclencher
+                    handleDeleteChat(chatId);
+                }
+            });
+            // ▲▲▲ FIN DE LA MODIFICATION ▲▲▲
+
+        } // Fin du 'if (currentUser)'
 
         // --- 8. INITIALISATION ---
         
@@ -844,6 +962,83 @@
                 startNewChat(false, "Bonjour ! Je suis AIDA. Comment puis-je t'aider aujourd'hui ?");
             }
         });
+
+        // ▼▼▼ NOUVEAU : Fonctions de gestion de l'historique ▼▼▼
+
+        /**
+         * Gère la suppression d'une conversation.
+         */
+        function handleDeleteChat(chatId) {
+            const chat = allChatsHistory.find(c => c.id === chatId);
+            if (!chat) return;
+
+            if (!confirm(`Êtes-vous sûr de vouloir supprimer la conversation : "${chat.title}" ?`)) {
+                return;
+            }
+
+            allChatsHistory = allChatsHistory.filter(c => c.id !== chatId);
+            saveHistoryToStorage();
+            renderHistorySidebar();
+
+            if (currentChatId === chatId) {
+                startNewChat();
+            }
+        }
+
+        /**
+         * Gère le renommage d'une conversation.
+         */
+        function handleRenameChat(chatId, liElement) {
+            const titleSpan = liElement.querySelector('.history-title');
+            if (!titleSpan) return; // Déjà en mode renommage
+
+            const currentTitle = titleSpan.textContent;
+            liElement.classList.add('is-renaming'); // Cache les boutons d'action
+            
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.className = 'history-title-input';
+            input.value = currentTitle;
+
+            liElement.replaceChild(input, titleSpan);
+            input.focus();
+            input.select();
+
+            const save = () => {
+                const newTitle = input.value.trim();
+                
+                if (newTitle && newTitle !== currentTitle) {
+                    const chat = allChatsHistory.find(c => c.id === chatId);
+                    if (chat) {
+                        chat.title = newTitle;
+                        saveHistoryToStorage();
+                    }
+                    titleSpan.textContent = newTitle;
+                } else {
+                    titleSpan.textContent = currentTitle;
+                }
+                
+                if (liElement.contains(input)) {
+                    liElement.replaceChild(titleSpan, input);
+                }
+                liElement.classList.remove('is-renaming'); // Ré-affiche les boutons
+            };
+
+            input.addEventListener('blur', save);
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    input.blur();
+                } else if (e.key === 'Escape') {
+                    // Annule
+                    titleSpan.textContent = currentTitle;
+                    if (liElement.contains(input)) {
+                        liElement.replaceChild(titleSpan, input);
+                    }
+                    liElement.classList.remove('is-renaming');
+                }
+            });
+        }
+        // ▲▲▲ FIN DES NOUVELLES FONCTIONS ▲▲▲
     </script>
 </body>
 </html>
