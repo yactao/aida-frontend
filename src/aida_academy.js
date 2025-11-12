@@ -645,9 +645,9 @@ function renderAcademyCoursePlayer(selectedActivityId = null) {
 }
 
 //
-// =========================================================================
-// === CORRECTION PRINCIPALE : GESTION DES BUGS DU NARRATEUR ET DU QUIZ ===
-// =========================================================================
+// ======================================
+// === GESTION NARRATEUR ET DU QUIZ ===
+// ======================================
 //
 
 async function loadActivityContent(activityId) {
@@ -901,6 +901,32 @@ async function handleAcademyQuizSubmit(activity) {
     } catch (err) {
         console.error("Erreur lors de la sauvegarde du quiz:", err);
         container.innerHTML = `<p class="error-message">Erreur: ${err.message}</p>`;
+    }
+}
+
+     //NOUVEAU : Fonction de sauvegarde de session (Quiz, etc.)
+
+async function saveAcademySession(activityId, reportData) {
+    if (!window.currentUser || !window.currentUser.id) {
+        console.error("Erreur de sauvegarde : Utilisateur non connecté.");
+        return;
+    }
+
+    try {
+        await apiRequest('/api/academy/session/save', 'POST', {
+            userId: window.currentUser.id,
+            scenarioId: activityId, // L'ID de l'activité (ex: "ep1-quiz")
+            report: reportData,
+            fullHistory: [] // Pas d'historique de chat pour un quiz
+        });
+        
+        // La sauvegarde a réussi
+        console.log(`Session ${activityId} sauvegardée avec succès.`);
+
+    } catch (err) {
+        console.error("Erreur API lors de la sauvegarde de la session:", err);
+        // Affiche une alerte si la sauvegarde échoue
+        alert(`Erreur critique : Votre progression n'a pas pu être sauvegardée. ${err.message}`);
     }
 }
 
