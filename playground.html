@@ -360,6 +360,7 @@
         let allChatsHistory = [];
         let currentChatId = null;
         let currentMessages = [];
+        let activeAgent = 'deepseek'; // ▼▼▼ NOUVEAU : Agent de suivi d'état ▼▼▼
 
         let recognition;
         let currentAudio = null;
@@ -411,14 +412,18 @@
             currentMessages = chat.messages;
             chatWindow.innerHTML = '';
             
+            // ▼ MODIFIÉ : Lit l'agent depuis l'historique
+            activeAgent = 'deepseek'; // Par défaut
             currentMessages.forEach(msg => {
                 if (msg.role === 'user') {
                     const userMsg = msg.content.startsWith('(Mode:') ? msg.content.substring(msg.content.indexOf(')') + 2) : msg.content;
                     addMessage('user', userMsg, null, false);
+                    if (msg.content.toLowerCase().includes('kimi')) activeAgent = 'kimi'; // Ré-active Kimi si on charge un historique
                 } else if (msg.role === 'assistant') {
                     addMessage('aida', msg.content, msg.agent || 'Aïda (Archivé)', false);
                 }
             });
+            // ▲ FIN DE LA MODIFICATION
             
             renderHistorySidebar();
             chatWindow.scrollTop = chatWindow.scrollHeight;
@@ -450,6 +455,7 @@
             currentMessages = [];
             chatWindow.innerHTML = '';
             userInput.value = '';
+            activeAgent = 'deepseek'; // ▼▼▼ MODIFIÉ : Réinitialise l'agent ▼▼▼
             
             if (!isTrustMode) {
                 renderHistorySidebar();
@@ -531,11 +537,16 @@
             currentMessages.push({ role: 'user', content: fullMessage });
             
             try {
+                // ▼▼▼ MODIFIÉ : Envoie l'agent "préféré" au backend ▼▼▼
                 const response = await fetch(`${backendUrl}/ai/playground-chat`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ history: currentMessages }) 
+                    body: JSON.stringify({ 
+                        history: currentMessages,
+                        preferredAgent: activeAgent // Envoie l'agent "verrouillé"
+                    }) 
                 });
+                // ▲▲▲ FIN DE LA MODIFICATION ▲▲▲
                 
                 if (!response.ok) {
                     const errData = await response.json();
@@ -695,7 +706,6 @@
             micBtn.addEventListener('click', toggleListening);
             uploadBtn.addEventListener('click', () => docUpload.click());
             
-            // ▼ MODIFIÉ : Correction du bug /api/api/ ▼
             docUpload.addEventListener('change', async (e) => {
                 const file = e.target.files[0];
                 if (!file) return;
@@ -715,18 +725,20 @@
                 const formData = new FormData();
                 formData.append('document', file);
                 try {
-                    // 1. Appel à l'extraction de texte (URL CORRIGÉE)
+                    // 1. Appel à l'extraction de texte
                     const extractResponse = await fetch(`${backendUrl}/ai/playground-extract-text`, { 
                         method: 'POST', 
                         body: formData 
                     });
                     
-                    const data = await extractResponse.json(); // Tente de parser le JSON
+                    const data = await extractResponse.json();
                     
                     if (!extractResponse.ok) {
-                        // Si le serveur renvoie une erreur (comme 404), 'data.error' existera
                         throw new Error(data.error || `Erreur ${extractResponse.status} lors de l'extraction.`);
                     }
+                    
+                    // ▼▼▼ MODIFIÉ : Verrouille l'agent sur Kimi ▼▼▼
+                    activeAgent = 'kimi';
                     
                     // 2. PRÉPARE LE MESSAGE POUR L'AGENT MANAGER
                     const message = `(Mode: upload) J'ai chargé le document "${file.name}". Voici son contenu : \n\n--- DÉBUT DU DOCUMENT ---\n${data.extractedText}\n--- FIN DU DOCUMENT ---\n\n Maintenant, Kimi, analyse ce document et fais-moi un résumé.`;
@@ -741,7 +753,10 @@
                     const chatResponse = await fetch(`${backendUrl}/ai/playground-chat`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ history: currentMessages }) 
+                        body: JSON.stringify({ 
+                            history: currentMessages,
+                            preferredAgent: activeAgent // Envoie 'kimi'
+                        }) 
                     });
                     if (!chatResponse.ok) throw new Error((await chatResponse.json()).error);
                     
@@ -758,7 +773,6 @@
 
                 } catch (err) {
                     removeTypingIndicator();
-                    // L'erreur JSON.parse se produira ici si c'est un 404 HTML
                     if (err.message.includes('unexpected character')) {
                         addMessage('aida', `Désolé, une erreur de communication est survenue (404 Not Found). L'API d'extraction n'a pas été trouvée.`, 'Système', true);
                     } else {
@@ -766,7 +780,6 @@
                     }
                 }
             });
-            // ▲ FIN DE LA MODIFICATION
             
             settingsBtn.addEventListener('click', openSettingsModal);
             voiceSettingsModal.querySelector('.close-modal').addEventListener('click', closeSettingsModal);
