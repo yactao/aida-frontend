@@ -1063,3 +1063,64 @@ body.dark-mode .scenario-card-description {
     text-align: right;
     width: 100%;
 }
+/* DANS style.css */
+
+/* --- Styles pour la Gamification (Académie) --- */
+
+.academy-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 1.5rem;
+    margin-top: 2rem;
+}
+
+.stats-card {
+    padding: 1rem 1.5rem;
+    text-align: center;
+    border-top: none; /* Surcharge le style de base .dashboard-card */
+    border-left: 4px solid var(--secondary-color); /* Accent Lavande */
+}
+
+.stats-card h5 {
+    font-size: 0.9rem;
+    color: var(--text-color);
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.stats-card .stat-number {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--primary-color);
+    line-height: 1.2;
+}
+
+body.dark-mode .stats-card .stat-number {
+    color: var(--primary-color-light);
+}
+
+/* Style pour la modale "Badge Débloqué" */
+#badge-unlocked-toast .modal-content {
+    max-width: 350px;
+    animation: fadeIn 0.3s ease-out;
+}
+/* DANS style.css */
+
+/* --- NOUVEAU : Styles pour le Lecteur de Cours (Complété) --- */
+
+.activity-item.completed {
+    color: var(--correct-color); /* Met le texte en vert */
+    font-weight: 700; /* Met en gras */
+}
+
+.activity-item.completed:hover {
+    background-color: rgba(40, 167, 69, 0.05); /* Léger fond vert au survol */
+}
+
+body.dark-mode .activity-item.completed:hover {
+    background-color: rgba(40, 167, 69, 0.1);
+}
+
+.activity-item.completed i {
+    color: var(--correct-color) !important; /* Force l'icône de coche à être verte */
+}

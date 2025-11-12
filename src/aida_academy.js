@@ -1,8 +1,18 @@
 // src/aida_academy.js - Logique complète pour l'Académie (Mode Série Hybride)
 
 import { changePage, spinnerHtml, apiRequest, renderModal, getModalTemplate } from './utils.js';
-// NOUVEAU : Importe les données de la série depuis le fichier séparé
 import { courseData, memorizationData } from './series_data.js';
+
+/**
+ * Dictionnaire global des badges.
+ * L'ID (ex: 'quiz_1') doit correspondre à celui utilisé dans les appels API.
+ */
+const allBadges = {
+    'quiz_1': { title: 'Apprenti Quizzeur', icon: 'fa-solid fa-question-circle', description: 'Terminer votre premier quiz.' },
+    'dialogue_1': { title: 'Polyglotte en Herbe', icon: 'fa-solid fa-comments', description: 'Terminer votre premier dialogue IA.' },
+    'streak_3': { title: 'Sérieux', icon: 'fa-solid fa-fire', description: '3 jours de connexion consécutifs.' }
+    // Ajoutez-en d'autres ici...
+};
 
 // --- Variables d'état vocal pour le module ---
 let recognition;
@@ -182,7 +192,78 @@ async function togglePlayback(text, buttonEl) {
 }
 
 
-// --- 3. Logique de Bilan et de Sauvegarde ---
+// --- 3. Logique de Bilan, Sauvegarde et Gamification ---
+
+/**
+ * Appelle l'API pour débloquer un badge et affiche une notification.
+ * @param {string} badgeId - L'ID du badge à débloquer (ex: 'quiz_1').
+ */
+async function unlockAchievement(badgeId) {
+    try {
+        if (window.currentUser.achievements && window.currentUser.achievements.includes(badgeId)) {
+            return;
+        }
+        
+        const { user } = await apiRequest('/api/academy/achievement/unlock', 'POST', {
+            userId: window.currentUser.id,
+            badgeId: badgeId
+        });
+
+        window.currentUser = user;
+        localStorage.setItem('currentUser', JSON.stringify(user));
+        
+        const badge = allBadges[badgeId];
+        if (!badge) return;
+
+        const toastHtml = `
+            <div style="text-align: center;">
+                <i class="${badge.icon} fa-3x" style="color: var(--warning-color); margin-bottom: 1rem;"></i>
+                <h4>Badge Débloqué !</h4>
+                <p><strong>${badge.title}</strong></p>
+                <small>${badge.description}</small>
+            </div>`;
+        
+        renderModal(getModalTemplate('badge-unlocked-toast', 'Félicitations !', toastHtml));
+        
+        setTimeout(() => {
+            const modal = document.getElementById('badge-unlocked-toast');
+            if (modal) {
+                 window.modalContainer.innerHTML = '';
+            }
+        }, 3500);
+
+    } catch (err) {
+        console.error(`Erreur lors du déblocage du badge ${badgeId}:`, err);
+    }
+}
+
+/**
+ * NOUVEAU : Fonction de sauvegarde de session (Quiz, etc.)
+ * Appelle l'API pour sauvegarder la progression d'une activité.
+ */
+async function saveAcademySession(activityId, reportData) {
+    if (!window.currentUser || !window.currentUser.id) {
+        console.error("Erreur de sauvegarde : Utilisateur non connecté.");
+        return;
+    }
+
+    try {
+        await apiRequest('/api/academy/session/save', 'POST', {
+            userId: window.currentUser.id,
+            scenarioId: activityId, // L'ID de l'activité (ex: "ep1-quiz")
+            report: reportData,
+            fullHistory: [] // Pas d'historique de chat pour un quiz
+        });
+        
+        console.log(`Session ${activityId} sauvegardée avec succès.`);
+
+    } catch (err) {
+        console.error("Erreur API lors de la sauvegarde de la session:", err);
+        // Affiche une alerte si la sauvegarde échoue
+        alert(`Erreur critique : Votre progression n'a pas pu être sauvegardée. ${err.message}`);
+    }
+}
+
 
 async function endScenarioSession(scenarioData, history, scenarioId = 'custom') {
     const spinner = document.getElementById('scenario-spinner');
@@ -218,16 +299,15 @@ async function endScenarioSession(scenarioData, history, scenarioId = 'custom') 
             report = { summaryTitle: "Bilan Indisponible (Erreur Critique)", completionStatus: "Erreur", feedback: [`L'IA n'a pas pu générer le rapport structuré. Détails: ${e.message}`], newVocabulary: [] };
         }
         
-        // Sauvegarde de la session (Backend)
         try {
-             await apiRequest('/api/academy/session/save', 'POST', {
-                userId: window.currentUser.id,
-                scenarioId: scenarioId,
-                report: report,
-                fullHistory: history 
-            });
+             // Appelle la NOUVELLE fonction de sauvegarde
+             await saveAcademySession(scenarioId, report, history);
         } catch (e) {
             console.warn("Erreur lors de la sauvegarde du bilan (Vérifiez server.js):", e.message);
+        }
+
+        if (report.completionStatus && report.completionStatus.toLowerCase() === 'completed') {
+            unlockAchievement('dialogue_1');
         }
 
         showSessionReportModal(report);
@@ -419,18 +499,36 @@ async function renderTeacherScenarioManagement(page) {
 }
 
 
-// --- 5. NOUVELLES Fonctions de Rendu du Dashboard (Élève et Enseignant) ---
+// --- 5. Fonctions de Rendu du Dashboard (Élève et Enseignant) ---
 
 export async function renderAcademyStudentDashboard() {
     const page = document.getElementById('student-dashboard-page');
     changePage('student-dashboard-page'); 
 
+    const streak = window.currentUser.dailyStreak || { count: 0 };
+    const achievements = window.currentUser.achievements || [];
+    const totalSessions = window.currentUser.academyProgress?.sessions?.length || 0;
+
     let html = `
         <h2>Bienvenue ${window.currentUser.firstName} sur l'Académie ! 📚</h2>
         <p class="subtitle">Prêt à commencer ton aventure ?</p>
 
-        <div class="dashboard-grid" style="grid-template-columns: 1fr;">
-            
+        <div class="academy-stats-grid">
+            <div class="dashboard-card stats-card">
+                <h5>🔥 Série de Connexion</h5>
+                <p class="stat-number">${streak.count} ${streak.count > 1 ? 'Jours' : 'Jour'}</p>
+            </div>
+            <div class="dashboard-card stats-card">
+                <h5>🏆 Badges Débloqués</h5>
+                <p class="stat-number">${achievements.length} / ${Object.keys(allBadges).length}</p>
+            </div>
+            <div class="dashboard-card stats-card">
+                <h5>⏱️ Sessions Terminées</h5>
+                <p class="stat-number">${totalSessions}</p>
+            </div>
+        </div>
+
+        <div class="dashboard-grid" style="grid-template-columns: 1fr; margin-top: 2rem;"> 
             <div class="scenario-card card" id="start-series-btn" style="cursor: pointer;">
                 <div class="scenario-card-image-wrapper">
                     <img src="assets/images/zayd_yasmina_cover.png" alt="Zayd et Yasmina" class="scenario-card-image">
@@ -540,7 +638,7 @@ async function loadCustomScenarios() {
                 const selectedScenario = customScenarios.find(s => s.id === scenarioId);
                 if (selectedScenario) {
                     renderScenarioViewer(document.getElementById('content-viewer-page'), selectedScenario, true);
-                    changePage('content-viewer-page'); // N'oubliez pas d'afficher la page
+                    changePage('content-viewer-page');
                 }
             });
         });
@@ -644,11 +742,6 @@ function renderAcademyCoursePlayer(selectedActivityId = null) {
     loadActivityContent(selectedActivityId);
 }
 
-//
-// ======================================
-// === GESTION NARRATEUR ET DU QUIZ ===
-// ======================================
-//
 
 async function loadActivityContent(activityId) {
     const contentArea = document.getElementById('activity-content-area');
@@ -659,7 +752,6 @@ async function loadActivityContent(activityId) {
     let activity = null;
     let episode = null;
     
-    // Trouver l'activité ET l'épisode parent dans la SÉRIE
     for (const ep of courseData.episodes) {
         activity = ep.activities.find(a => a.id === activityId);
         if (activity) {
@@ -674,10 +766,7 @@ async function loadActivityContent(activityId) {
         return;
     }
     
-    // --- 1. Gérer le contenu de l'activité ---
-    // On détermine d'abord si on est dans un dialogue pour cacher le narrateur
-    
-    let isDialogue = false; // Drapeau pour gérer le narrateur
+    let isDialogue = false; 
 
     switch (activity.type) {
         case 'video':
@@ -687,35 +776,58 @@ async function loadActivityContent(activityId) {
             renderMemorizationPage(contentArea, activity);
             break;
         case 'dialogue':
-            isDialogue = true; // C'est un dialogue, on ne veut pas de narrateur
+            isDialogue = true;
             if (activity.scenarioData) {
-                renderScenarioViewer(contentArea, activity, false); // Affiche le chat IA
+                renderScenarioViewer(contentArea, activity, false);
             } else {
-                contentArea.innerHTML = `<p class="error-message">Erreur : Données de dialogue non trouvées pour cette activité.</p>`;
+                contentArea.innerHTML = `<p class="error-message">Erreur : Données de dialogue non trouvées.</p>`;
             }
             break;
         case 'quiz':
-            // Appelle la nouvelle fonction de quiz
             renderAcademyQuiz(contentArea, activity);
             break;
         default:
             contentArea.innerHTML = `<p class="error-message">Type d'activité non reconnu.</p>`;
     }
 
-    // --- 2. Gérer le Narrateur ---
-    // S'affiche SEULEMENT si ce n'est PAS un dialogue
     if (isDialogue) {
-        narratorBox.classList.add('hidden'); // CACHE la boîte (corrige le bug "Tu es Fahim...")
+        narratorBox.classList.add('hidden');
     } else {
-        // Pour la vidéo, le mémo ou le quiz, on affiche la description de l'épisode
-        const narratorPrompt = episode.narratorIntro;
+        const narratorPrompt = activity.description || episode.narratorIntro;
         narratorText.textContent = narratorPrompt;
         narratorBtn.onclick = () => playNarratorAudio(narratorPrompt, narratorBtn);
-        narratorBox.classList.remove('hidden'); // MONTRE la boîte
+        narratorBox.classList.remove('hidden');
     }
 }
 
-// Affiche une vidéo
+// ▼▼▼ FONCTION MANQUANTE AJOUTÉE ICI ▼▼▼
+/**
+ * Met à jour le style de l'activité dans la barre de navigation.
+ * @param {string} activityId - L'ID de l'activité à marquer.
+ * @param {boolean} [completed=false] - Mettre à 'true' pour ajouter la coche.
+ */
+function updateActivityStatusInSidebar(activityId, completed = false) {
+    const activityItem = document.querySelector(`.activity-item[data-activity-id="${activityId}"]`);
+    if (!activityItem) return;
+
+    // Marque comme 'active' (déjà fait au clic, mais on s'en assure)
+    document.querySelectorAll('.activity-item.active').forEach(item => item.classList.remove('active'));
+    activityItem.classList.add('active');
+
+    // Ajoute la coche si 'completed' est vrai
+    if (completed) {
+        activityItem.classList.add('completed'); // Ajoute la classe
+        
+        // Change l'icône pour une coche
+        const icon = activityItem.querySelector('i');
+        if (icon) {
+            icon.className = 'fa-solid fa-check-circle';
+            icon.style.color = 'var(--correct-color)'; // Style optionnel
+        }
+    }
+}
+// ▲▲▲ FIN DE LA FONCTION AJOUTÉE ▲▲▲
+
 function renderVideoPage(container, activity) {
     container.innerHTML = `
         <h3>${activity.title}</h3>
@@ -731,7 +843,6 @@ function renderVideoPage(container, activity) {
     `;
 }
 
-// Affiche la fiche de mémorisation
 function renderMemorizationPage(container, activity) {
     const data = memorizationData[activity.data];
     if (!data) {
@@ -776,19 +887,10 @@ function renderMemorizationPage(container, activity) {
     `;
 }
 
-//
-// --- NOUVELLES FONCTIONS QUIZ (Placées à la fin) ---
-//
-
-/**
- * NOUVEAU : Affiche le Quiz
- */
 function renderAcademyQuiz(container, activity) {
-    // Les données du quiz sont dans activity.data (ex: { questions: [...] })
     const quizData = activity.data; 
     
     if (!quizData || !quizData.questions) {
-        // C'est ici que l'erreur "Données de quiz non trouvées" se produit si series_data.js n'est pas à jour
         container.innerHTML = `<p class="error-message">Erreur : Données de quiz non trouvées.</p>`;
         return;
     }
@@ -826,16 +928,12 @@ function renderAcademyQuiz(container, activity) {
         </div>
     `;
     
-    // Attache l'écouteur de soumission
     document.getElementById('academy-quiz-form').addEventListener('submit', (e) => {
         e.preventDefault();
         handleAcademyQuizSubmit(activity);
     });
 }
 
-/**
- * NOUVEAU : Gère la soumission du Quiz
- */
 async function handleAcademyQuizSubmit(activity) {
     const form = document.getElementById('academy-quiz-form');
     if (!form) return;
@@ -853,7 +951,7 @@ async function handleAcademyQuizSubmit(activity) {
                 score++;
             }
         } else {
-            userAnswers.push(-1); // Aucune réponse
+            userAnswers.push(-1);
         }
     }
 
@@ -889,6 +987,10 @@ async function handleAcademyQuizSubmit(activity) {
             }
         });
 
+        if (percentage >= 80) {
+             unlockAchievement('quiz_1');
+        }
+
         await saveAcademySession(activity.id, {
             type: 'quiz',
             score: percentage,
@@ -904,35 +1006,6 @@ async function handleAcademyQuizSubmit(activity) {
     }
 }
 
-     //NOUVEAU : Fonction de sauvegarde de session (Quiz, etc.)
-
-async function saveAcademySession(activityId, reportData) {
-    if (!window.currentUser || !window.currentUser.id) {
-        console.error("Erreur de sauvegarde : Utilisateur non connecté.");
-        return;
-    }
-
-    try {
-        await apiRequest('/api/academy/session/save', 'POST', {
-            userId: window.currentUser.id,
-            scenarioId: activityId, // L'ID de l'activité (ex: "ep1-quiz")
-            report: reportData,
-            fullHistory: [] // Pas d'historique de chat pour un quiz
-        });
-        
-        // La sauvegarde a réussi
-        console.log(`Session ${activityId} sauvegardée avec succès.`);
-
-    } catch (err) {
-        console.error("Erreur API lors de la sauvegarde de la session:", err);
-        // Affiche une alerte si la sauvegarde échoue
-        alert(`Erreur critique : Votre progression n'a pas pu être sauvegardée. ${err.message}`);
-    }
-}
-
-
-// --- Fonctions de Rendu (Enseignant/Parent) ---
-// (Celles-ci restent inchangées, elles gèrent le suivi et la création de scénarios personnalisés)
 export async function renderAcademyTeacherDashboard() {
     const page = document.getElementById('teacher-dashboard-page');
     changePage('teacher-dashboard-page'); 
@@ -1081,7 +1154,6 @@ export async function renderAcademyParentDashboard() {
     await renderAcademyTeacherDashboard();
 }
 
-// CORRIGÉ : Correction du bug "undefined"
 function renderScenarioViewer(container, scenarioOrData, isCustomScenario = false) {
     container.innerHTML = ''; // Vide la zone d'activité
 
@@ -1100,7 +1172,6 @@ function renderScenarioViewer(container, scenarioOrData, isCustomScenario = fals
     }
     
     const chatWrapper = document.createElement('div');
-    // On applique la classe 'card' au wrapper pour le style
     chatWrapper.className = 'card';
     chatWrapper.style.margin = '0';
 
@@ -1211,7 +1282,6 @@ function renderScenarioViewer(container, scenarioOrData, isCustomScenario = fals
                 text.indexOf('<PHONETIQUE>') > -1 ? text.indexOf('<PHONETIQUE>') : Infinity,
                 text.indexOf('<TRADUCTION>') > -1 ? text.indexOf('<TRADUCTION>') : Infinity
             );
-            // S'il n'y a pas de balise, prend tout le texte
             const arabicPart = (firstTagIndex === Infinity) ? text.trim() : text.substring(0, firstTagIndex).trim();
             
             const phoneticMatch = text.match(/<PHONETIQUE>(.*?)<\/PHONETIQUE>/);
