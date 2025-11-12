@@ -1,20 +1,8 @@
 // src/aida_academy.js - Logique complète pour l'Académie (Mode Série Hybride)
 
 import { changePage, spinnerHtml, apiRequest, renderModal, getModalTemplate } from './utils.js';
+// NOUVEAU : Importe les données de la série depuis le fichier séparé
 import { courseData, memorizationData } from './series_data.js';
-
-// ▼▼▼ NOUVEAU : Dictionnaire des Badges ▼▼▼
-/**
- * Dictionnaire global des badges.
- * L'ID (ex: 'quiz_1') doit correspondre à celui utilisé dans les appels API.
- */
-const allBadges = {
-    'quiz_1': { title: 'Apprenti Quizzeur', icon: 'fa-solid fa-question-circle', description: 'Terminer votre premier quiz.' },
-    'dialogue_1': { title: 'Polyglotte en Herbe', icon: 'fa-solid fa-comments', description: 'Terminer votre premier dialogue IA.' },
-    'streak_3': { title: 'Sérieux', icon: 'fa-solid fa-fire', description: '3 jours de connexion consécutifs.' }
-    // Ajoutez-en d'autres ici...
-};
-// ▲▲▲ FIN DE L'AJOUT ▲▲▲
 
 // --- Variables d'état vocal pour le module ---
 let recognition;
@@ -194,54 +182,7 @@ async function togglePlayback(text, buttonEl) {
 }
 
 
-// --- 3. Logique de Bilan, Sauvegarde et Gamification ---
-
-/**
- * NOUVEAU : Appelle l'API pour débloquer un badge et affiche une notification.
- * @param {string} badgeId - L'ID du badge à débloquer (ex: 'quiz_1').
- */
-async function unlockAchievement(badgeId) {
-    try {
-        // Vérifie localement si l'utilisateur a déjà le badge pour éviter un appel API inutile
-        if (window.currentUser.achievements && window.currentUser.achievements.includes(badgeId)) {
-            return; // Déjà débloqué
-        }
-        
-        // Appelle l'API pour informer le backend
-        const { user } = await apiRequest('/api/academy/achievement/unlock', 'POST', {
-            userId: window.currentUser.id,
-            badgeId: badgeId
-        });
-
-        // Met à jour l'objet utilisateur global et le localStorage
-        window.currentUser = user;
-        localStorage.setItem('currentUser', JSON.stringify(user));
-        
-        // Affiche une notification "Toast"
-        const badge = allBadges[badgeId];
-        if (!badge) return;
-
-        const toastHtml = `
-            <div style="text-align: center;">
-                <i class="${badge.icon} fa-3x" style="color: var(--warning-color); margin-bottom: 1rem;"></i>
-                <h4>Badge Débloqué !</h4>
-                <p><strong>${badge.title}</strong></p>
-                <small>${badge.description}</small>
-            </div>`;
-        
-        renderModal(getModalTemplate('badge-unlocked-toast', 'Félicitations !', toastHtml));
-        
-        setTimeout(() => {
-            const modal = document.getElementById('badge-unlocked-toast');
-            if (modal) {
-                 window.modalContainer.innerHTML = '';
-            }
-        }, 3500);
-
-    } catch (err) {
-        console.error(`Erreur lors du déblocage du badge ${badgeId}:`, err);
-    }
-}
+// --- 3. Logique de Bilan et de Sauvegarde ---
 
 async function endScenarioSession(scenarioData, history, scenarioId = 'custom') {
     const spinner = document.getElementById('scenario-spinner');
@@ -288,12 +229,6 @@ async function endScenarioSession(scenarioData, history, scenarioId = 'custom') 
         } catch (e) {
             console.warn("Erreur lors de la sauvegarde du bilan (Vérifiez server.js):", e.message);
         }
-
-        // ▼▼▼ MODIFIÉ : Ajout du déblocage de badge ▼▼▼
-        if (report.completionStatus && report.completionStatus.toLowerCase() === 'completed') {
-            unlockAchievement('dialogue_1');
-        }
-        // ▲▲▲ FIN DE LA MODIFICATION ▲▲▲
 
         showSessionReportModal(report);
 
@@ -486,35 +421,15 @@ async function renderTeacherScenarioManagement(page) {
 
 // --- 5. NOUVELLES Fonctions de Rendu du Dashboard (Élève et Enseignant) ---
 
-// MODIFIÉ : Ajout de la grille de gamification
 export async function renderAcademyStudentDashboard() {
     const page = document.getElementById('student-dashboard-page');
     changePage('student-dashboard-page'); 
-
-    // ▼▼▼ MODIFIÉ : Récupère les données de gamification ▼▼▼
-    const streak = window.currentUser.dailyStreak || { count: 0 };
-    const achievements = window.currentUser.achievements || [];
-    const totalSessions = window.currentUser.academyProgress?.sessions?.length || 0;
 
     let html = `
         <h2>Bienvenue ${window.currentUser.firstName} sur l'Académie ! 📚</h2>
         <p class="subtitle">Prêt à commencer ton aventure ?</p>
 
-        <div class="academy-stats-grid">
-            <div class="dashboard-card stats-card">
-                <h5>🔥 Série de Connexion</h5>
-                <p class="stat-number">${streak.count} ${streak.count > 1 ? 'Jours' : 'Jour'}</p>
-            </div>
-            <div class="dashboard-card stats-card">
-                <h5>🏆 Badges Débloqués</h5>
-                <p class="stat-number">${achievements.length} / ${Object.keys(allBadges).length}</p>
-            </div>
-            <div class="dashboard-card stats-card">
-                <h5>⏱️ Sessions Terminées</h5>
-                <p class="stat-number">${totalSessions}</p>
-            </div>
-        </div>
-        <div class="dashboard-grid" style="grid-template-columns: 1fr; margin-top: 2rem;">
+        <div class="dashboard-grid" style="grid-template-columns: 1fr;">
             
             <div class="scenario-card card" id="start-series-btn" style="cursor: pointer;">
                 <div class="scenario-card-image-wrapper">
@@ -534,7 +449,8 @@ export async function renderAcademyStudentDashboard() {
         </div>
         `;
     
-    // Ajout de l'historique des sessions
+    const sessions = window.currentUser.academyProgress?.sessions || []; 
+    sessions.sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt)); 
     if (sessions.length > 0) {
         html += `<h3 style="margin-top: 3rem;">Historique de vos Sessions (${sessions.length})</h3>
                  <div class="dashboard-grid sessions-grid">`;
@@ -563,7 +479,6 @@ export async function renderAcademyStudentDashboard() {
 
     page.innerHTML = html;
 
-    // --- Listeners ---
     page.querySelector('#start-series-btn').addEventListener('click', (e) => {
         e.stopPropagation();
         renderAcademyCoursePlayer();
@@ -625,7 +540,7 @@ async function loadCustomScenarios() {
                 const selectedScenario = customScenarios.find(s => s.id === scenarioId);
                 if (selectedScenario) {
                     renderScenarioViewer(document.getElementById('content-viewer-page'), selectedScenario, true);
-                    changePage('content-viewer-page');
+                    changePage('content-viewer-page'); // N'oubliez pas d'afficher la page
                 }
             });
         });
@@ -734,6 +649,7 @@ function renderAcademyCoursePlayer(selectedActivityId = null) {
 // === CORRECTION PRINCIPALE : GESTION DES BUGS DU NARRATEUR ET DU QUIZ ===
 // =========================================================================
 //
+
 async function loadActivityContent(activityId) {
     const contentArea = document.getElementById('activity-content-area');
     const narratorBox = document.getElementById('narrator-box');
@@ -743,6 +659,7 @@ async function loadActivityContent(activityId) {
     let activity = null;
     let episode = null;
     
+    // Trouver l'activité ET l'épisode parent dans la SÉRIE
     for (const ep of courseData.episodes) {
         activity = ep.activities.find(a => a.id === activityId);
         if (activity) {
@@ -757,6 +674,9 @@ async function loadActivityContent(activityId) {
         return;
     }
     
+    // --- 1. Gérer le contenu de l'activité ---
+    // On détermine d'abord si on est dans un dialogue pour cacher le narrateur
+    
     let isDialogue = false; // Drapeau pour gérer le narrateur
 
     switch (activity.type) {
@@ -769,23 +689,25 @@ async function loadActivityContent(activityId) {
         case 'dialogue':
             isDialogue = true; // C'est un dialogue, on ne veut pas de narrateur
             if (activity.scenarioData) {
-                renderScenarioViewer(contentArea, activity, false);
+                renderScenarioViewer(contentArea, activity, false); // Affiche le chat IA
             } else {
                 contentArea.innerHTML = `<p class="error-message">Erreur : Données de dialogue non trouvées pour cette activité.</p>`;
             }
             break;
         case 'quiz':
+            // Appelle la nouvelle fonction de quiz
             renderAcademyQuiz(contentArea, activity);
             break;
         default:
             contentArea.innerHTML = `<p class="error-message">Type d'activité non reconnu.</p>`;
     }
 
-    // Gérer le Narrateur
+    // --- 2. Gérer le Narrateur ---
+    // S'affiche SEULEMENT si ce n'est PAS un dialogue
     if (isDialogue) {
-        narratorBox.classList.add('hidden'); // CACHE la boîte
+        narratorBox.classList.add('hidden'); // CACHE la boîte (corrige le bug "Tu es Fahim...")
     } else {
-        // Pour la vidéo, le mémo ou le quiz, on utilise la description de l'épisode
+        // Pour la vidéo, le mémo ou le quiz, on affiche la description de l'épisode
         const narratorPrompt = episode.narratorIntro;
         narratorText.textContent = narratorPrompt;
         narratorBtn.onclick = () => playNarratorAudio(narratorPrompt, narratorBtn);
@@ -793,6 +715,7 @@ async function loadActivityContent(activityId) {
     }
 }
 
+// Affiche une vidéo
 function renderVideoPage(container, activity) {
     container.innerHTML = `
         <h3>${activity.title}</h3>
@@ -808,6 +731,7 @@ function renderVideoPage(container, activity) {
     `;
 }
 
+// Affiche la fiche de mémorisation
 function renderMemorizationPage(container, activity) {
     const data = memorizationData[activity.data];
     if (!data) {
@@ -852,207 +776,19 @@ function renderMemorizationPage(container, activity) {
     `;
 }
 
-// CORRIGÉ : Correction du bug "undefined"
-function renderScenarioViewer(container, scenarioOrData, isCustomScenario = false) {
-    container.innerHTML = ''; // Vide la zone d'activité
-
-    const scenarioData = isCustomScenario ? scenarioOrData : scenarioOrData.scenarioData;
-    const scenarioId = isCustomScenario ? scenarioOrData.id : scenarioOrData.id;
-    const title = isCustomScenario ? scenarioOrData.title : scenarioData.title;
-    const context = isCustomScenario ? scenarioOrData.context : scenarioData.context;
-    const intro = isCustomScenario ? scenarioOrData.characterIntro : scenarioData.characterIntro;
-    const imageUrl = isCustomScenario ? scenarioOrData.imageUrl : null; 
-
-    const history = [{ role: "system", content: getAcademySystemPrompt(scenarioData) }];
-    
-    let imageHtml = '';
-    if (imageUrl) {
-        imageHtml = `<img src="${imageUrl}" alt="${title}" class="scenario-main-image">`;
-    }
-    
-    const chatWrapper = document.createElement('div');
-    chatWrapper.className = 'card';
-    chatWrapper.style.margin = '0';
-
-    chatWrapper.innerHTML = `
-        ${isCustomScenario ? `<button id="back-to-academy-dash" class="btn btn-secondary" style="margin-bottom: 1rem;"><i class="fa-solid fa-arrow-left"></i> Retour</button>` : ''}
-        
-        <h3>${title}</h3>
-        ${imageHtml}
-        
-        ${context ? `<p class="subtitle">${context}</p>` : ''} 
-        
-        <p style="font-size: 0.9em; color: var(--primary-color); margin-bottom: 1rem;">
-            <i class="fa-solid fa-microphone-alt"></i> **Mode Vocal Activé.** Appuyez sur le micro pour enregistrer.
-        </p>
-
-        <div id="scenario-chat-window" style="height: 400px; overflow-y: auto; padding: 10px; border: 1px solid var(--border-color); border-radius: 8px; margin-top: 1.5rem; background-color: var(--aida-chat-bg);">
-            </div>
-
-        <form id="scenario-chat-form" style="display: flex; gap: 0.5rem; margin-top: 1rem;">
-            <textarea id="user-scenario-input" placeholder="Parlez en Arabe ou écrivez votre réponse..." rows="2" style="flex-grow: 1; resize: none;"></textarea>
-            <button type="button" id="mic-btn" class="btn-icon" title="Maintenir enfoncé pour parler">
-                <i class="fa-solid fa-microphone"></i>
-            </button>
-            <button type="submit" class="btn btn-main" style="width: 100px; flex-shrink: 0;"><i class="fa-solid fa-paper-plane"></i></button>
-        </form>
-        
-        <div style="display: flex; justify-content: flex-end; margin-top: 1rem;">
-             <button type="button" id="end-session-btn" class="btn" style="background-color: var(--incorrect-color); color: white;">
-                <i class="fa-solid fa-flag-checkered"></i> Terminer la session
-             </button>
-        </div>
-
-        <div id="scenario-spinner" class="hidden" style="text-align: right; margin-top: 0.5rem;">${spinnerHtml}</div>
-        <p class="error-message" id="scenario-error"></p>
-    `;
-    container.appendChild(chatWrapper);
-    
-    // --- Attachement des Listeners ---
-    const chatForm = chatWrapper.querySelector('#scenario-chat-form');
-    const userInput = chatWrapper.querySelector('#user-scenario-input');
-    const micBtn = chatWrapper.querySelector('#mic-btn');
-    const endSessionBtn = chatWrapper.querySelector('#end-session-btn');
-    
-    const backBtn = chatWrapper.querySelector('#back-to-academy-dash');
-    if (backBtn) {
-        backBtn.addEventListener('click', () => {
-            if (recognition && micBtn.classList.contains('recording')) recognition.stop();
-            if (currentAudio) currentAudio.pause();
-            renderAcademyStudentDashboard();
-        });
-    }
-
-    setupSpeechRecognition(micBtn, userInput, chatForm); 
-    micBtn.addEventListener('mousedown', startListening);
-    micBtn.addEventListener('mouseup', stopListening);
-    micBtn.addEventListener('touchstart', startListening); 
-    micBtn.addEventListener('touchend', stopListening);
-    micBtn.addEventListener('click', (e) => e.preventDefault()); 
-
-    endSessionBtn.addEventListener('click', () => endScenarioSession(scenarioData, history, scenarioId));
-
-    chatForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const message = userInput.value.trim();
-        if (!message) return;
-        
-        if (recognition && micBtn.classList.contains('recording')) recognition.stop();
-
-        appendMessage('user', message);
-        userInput.value = '';
-        chatWrapper.querySelector('#scenario-spinner').classList.remove('hidden');
-        chatWrapper.querySelector('#scenario-error').textContent = '';
-        
-        history.push({ role: 'user', content: message });
-
-        try {
-            const response = await apiRequest('/api/academy/ai/chat', 'POST', { history });
-            
-            const aidaResponse = response.reply;
-            appendMessage('aida', aidaResponse, true); 
-            history.push({ role: 'assistant', content: aidaResponse });
-
-        } catch (err) {
-            chatWrapper.querySelector('#scenario-error').textContent = `Erreur: Conversation interrompue. ${err.message}`;
-            history.pop(); 
-        } finally {
-            chatWrapper.querySelector('#scenario-spinner').classList.add('hidden');
-        }
-    });
-
-    // La fonction 'appendMessage' est DÉFINIE À L'INTÉRIEUR de 'renderScenarioViewer'
-    const appendMessage = (sender, text, canListen = false) => {
-        const chatWindow = document.getElementById('scenario-chat-window'); 
-        if (!chatWindow) return;
-        
-        const msgDiv = document.createElement('div');
-        msgDiv.className = `chat-message ${sender === 'user' ? 'user' : 'aida'}`;
-        
-        const bubble = document.createElement('div');
-        bubble.className = sender === 'user' ? 'user-message' : 'aida-message';
-        
-        let displayedText = text.replace(/\n/g, '<br>');
-        let helpContent = ''; 
-        let isAidaMessage = sender === 'aida' && (text.includes('<PHONETIQUE>') || text.includes('<TRADUCTION>'));
-
-        if (isAidaMessage) {
-            const firstTagIndex = Math.min(
-                text.indexOf('<PHONETIQUE>') > -1 ? text.indexOf('<PHONETIQUE>') : Infinity,
-                text.indexOf('<TRADUCTION>') > -1 ? text.indexOf('<TRADUCTION>') : Infinity
-            );
-            const arabicPart = (firstTagIndex === Infinity) ? text.trim() : text.substring(0, firstTagIndex).trim();
-            
-            const phoneticMatch = text.match(/<PHONETIQUE>(.*?)<\/PHONETIQUE>/);
-            const traductionMatch = text.match(/<TRADUCTION>(.*?)<\/TRADUCTION>/);
-            
-            if (phoneticMatch) { helpContent += `<p class="help-phonetic">Phonétique: ${phoneticMatch[1].trim()}</p>`; }
-            if (traductionMatch) { helpContent += `<p class="help-translation">Traduction: ${traductionMatch[1].trim()}</p>`; }
-
-            displayedText = `<p class="arabic-text-only">${arabicPart}</p>`;
-        } else if (sender === 'user') {
-            displayedText = `<p>${text}</p>`;
-        }
-        
-        bubble.innerHTML = displayedText;
-        
-        msgDiv.style.alignSelf = sender === 'user' ? 'flex-end' : 'flex-start';
-        msgDiv.style.marginLeft = sender === 'user' ? 'auto' : 'unset';
-
-        if (sender === 'aida' && canListen) {
-            bubble.style.display = 'flex';
-            bubble.style.alignItems = 'center';
-            bubble.style.gap = '10px';
-            
-            const listenBtn = document.createElement('button');
-            listenBtn.className = 'btn-icon';
-            listenBtn.innerHTML = '<i class="fa-solid fa-volume-high"></i>';
-            listenBtn.title = 'Écouter la réponse (Arabe Littéraire)';
-            listenBtn.onclick = () => togglePlayback(text, listenBtn); 
-            bubble.appendChild(listenBtn);
-
-            if (helpContent) {
-                const helpBtn = document.createElement('button');
-                helpBtn.className = 'btn-icon toggle-help-btn';
-                helpBtn.innerHTML = '<i class="fa-solid fa-lightbulb"></i>';
-                helpBtn.title = 'Afficher l\'aide (Phonétique / Traduction)';
-                
-                helpBtn.onclick = () => {
-                    const helpDiv = msgDiv.querySelector('.aida-help-div');
-                    if (helpDiv) helpDiv.classList.toggle('hidden');
-                    helpBtn.classList.toggle('active');
-                };
-                
-                bubble.appendChild(helpBtn);
-                
-                const helpDiv = document.createElement('div');
-                helpDiv.className = 'aida-help-div hidden'; 
-                helpDiv.innerHTML = helpContent;
-                msgDiv.appendChild(helpDiv);
-            }
-        }
-
-        msgDiv.appendChild(bubble); 
-        chatWindow.appendChild(msgDiv);
-        chatWindow.scrollTop = chatWindow.scrollHeight;
-    };
-
-    // Prompt Initial du Personnage IA
-    appendMessage('aida', intro, true); 
-    history.push({ role: 'assistant', content: intro });
-}
-
 //
-// --- NOUVELLES FONCTIONS QUIZ ---
+// --- NOUVELLES FONCTIONS QUIZ (Placées à la fin) ---
 //
 
 /**
- * Affiche le Quiz
+ * NOUVEAU : Affiche le Quiz
  */
 function renderAcademyQuiz(container, activity) {
+    // Les données du quiz sont dans activity.data (ex: { questions: [...] })
     const quizData = activity.data; 
     
     if (!quizData || !quizData.questions) {
+        // C'est ici que l'erreur "Données de quiz non trouvées" se produit si series_data.js n'est pas à jour
         container.innerHTML = `<p class="error-message">Erreur : Données de quiz non trouvées.</p>`;
         return;
     }
@@ -1090,6 +826,7 @@ function renderAcademyQuiz(container, activity) {
         </div>
     `;
     
+    // Attache l'écouteur de soumission
     document.getElementById('academy-quiz-form').addEventListener('submit', (e) => {
         e.preventDefault();
         handleAcademyQuizSubmit(activity);
@@ -1097,7 +834,7 @@ function renderAcademyQuiz(container, activity) {
 }
 
 /**
- * Gère la soumission du Quiz
+ * NOUVEAU : Gère la soumission du Quiz
  */
 async function handleAcademyQuizSubmit(activity) {
     const form = document.getElementById('academy-quiz-form');
@@ -1152,12 +889,6 @@ async function handleAcademyQuizSubmit(activity) {
             }
         });
 
-        // ▼▼▼ MODIFIÉ : Ajout du déblocage de badge ▼▼▼
-        if (percentage >= 80) { // Débloque si 80% ou plus
-             unlockAchievement('quiz_1');
-        }
-        // ▲▲▲ FIN DE LA MODIFICATION ▲▲▲
-
         await saveAcademySession(activity.id, {
             type: 'quiz',
             score: percentage,
@@ -1175,6 +906,7 @@ async function handleAcademyQuizSubmit(activity) {
 
 
 // --- Fonctions de Rendu (Enseignant/Parent) ---
+// (Celles-ci restent inchangées, elles gèrent le suivi et la création de scénarios personnalisés)
 export async function renderAcademyTeacherDashboard() {
     const page = document.getElementById('teacher-dashboard-page');
     changePage('teacher-dashboard-page'); 
@@ -1342,6 +1074,7 @@ function renderScenarioViewer(container, scenarioOrData, isCustomScenario = fals
     }
     
     const chatWrapper = document.createElement('div');
+    // On applique la classe 'card' au wrapper pour le style
     chatWrapper.className = 'card';
     chatWrapper.style.margin = '0';
 
@@ -1452,6 +1185,7 @@ function renderScenarioViewer(container, scenarioOrData, isCustomScenario = fals
                 text.indexOf('<PHONETIQUE>') > -1 ? text.indexOf('<PHONETIQUE>') : Infinity,
                 text.indexOf('<TRADUCTION>') > -1 ? text.indexOf('<TRADUCTION>') : Infinity
             );
+            // S'il n'y a pas de balise, prend tout le texte
             const arabicPart = (firstTagIndex === Infinity) ? text.trim() : text.substring(0, firstTagIndex).trim();
             
             const phoneticMatch = text.match(/<PHONETIQUE>(.*?)<\/PHONETIQUE>/);
