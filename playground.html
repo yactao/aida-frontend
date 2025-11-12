@@ -217,7 +217,7 @@
             background-color: #333;
         }
 
-        /* ▼▼▼ NOUVEAU STYLE POUR LE TAG DE L'AGENT ▼▼▼ */
+        /* Style pour le Tag de l'Agent */
         .agent-label {
             font-size: 0.75rem;
             color: var(--primary-color);
@@ -228,7 +228,6 @@
         body.dark-mode .agent-label {
             color: var(--secondary-color);
         }
-        /* ▲▲▲ FIN DU NOUVEAU STYLE ▲▲▲ */
 
         .unauthorized-card {
             margin: 2rem auto; 
@@ -412,17 +411,14 @@
             currentMessages = chat.messages;
             chatWindow.innerHTML = '';
             
-            // ▼ MODIFIÉ : Lit l'agent depuis l'historique
             currentMessages.forEach(msg => {
                 if (msg.role === 'user') {
                     const userMsg = msg.content.startsWith('(Mode:') ? msg.content.substring(msg.content.indexOf(')') + 2) : msg.content;
-                    addMessage('user', userMsg, null, false); // Pas de nom d'agent pour l'utilisateur
+                    addMessage('user', userMsg, null, false);
                 } else if (msg.role === 'assistant') {
-                    // Passe le nom de l'agent sauvegardé, ou un fallback
                     addMessage('aida', msg.content, msg.agent || 'Aïda (Archivé)', false);
                 }
             });
-            // ▲ FIN DE LA MODIFICATION
             
             renderHistorySidebar();
             chatWindow.scrollTop = chatWindow.scrollHeight;
@@ -463,25 +459,21 @@
                 toggleSidebarBtn.classList.add('hidden');
                 contentWrapper.classList.add('sidebar-collapsed');
             }
-            // ▼ MODIFIÉ : Passe le tag par défaut et addToHistory=false
             addMessage('aida', welcomeMessage, 'Aïda-deep', false);
         }
 
         // --- 4. FONCTIONS DE L'INTERFACE ---
 
-        // ▼ MODIFIÉ : Accepte agentName comme 3ème paramètre
         function addMessage(sender, text, agentName = 'Aïda-deep', addToHistory = true) {
             const messageDiv = document.createElement('div');
             messageDiv.className = `chat-message ${sender}`;
 
-            // ▼ NOUVEAU : Ajout de l'étiquette de l'agent
             if (sender === 'aida') {
                 const agentLabel = document.createElement('small');
                 agentLabel.className = 'agent-label';
                 agentLabel.textContent = `Réponse de : ${agentName}`;
                 messageDiv.appendChild(agentLabel);
             }
-            // ▲ FIN DE L'AJOUT
 
             const bubble = document.createElement('div');
             bubble.className = 'message-bubble';
@@ -529,7 +521,6 @@
             const selectedMode = document.querySelector('input[name="mode"]:checked').value;
             const fullMessage = `(Mode: ${selectedMode}) ${message}`;
             
-            // ▼ MODIFIÉ : Passe 'null' pour agentName
             addMessage('user', message, null, true);
             userInput.value = '';
             showTypingIndicator();
@@ -540,7 +531,6 @@
             currentMessages.push({ role: 'user', content: fullMessage });
             
             try {
-                // APPEL À L'AGENT MANAGER
                 const response = await fetch(`${backendUrl}/ai/playground-chat`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -552,30 +542,23 @@
                     throw new Error(errData.error || "Erreur de communication avec l'API");
                 }
                 
-                // ▼ MODIFIÉ : Lit la nouvelle structure de réponse
                 const data = await response.json();
                 const aidaMessage = data.reply;
-                const agentName = data.agent || 'Aïda (Erreur)'; // Récupère le nom
+                const agentName = data.agent || 'Aïda (Erreur)';
 
-                // Sauvegarde la réponse ET l'agent dans l'historique
                 currentMessages.push({ role: 'assistant', content: aidaMessage, agent: agentName });
                 
                 removeTypingIndicator();
-                
-                // Affiche le message ET le nom de l'agent
                 addMessage('aida', aidaMessage, agentName, true);
-                
                 saveCurrentChat();
-                // ▲ FIN DE LA MODIFICATION
 
             } catch (error) {
                 removeTypingIndicator();
-                // ▼ MODIFIÉ : Passe 'Système' comme nom d'agent
                 addMessage('aida', `Désolé, une erreur est survenue: ${error.message}. Veuillez réessayer.`, 'Système', true);
             }
         }
         
-        // --- 5. FONCTIONS VOCALES (Inchangées) ---
+        // --- 5. FONCTIONS VOCALES ---
         function setupSpeechRecognition() {
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
             if (!SpeechRecognition) {
@@ -653,7 +636,7 @@
             }
         }
 
-        // --- 6. FONCTIONS DE LA MODALE (Inchangées) ---
+        // --- 6. FONCTIONS DE LA MODALE ---
         function populateVoiceList() {
              const googleVoices = [
                 { name: 'Français (France, Femme)', value: 'fr-FR-Wavenet-E', lang: 'fr-FR' },
@@ -693,7 +676,6 @@
         
         // --- 7. ÉCOUTEURS D'ÉVÉNEMENTS ---
         
-        // On n'attache les listeners que si l'utilisateur est connecté
         if (currentUser) {
             toggleSidebarBtn.addEventListener('click', () => {
                 contentWrapper.classList.toggle('sidebar-collapsed');
@@ -713,7 +695,7 @@
             micBtn.addEventListener('click', toggleListening);
             uploadBtn.addEventListener('click', () => docUpload.click());
             
-            // ▼ MODIFIÉ : Gestion de l'upload pour l'Agent Kimi
+            // ▼ MODIFIÉ : Correction du bug /api/api/ ▼
             docUpload.addEventListener('change', async (e) => {
                 const file = e.target.files[0];
                 if (!file) return;
@@ -733,18 +715,24 @@
                 const formData = new FormData();
                 formData.append('document', file);
                 try {
-                    // 1. Appel à l'extraction de texte
-                    const extractResponse = await fetch(`${backendUrl}/api/ai/playground-extract-text`, { method: 'POST', body: formData });
-                    const data = await extractResponse.json();
-                    if (!extractResponse.ok) throw new Error(data.error || 'Erreur du serveur');
+                    // 1. Appel à l'extraction de texte (URL CORRIGÉE)
+                    const extractResponse = await fetch(`${backendUrl}/ai/playground-extract-text`, { 
+                        method: 'POST', 
+                        body: formData 
+                    });
                     
-                    // 2. PRÉPARE LE MESSAGE POUR L'AGENT MANAGER (avec le mot-clé "kimi")
-                    // Ce message est ce que l'IA verra, pas l'utilisateur.
+                    const data = await extractResponse.json(); // Tente de parser le JSON
+                    
+                    if (!extractResponse.ok) {
+                        // Si le serveur renvoie une erreur (comme 404), 'data.error' existera
+                        throw new Error(data.error || `Erreur ${extractResponse.status} lors de l'extraction.`);
+                    }
+                    
+                    // 2. PRÉPARE LE MESSAGE POUR L'AGENT MANAGER
                     const message = `(Mode: upload) J'ai chargé le document "${file.name}". Voici son contenu : \n\n--- DÉBUT DU DOCUMENT ---\n${data.extractedText}\n--- FIN DU DOCUMENT ---\n\n Maintenant, Kimi, analyse ce document et fais-moi un résumé.`;
                     
                     currentMessages.push({ role: 'user', content: message });
                     
-                    // Informe l'utilisateur
                     removeTypingIndicator();
                     addMessage('aida', `J'ai lu le document "${file.name}" ! Je l'envoie à l'Agent Aïda-kimi pour analyse...`, 'Système', true);
                     showTypingIndicator();
@@ -770,7 +758,12 @@
 
                 } catch (err) {
                     removeTypingIndicator();
-                    addMessage('aida', `Désolé, je n'ai pas pu lire ce document. Erreur : ${err.message}`, 'Système', true);
+                    // L'erreur JSON.parse se produira ici si c'est un 404 HTML
+                    if (err.message.includes('unexpected character')) {
+                        addMessage('aida', `Désolé, une erreur de communication est survenue (404 Not Found). L'API d'extraction n'a pas été trouvée.`, 'Système', true);
+                    } else {
+                        addMessage('aida', `Désolé, je n'ai pas pu lire ce document. Erreur : ${err.message}`, 'Système', true);
+                    }
                 }
             });
             // ▲ FIN DE LA MODIFICATION
@@ -795,13 +788,12 @@
                     console.log(`Langue de reconnaissance vocale changée en : ${lang}`);
                 }
             });
-        } // Fin du 'if (currentUser)'
+        }
 
         // --- 8. INITIALISATION ---
         
         document.addEventListener('DOMContentLoaded', () => {
             if (!currentUser) {
-                // BLOCAGE DE L'ACCÈS
                 playgroundContainer.innerHTML = `
                     <div class="unauthorized-card">
                         <h2>Accès non autorisé</h2>
@@ -810,10 +802,9 @@
                     </div>
                 `;
                 trustModeBanner.classList.add('hidden');
-                return; // Stoppe l'exécution
+                return;
             }
     
-            // Exécution normale si l'utilisateur est connecté
             populateVoiceList();
             setupSpeechRecognition();
     
