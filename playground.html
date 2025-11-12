@@ -17,6 +17,8 @@
             --shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
             --warning-color: #F5A623;
             --border-color: #eee;
+            /* ▼▼▼ NOUVEAU : Couleur pour suppression ▼▼▼ */
+            --incorrect-color: #dc3545;
         }
         body.dark-mode {
             --primary-color: #58a6ff;
@@ -27,6 +29,7 @@
             --input-bg-color: #2C2C2C;
             --shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
             --border-color: #333;
+            --incorrect-color: #e57373;
         }
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: 'Poppins', sans-serif; background-color: var(--background-color); color: var(--text-color); transition: background-color 0.3s, color 0.3s; display: flex; flex-direction: column; height: 100vh; }
@@ -146,13 +149,13 @@
             padding: 0.75rem 1rem;
             margin-bottom: 0.5rem;
             border-radius: 8px;
-            cursor: pointer;
             font-size: 0.9em;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
             transition: background-color 0.2s;
             color: var(--text-color);
+            /* ▼▼▼ MODIFIÉ : Ajout de Flexbox ▼▼▼ */
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
         .history-list li:hover {
             background-color: #E9F2FF;
@@ -228,6 +231,58 @@
         body.dark-mode .agent-label {
             color: var(--secondary-color);
         }
+        
+        /* ▼▼▼ BLOC AJOUTÉ : Styles pour les actions de l'historique ▼▼▼ */
+        .history-title {
+            flex-grow: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            cursor: pointer;
+            /* Empêche le titre de rétrécir quand les boutons apparaissent */
+            min-width: 0;
+        }
+        .history-actions {
+            display: none; /* Caché par défaut */
+            flex-shrink: 0;
+        }
+        .history-list li:hover .history-actions {
+            display: flex; /* Apparaît au survol du 'li' */
+            gap: 4px;
+        }
+        .btn-icon-small {
+            background: none;
+            border: none;
+            color: var(--text-color);
+            cursor: pointer;
+            padding: 5px;
+            font-size: 0.8rem;
+            border-radius: 4px;
+            opacity: 0.7;
+        }
+        .btn-icon-small:hover {
+            opacity: 1;
+            background-color: rgba(0,0,0,0.1);
+        }
+        .btn-icon-small.delete-btn:hover {
+            color: var(--incorrect-color);
+        }
+        body.dark-mode .btn-icon-small { color: var(--text-color); }
+        body.dark-mode .btn-icon-small:hover { background-color: rgba(255,255,255,0.1); }
+        
+        /* Champ pour renommer */
+        .history-title-input {
+            flex-grow: 1;
+            padding: 4px 6px;
+            font-size: 0.9em;
+            background-color: var(--input-bg-color);
+            color: var(--text-color);
+            border: 1px solid var(--primary-color);
+            border-radius: 4px;
+            outline: none;
+        }
+        /* ▲▲▲ FIN DU BLOC AJOUTÉ ▲▲▲ */
+
 
         .unauthorized-card {
             margin: 2rem auto; 
@@ -310,6 +365,7 @@
         </div>
     </div>
 
+
     <script>
         // --- 1. SÉLECTEURS DOM ---
         const backendUrl = 'https://aida-backend-bqd0fnd2a3c7dadf.francecentral-01.azurewebsites.net/api';
@@ -337,7 +393,7 @@
         const contentWrapper = document.querySelector('.playground-content-wrapper');
         const playgroundContainer = document.querySelector('.playground-container');
 
-        // --- 2. ÉTAT DE L'APPLICATION (Avec Clé Dynamique) ---
+        // --- 2. ÉTAT DE L'APPLICATION ---
         
         let STORAGE_KEY = 'aidaPlaygroundHistory_default';
         let currentUser = null;
@@ -360,7 +416,7 @@
         let allChatsHistory = [];
         let currentChatId = null;
         let currentMessages = [];
-        let activeAgent = 'deepseek'; // ▼▼▼ NOUVEAU : Agent de suivi d'état ▼▼▼
+        let activeAgent = 'deepseek';
 
         let recognition;
         let currentAudio = null;
@@ -368,42 +424,52 @@
         
         // --- 3. FONCTIONS DE L'HISTORIQUE ---
 
-        function uuidv4() {
-            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-                var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
-                return v.toString(16);
-            });
-        }
-
-        function loadHistoryFromStorage() {
-            const storedHistory = localStorage.getItem(STORAGE_KEY);
-            allChatsHistory = storedHistory ? JSON.parse(storedHistory) : [];
-        }
-
-        function saveHistoryToStorage() {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(allChatsHistory));
-        }
-
+        function uuidv4() { /* ... (inchangé) ... */ }
+        function loadHistoryFromStorage() { /* ... (inchangé) ... */ }
+        function saveHistoryToStorage() { /* ... (inchangé) ... */ }
+        
+        // ▼▼▼ MODIFIÉ : renderHistorySidebar ▼▼▼
+        // Ajoute les boutons et le span pour le titre
         function renderHistorySidebar() {
             historyList.innerHTML = '';
             if (allChatsHistory.length === 0) {
                 historyList.innerHTML = '<li style="color: #888; text-align: center; font-style: italic; cursor: default; user-select: none;">Aucun historique</li>';
                 return;
             }
+            
             allChatsHistory.sort((a, b) => b.timestamp - a.timestamp);
+
             allChatsHistory.forEach(chat => {
                 const li = document.createElement('li');
-                li.textContent = chat.title;
                 li.dataset.chatId = chat.id;
                 if (chat.id === currentChatId) {
                     li.classList.add('active');
                 }
-                li.addEventListener('click', () => {
-                    loadChat(chat.id);
-                });
+                
+                // Crée le titre (cliquable pour charger)
+                const titleSpan = document.createElement('span');
+                titleSpan.className = 'history-title';
+                titleSpan.textContent = chat.title;
+                titleSpan.dataset.action = "load";
+                li.appendChild(titleSpan);
+
+                // Crée la div pour les actions (cachée par défaut)
+                const actionsDiv = document.createElement('div');
+                actionsDiv.className = 'history-actions';
+                actionsDiv.innerHTML = `
+                    <button class="btn-icon-small" data-action="rename" title="Renommer">
+                        <i class="fa-solid fa-pencil" style="pointer-events: none;"></i>
+                    </button>
+                    <button class="btn-icon-small delete-btn" data-action="delete" title="Supprimer">
+                        <i class="fa-solid fa-trash-can" style="pointer-events: none;"></i>
+                    </button>
+                `;
+                li.appendChild(actionsDiv);
+                
                 historyList.appendChild(li);
             });
         }
+        // ▲▲▲ FIN DE LA MODIFICATION ▲▲▲
 
         function loadChat(chatId) {
             const chat = allChatsHistory.find(c => c.id === chatId);
@@ -412,50 +478,31 @@
             currentMessages = chat.messages;
             chatWindow.innerHTML = '';
             
-            // ▼ MODIFIÉ : Lit l'agent depuis l'historique
             activeAgent = 'deepseek'; // Par défaut
             currentMessages.forEach(msg => {
                 if (msg.role === 'user') {
                     const userMsg = msg.content.startsWith('(Mode:') ? msg.content.substring(msg.content.indexOf(')') + 2) : msg.content;
                     addMessage('user', userMsg, null, false);
-                    if (msg.content.toLowerCase().includes('kimi')) activeAgent = 'kimi'; // Ré-active Kimi si on charge un historique
+                    if (msg.content.toLowerCase().includes('kimi') || msg.content.toLowerCase().includes('analyse ce document')) {
+                        activeAgent = 'kimi';
+                    }
                 } else if (msg.role === 'assistant') {
                     addMessage('aida', msg.content, msg.agent || 'Aïda (Archivé)', false);
                 }
             });
-            // ▲ FIN DE LA MODIFICATION
             
-            renderHistorySidebar();
+            renderHistorySidebar(); // Met à jour la classe 'active'
             chatWindow.scrollTop = chatWindow.scrollHeight;
         }
 
-        function saveCurrentChat() {
-            const userMessage = currentMessages.find(m => m.role === 'user');
-            if (!userMessage) return;
-            const title = userMessage.content.substring(userMessage.content.indexOf(')') + 2, 60) + '...';
-            const existingChat = allChatsHistory.find(c => c.id === currentChatId);
-            if (existingChat) {
-                existingChat.messages = currentMessages;
-                existingChat.timestamp = Date.now();
-                existingChat.title = title;
-            } else {
-                allChatsHistory.push({
-                    id: currentChatId,
-                    title: title,
-                    messages: currentMessages,
-                    timestamp: Date.now()
-                });
-            }
-            saveHistoryToStorage();
-            renderHistorySidebar();
-        }
-
+        function saveCurrentChat() { /* ... (inchangé) ... */ }
+        
         function startNewChat(isTrustMode = false, welcomeMessage = "Bonjour ! Je suis AIDA. Comment puis-je t'aider aujourd'hui ?") {
             currentChatId = null;
             currentMessages = [];
             chatWindow.innerHTML = '';
             userInput.value = '';
-            activeAgent = 'deepseek'; // ▼▼▼ MODIFIÉ : Réinitialise l'agent ▼▼▼
+            activeAgent = 'deepseek'; // Réinitialise l'agent
             
             if (!isTrustMode) {
                 renderHistorySidebar();
@@ -502,23 +549,8 @@
             chatWindow.scrollTop = chatWindow.scrollHeight;
         }
 
-        function showTypingIndicator() {
-            const typingDiv = document.createElement('div');
-            typingDiv.id = 'typing-indicator';
-            typingDiv.className = 'chat-message aida';
-            const bubble = document.createElement('div');
-            bubble.className = 'message-bubble';
-            bubble.innerHTML = `<div class="spinner-dots"><span></span><span></span><span></span></div>`;
-            typingDiv.appendChild(bubble);
-            chatWindow.appendChild(typingDiv);
-            chatWindow.scrollTop = chatWindow.scrollHeight;
-        }
-        function removeTypingIndicator() {
-            const indicator = document.getElementById('typing-indicator');
-            if (indicator) {
-                indicator.remove();
-            }
-        }
+        function showTypingIndicator() { /* ... (inchangé) ... */ }
+        function removeTypingIndicator() { /* ... (inchangé) ... */ }
 
         async function sendMessage() {
             const message = userInput.value.trim();
@@ -537,16 +569,14 @@
             currentMessages.push({ role: 'user', content: fullMessage });
             
             try {
-                // ▼▼▼ MODIFIÉ : Envoie l'agent "préféré" au backend ▼▼▼
                 const response = await fetch(`${backendUrl}/ai/playground-chat`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ 
                         history: currentMessages,
-                        preferredAgent: activeAgent // Envoie l'agent "verrouillé"
+                        preferredAgent: activeAgent
                     }) 
                 });
-                // ▲▲▲ FIN DE LA MODIFICATION ▲▲▲
                 
                 if (!response.ok) {
                     const errData = await response.json();
@@ -570,120 +600,29 @@
         }
         
         // --- 5. FONCTIONS VOCALES ---
-        function setupSpeechRecognition() {
-            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-            if (!SpeechRecognition) {
-                micBtn.disabled = true;
-                micBtn.title = "La reconnaissance vocale n'est pas supportée par votre navigateur.";
-                return;
-            }
-            recognition = new SpeechRecognition();
-            const selectedOption = voiceSelect.options[voiceSelect.selectedIndex];
-            recognition.lang = selectedOption ? selectedOption.dataset.lang : 'fr-FR';
-            recognition.interimResults = false;
-            recognition.onresult = (event) => {
-                const transcript = event.results[0][0].transcript;
-                userInput.value = transcript;
-                sendMessage();
-            };
-            recognition.onstart = () => micBtn.classList.add('recording');
-            recognition.onend = () => micBtn.classList.remove('recording');
-            recognition.onerror = (event) => {
-                console.error("Erreur de reconnaissance vocale:", event.error);
-                micBtn.classList.remove('recording');
-            };
-        }
-        function toggleListening() {
-            if (micBtn.classList.contains('recording')) {
-                recognition.stop();
-            } else {
-                recognition.start();
-            }
-        }
-        async function togglePlayback(text, buttonEl) {
-            if (currentListenBtn === buttonEl) {
-                if(currentAudio) currentAudio.pause();
-                buttonEl.innerHTML = '<i class="fa-solid fa-volume-high"></i>';
-                buttonEl.classList.remove('active-speaker');
-                currentAudio = null;
-                currentListenBtn = null;
-                return;
-            }
-            if (currentAudio) {
-                currentAudio.pause();
-                currentListenBtn.innerHTML = '<i class="fa-solid fa-volume-high"></i>';
-                currentListenBtn.classList.remove('active-speaker');
-            }
-            currentListenBtn = buttonEl;
-            buttonEl.innerHTML = `<div class="spinner-dots" style="transform: scale(0.6);"><span></span><span></span><span></span></div>`;
-            try {
-                const rate = localStorage.getItem('aida-rate') || 1;
-                const pitch = localStorage.getItem('aida-pitch') || 1;
-                const voice = localStorage.getItem('aida-voice-name');
-                const response = await fetch(`${backendUrl}/ai/synthesize-speech`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ text, voice, rate, pitch })
-                });
-                if (!response.ok) { throw new Error(`Erreur du serveur vocal (status: ${response.status}).`); }
-                const data = await response.json();
-                const audioBlob = await (await fetch(`data:audio/mp3;base64,${data.audioContent}`)).blob();
-                const audioUrl = URL.createObjectURL(audioBlob);
-                currentAudio = new Audio(audioUrl);
-                currentAudio.play();
-                buttonEl.innerHTML = '<i class="fa-solid fa-stop"></i>';
-                buttonEl.classList.add('active-speaker');
-                currentAudio.onended = () => {
-                    buttonEl.innerHTML = '<i class="fa-solid fa-volume-high"></i>';
-                    buttonEl.classList.remove('active-speaker');
-                    currentAudio = null;
-                    currentListenBtn = null;
-                };
-            } catch (error) {
-                console.error("Erreur lors de la lecture de l'audio neuronal:", error);
-                alert(`Impossible de jouer la voix d'AIDA : ${error.message}`);
-                buttonEl.innerHTML = '<i class="fa-solid fa-volume-high"></i>';
-                currentListenBtn = null;
-            }
-        }
+        function setupSpeechRecognition() { /* ... (inchangé) ... */ }
+        function toggleListening() { /* ... (inchangé) ... */ }
+        async function togglePlayback(text, buttonEl) { /* ... (inchangé) ... */ }
 
         // --- 6. FONCTIONS DE LA MODALE ---
-        function populateVoiceList() {
-             const googleVoices = [
-                { name: 'Français (France, Femme)', value: 'fr-FR-Wavenet-E', lang: 'fr-FR' },
-                { name: 'Français (France, Homme)', value: 'fr-FR-Wavenet-D', lang: 'fr-FR' },
-                { name: 'Anglais (US, Femme)', value: 'en-US-Wavenet-F', lang: 'en-US' },
-                { name: 'Anglais (US, Homme)', value: 'en-US-Wavenet-D', lang: 'en-US' },
-                { name: 'Arabe (Femme)', value: 'ar-XA-Wavenet-A', lang: 'ar-SA' },
-                { name: 'Arabe (Homme)', value: 'ar-XA-Wavenet-B', lang: 'ar-SA' },
-            ];
-            voiceSelect.innerHTML = '';
-            googleVoices.forEach(voice => {
-                const option = document.createElement('option');
-                option.textContent = voice.name;
-                option.value = voice.value;
-                option.dataset.lang = voice.lang;
-                voiceSelect.appendChild(option);
-            });
-            const savedVoiceName = localStorage.getItem('aida-voice-name');
-            if (savedVoiceName) {
-                voiceSelect.value = savedVoiceName;
-            } else {
-                voiceSelect.value = 'fr-FR-Wavenet-E';
-                localStorage.setItem('aida-voice-name', 'fr-FR-Wavenet-E');
-            }
-        }
-        function openSettingsModal() {
-            rateSlider.value = localStorage.getItem('aida-rate') || 1;
-            pitchSlider.value = localStorage.getItem('aida-pitch') || 1;
-            rateValue.textContent = rateSlider.value;
-            pitchValue.textContent = pitchSlider.value;
-            voiceSelect.value = localStorage.getItem('aida-voice-name') || 'fr-FR-Wavenet-E';
-            voiceSettingsModal.classList.remove('hidden');
-        }
-        function closeSettingsModal() {
-            voiceSettingsModal.classList.add('hidden');
-        }
+        function populateVoiceList() { /* ... (inchangé) ... */ }
+        function openSettingsModal() { /* ... (inchangé) ... */ }
+        function closeSettingsModal() { /* ... (inchangé) ... */ }
+
+        // --- (Copier-coller des fonctions inchangées pour être complet) ---
+        function uuidv4() { return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) { var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8); return v.toString(16); }); }
+        function loadHistoryFromStorage() { const storedHistory = localStorage.getItem(STORAGE_KEY); allChatsHistory = storedHistory ? JSON.parse(storedHistory) : []; }
+        function saveHistoryToStorage() { localStorage.setItem(STORAGE_KEY, JSON.stringify(allChatsHistory)); }
+        function showTypingIndicator() { const typingDiv = document.createElement('div'); typingDiv.id = 'typing-indicator'; typingDiv.className = 'chat-message aida'; const bubble = document.createElement('div'); bubble.className = 'message-bubble'; bubble.innerHTML = `<div class="spinner-dots"><span></span><span></span><span></span></div>`; chatWindow.appendChild(typingDiv); chatWindow.scrollTop = chatWindow.scrollHeight; }
+        function removeTypingIndicator() { const indicator = document.getElementById('typing-indicator'); if (indicator) { indicator.remove(); } }
+        function setupSpeechRecognition(micBtn, userInput, chatForm) { const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition; if (!SpeechRecognition) { micBtn.disabled = true; micBtn.title = "La reconnaissance vocale n'est pas supportée par votre navigateur."; return; } recognition = new SpeechRecognition(); const selectedOption = voiceSelect.options[voiceSelect.selectedIndex]; recognition.lang = selectedOption ? selectedOption.dataset.lang : 'fr-FR'; recognition.interimResults = false; recognition.onresult = (event) => { const transcript = event.results[0][0].transcript; userInput.value = transcript; sendMessage(); }; recognition.onstart = () => micBtn.classList.add('recording'); recognition.onend = () => micBtn.classList.remove('recording'); recognition.onerror = (event) => { console.error("Erreur de reconnaissance vocale:", event.error); micBtn.classList.remove('recording'); }; }
+        function toggleListening() { if (micBtn.classList.contains('recording')) { recognition.stop(); } else { recognition.start(); } }
+        async function togglePlayback(text, buttonEl) { if (currentListenBtn === buttonEl) { if(currentAudio) currentAudio.pause(); buttonEl.innerHTML = '<i class="fa-solid fa-volume-high"></i>'; buttonEl.classList.remove('active-speaker'); currentAudio = null; currentListenBtn = null; return; } if (currentAudio) { currentAudio.pause(); currentListenBtn.innerHTML = '<i class="fa-solid fa-volume-high"></i>'; currentListenBtn.classList.remove('active-speaker'); } currentListenBtn = buttonEl; buttonEl.innerHTML = `<div class="spinner-dots" style="transform: scale(0.6);"><span></span><span></span><span></span></div>`; try { const rate = localStorage.getItem('aida-rate') || 1; const pitch = localStorage.getItem('aida-pitch') || 1; const voice = localStorage.getItem('aida-voice-name'); const response = await fetch(`${backendUrl}/ai/synthesize-speech`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text, voice, rate, pitch }) }); if (!response.ok) { throw new Error(`Erreur du serveur vocal (status: ${response.status}).`); } const data = await response.json(); const audioBlob = await (await fetch(`data:audio/mp3;base64,${data.audioContent}`)).blob(); const audioUrl = URL.createObjectURL(audioBlob); currentAudio = new Audio(audioUrl); currentAudio.play(); buttonEl.innerHTML = '<i class="fa-solid fa-stop"></i>'; buttonEl.classList.add('active-speaker'); currentAudio.onended = () => { buttonEl.innerHTML = '<i class="fa-solid fa-volume-high"></i>'; buttonEl.classList.remove('active-speaker'); currentAudio = null; currentListenBtn = null; }; } catch (error) { console.error("Erreur lors de la lecture de l'audio neuronal:", error); alert(`Impossible de jouer la voix d'AIDA : ${error.message}`); buttonEl.innerHTML = '<i class="fa-solid fa-volume-high"></i>'; currentListenBtn = null; } }
+        function populateVoiceList() { const googleVoices = [ { name: 'Français (France, Femme)', value: 'fr-FR-Wavenet-E', lang: 'fr-FR' }, { name: 'Français (France, Homme)', value: 'fr-FR-Wavenet-D', lang: 'fr-FR' }, { name: 'Anglais (US, Femme)', value: 'en-US-Wavenet-F', lang: 'en-US' }, { name: 'Anglais (US, Homme)', value: 'en-US-Wavenet-D', lang: 'en-US' }, { name: 'Arabe (Femme)', value: 'ar-XA-Wavenet-A', lang: 'ar-SA' }, { name: 'Arabe (Homme)', value: 'ar-XA-Wavenet-B', lang: 'ar-SA' }, ]; voiceSelect.innerHTML = ''; googleVoices.forEach(voice => { const option = document.createElement('option'); option.textContent = voice.name; option.value = voice.value; option.dataset.lang = voice.lang; voiceSelect.appendChild(option); }); const savedVoiceName = localStorage.getItem('aida-voice-name'); if (savedVoiceName) { voiceSelect.value = savedVoiceName; } else { voiceSelect.value = 'fr-FR-Wavenet-E'; localStorage.setItem('aida-voice-name', 'fr-FR-Wavenet-E'); } }
+        function openSettingsModal() { rateSlider.value = localStorage.getItem('aida-rate') || 1; pitchSlider.value = localStorage.getItem('aida-pitch') || 1; rateValue.textContent = rateSlider.value; pitchValue.textContent = pitchSlider.value; voiceSelect.value = localStorage.getItem('aida-voice-name') || 'fr-FR-Wavenet-E'; voiceSettingsModal.classList.remove('hidden'); }
+        function closeSettingsModal() { voiceSettingsModal.classList.add('hidden'); }
+        // --- (Fin du copier-coller) ---
+
         
         // --- 7. ÉCOUTEURS D'ÉVÉNEMENTS ---
         
@@ -725,7 +664,6 @@
                 const formData = new FormData();
                 formData.append('document', file);
                 try {
-                    // 1. Appel à l'extraction de texte
                     const extractResponse = await fetch(`${backendUrl}/ai/playground-extract-text`, { 
                         method: 'POST', 
                         body: formData 
@@ -737,10 +675,8 @@
                         throw new Error(data.error || `Erreur ${extractResponse.status} lors de l'extraction.`);
                     }
                     
-                    // ▼▼▼ MODIFIÉ : Verrouille l'agent sur Kimi ▼▼▼
                     activeAgent = 'kimi';
                     
-                    // 2. PRÉPARE LE MESSAGE POUR L'AGENT MANAGER
                     const message = `(Mode: upload) J'ai chargé le document "${file.name}". Voici son contenu : \n\n--- DÉBUT DU DOCUMENT ---\n${data.extractedText}\n--- FIN DU DOCUMENT ---\n\n Maintenant, Kimi, analyse ce document et fais-moi un résumé.`;
                     
                     currentMessages.push({ role: 'user', content: message });
@@ -749,20 +685,18 @@
                     addMessage('aida', `J'ai lu le document "${file.name}" ! Je l'envoie à l'Agent Aïda-kimi pour analyse...`, 'Système', true);
                     showTypingIndicator();
 
-                    // 3. Appel à l'Agent Manager (qui va router vers Kimi)
                     const chatResponse = await fetch(`${backendUrl}/ai/playground-chat`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ 
                             history: currentMessages,
-                            preferredAgent: activeAgent // Envoie 'kimi'
+                            preferredAgent: activeAgent
                         }) 
                     });
                     if (!chatResponse.ok) throw new Error((await chatResponse.json()).error);
                     
                     const chatData = await chatResponse.json();
                     
-                    // 4. Affiche la réponse de Kimi
                     const aidaMessage = chatData.reply;
                     const agentName = chatData.agent || 'Aïda-kimi (Erreur)';
                     
@@ -801,7 +735,29 @@
                     console.log(`Langue de reconnaissance vocale changée en : ${lang}`);
                 }
             });
-        }
+
+            // ▼▼▼ NOUVEAU : Écouteur global pour l'historique ▼▼▼
+            historyList.addEventListener('click', (e) => {
+                const target = e.target;
+                const action = target.dataset.action || target.closest('button, .history-title')?.dataset.action;
+                const li = target.closest('li');
+                if (!li) return;
+                
+                const chatId = li.dataset.chatId;
+
+                if (action === 'load') {
+                    loadChat(chatId);
+                } else if (action === 'rename') {
+                    e.stopPropagation();
+                    handleRenameChat(chatId, li);
+                } else if (action === 'delete') {
+                    e.stopPropagation();
+                    handleDeleteChat(chatId);
+                }
+            });
+            // ▲▲▲ FIN DE L'AJOUT ▲▲▲
+
+        } // Fin du 'if (currentUser)'
 
         // --- 8. INITIALISATION ---
         
@@ -844,6 +800,86 @@
                 startNewChat(false, "Bonjour ! Je suis AIDA. Comment puis-je t'aider aujourd'hui ?");
             }
         });
+
+        // ▼▼▼ NOUVEAU : Fonctions de gestion de l'historique ▼▼▼
+
+        /**
+         * Gère la suppression d'une conversation.
+         */
+        function handleDeleteChat(chatId) {
+            const chat = allChatsHistory.find(c => c.id === chatId);
+            if (!chat) return;
+
+            // Utilise la confirmation simple du navigateur
+            if (!confirm(`Êtes-vous sûr de vouloir supprimer la conversation : "${chat.title}" ?`)) {
+                return;
+            }
+
+            allChatsHistory = allChatsHistory.filter(c => c.id !== chatId);
+            saveHistoryToStorage();
+            renderHistorySidebar();
+
+            // Si on supprime le chat actif, on en démarre un nouveau
+            if (currentChatId === chatId) {
+                startNewChat();
+            }
+        }
+
+        /**
+         * Gère le renommage d'une conversation.
+         */
+        function handleRenameChat(chatId, liElement) {
+            const titleSpan = liElement.querySelector('.history-title');
+            if (!titleSpan) return; // Déjà en mode renommage
+
+            const currentTitle = titleSpan.textContent;
+            
+            // Crée un champ de saisie
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.className = 'history-title-input';
+            input.value = currentTitle;
+
+            // Remplace le span par l'input
+            liElement.replaceChild(input, titleSpan);
+            input.focus();
+            input.select();
+
+            const save = () => {
+                const newTitle = input.value.trim();
+                
+                if (newTitle && newTitle !== currentTitle) {
+                    // Sauvegarde le nouveau titre
+                    const chat = allChatsHistory.find(c => c.id === chatId);
+                    if (chat) {
+                        chat.title = newTitle;
+                        saveHistoryToStorage();
+                    }
+                    titleSpan.textContent = newTitle;
+                } else {
+                    // Restaure l'ancien titre si le champ est vide
+                    titleSpan.textContent = currentTitle;
+                }
+                
+                // Remet le span en place
+                if (liElement.contains(input)) {
+                    liElement.replaceChild(titleSpan, input);
+                }
+            };
+
+            // Gère la sauvegarde
+            input.addEventListener('blur', save);
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    input.blur(); // Sauvegarde
+                } else if (e.key === 'Escape') {
+                    // Annule : remet l'ancien titre et le span
+                    titleSpan.textContent = currentTitle;
+                    liElement.replaceChild(titleSpan, input);
+                }
+            });
+        }
+        // ▲▲▲ FIN DES NOUVELLES FONCTIONS ▲▲▲
     </script>
 </body>
 </html>
