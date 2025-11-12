@@ -1,8 +1,10 @@
 // src/aida_academy.js - Logique complète pour l'Académie (Mode Série Hybride)
 
 import { changePage, spinnerHtml, apiRequest, renderModal, getModalTemplate } from './utils.js';
+// NOUVEAU : Importe les données de la série depuis le fichier séparé
 import { courseData, memorizationData } from './series_data.js';
 
+// ▼▼▼ NOUVEAU : Dictionnaire des Badges ▼▼▼
 /**
  * Dictionnaire global des badges.
  * L'ID (ex: 'quiz_1') doit correspondre à celui utilisé dans les appels API.
@@ -13,6 +15,8 @@ const allBadges = {
     'streak_3': { title: 'Sérieux', icon: 'fa-solid fa-fire', description: '3 jours de connexion consécutifs.' }
     // Ajoutez-en d'autres ici...
 };
+// ▲▲▲ FIN DE L'AJOUT ▲▲▲
+
 
 // --- Variables d'état vocal pour le module ---
 let recognition;
@@ -22,11 +26,16 @@ let narratorAudio = null; // Audio distinct pour le narrateur
 
 // --- Fonctions de Configuration et d'Aide ---
 
+// MODIFIÉ : Accepte un objet 'scenarioData' (plus léger) au lieu d'un 'scenario' complet
 function getAcademySystemPrompt(scenarioData) {
+    
+    // NOTE: Le mode Répétiteur n'est pas dans la série principale,
+    // mais pourrait être dans un scénario personnalisé.
     const isRepeaterMode = scenarioData.id === 'scen-0'; 
 
     return `Tu es un tuteur expert en immersion linguistique. Ton rôle actuel est celui de "${scenarioData.characterName}" dans le contexte suivant : "${scenarioData.context}". La conversation doit se dérouler **UNIQUEMENT en Arabe Littéraire (Al-Fusha)**. 
     
+    // Instructions spécifiques au mode Répétiteur
     ${isRepeaterMode ? 
         "TON OBJECTIF PRINCIPAL est de fournir une phrase ou un mot, puis d'attendre que l'élève le **répète le plus fidèlement possible**. Tu dois féliciter pour la réussite ('ممتاز!') et encourager pour l'échec ('حاول مجدداً.'). Passe à la phrase cible suivante seulement après la réussite." 
         : 
@@ -50,6 +59,7 @@ function getAcademySystemPrompt(scenarioData) {
 
 // --- 2. Fonctions Vocales (Push-to-Talk et TTS) ---
 
+// NOUVEAU : Fonction TTS dédiée au Narrateur (voix française)
 async function playNarratorAudio(text, buttonEl) {
     if (narratorAudio && !narratorAudio.paused) {
         narratorAudio.pause();
@@ -61,11 +71,12 @@ async function playNarratorAudio(text, buttonEl) {
     buttonEl.innerHTML = `<div class="spinner-dots" style="transform: scale(0.6);"><span></span><span></span><span></span></div>`;
     
     try {
+        // Utilise une voix française pour le narrateur "Fahim"
         const response = await apiRequest('/api/ai/synthesize-speech', 'POST', { 
             text: text, 
-            voice: 'fr-FR-Wavenet-E', 
-            rate: 0.95,
-            pitch: -2.0
+            voice: 'fr-FR-Wavenet-E', // Voix de Conteur (Homme)
+            rate: 0.95, // Légèrement plus lent pour un style conteur
+            pitch: -2.0 // Voix légèrement plus grave
         });
         
         const audioBlob = await (await fetch(`data:audio/mp3;base64,${response.audioContent}`)).blob(); 
@@ -87,6 +98,7 @@ async function playNarratorAudio(text, buttonEl) {
     }
 }
 
+// Fonctions vocales inchangées
 function setupSpeechRecognition(micBtn, userInput, chatForm) {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
@@ -195,23 +207,27 @@ async function togglePlayback(text, buttonEl) {
 // --- 3. Logique de Bilan, Sauvegarde et Gamification ---
 
 /**
- * Appelle l'API pour débloquer un badge et affiche une notification.
+ * NOUVEAU : Appelle l'API pour débloquer un badge et affiche une notification.
  * @param {string} badgeId - L'ID du badge à débloquer (ex: 'quiz_1').
  */
 async function unlockAchievement(badgeId) {
     try {
+        // Vérifie localement si l'utilisateur a déjà le badge pour éviter un appel API inutile
         if (window.currentUser.achievements && window.currentUser.achievements.includes(badgeId)) {
-            return;
+            return; // Déjà débloqué
         }
         
+        // Appelle l'API pour informer le backend
         const { user } = await apiRequest('/api/academy/achievement/unlock', 'POST', {
             userId: window.currentUser.id,
             badgeId: badgeId
         });
 
+        // Met à jour l'objet utilisateur global et le localStorage
         window.currentUser = user;
         localStorage.setItem('currentUser', JSON.stringify(user));
         
+        // Affiche une notification "Toast"
         const badge = allBadges[badgeId];
         if (!badge) return;
 
@@ -241,7 +257,7 @@ async function unlockAchievement(badgeId) {
  * NOUVEAU : Fonction de sauvegarde de session (Quiz, etc.)
  * Appelle l'API pour sauvegarder la progression d'une activité.
  */
-async function saveAcademySession(activityId, reportData) {
+async function saveAcademySession(activityId, reportData, fullHistory = []) {
     if (!window.currentUser || !window.currentUser.id) {
         console.error("Erreur de sauvegarde : Utilisateur non connecté.");
         return;
@@ -252,14 +268,13 @@ async function saveAcademySession(activityId, reportData) {
             userId: window.currentUser.id,
             scenarioId: activityId, // L'ID de l'activité (ex: "ep1-quiz")
             report: reportData,
-            fullHistory: [] // Pas d'historique de chat pour un quiz
+            fullHistory: fullHistory // Sauvegarde l'historique du chat si fourni
         });
         
         console.log(`Session ${activityId} sauvegardée avec succès.`);
 
     } catch (err) {
         console.error("Erreur API lors de la sauvegarde de la session:", err);
-        // Affiche une alerte si la sauvegarde échoue
         alert(`Erreur critique : Votre progression n'a pas pu être sauvegardée. ${err.message}`);
     }
 }
@@ -299,9 +314,9 @@ async function endScenarioSession(scenarioData, history, scenarioId = 'custom') 
             report = { summaryTitle: "Bilan Indisponible (Erreur Critique)", completionStatus: "Erreur", feedback: [`L'IA n'a pas pu générer le rapport structuré. Détails: ${e.message}`], newVocabulary: [] };
         }
         
+        // MODIFIÉ : Appelle la fonction de sauvegarde avec l'historique
         try {
-             // Appelle la NOUVELLE fonction de sauvegarde
-             await saveAcademySession(scenarioId, report, history);
+             await saveAcademySession(scenarioId, report, history); // Ajout de 'history'
         } catch (e) {
             console.warn("Erreur lors de la sauvegarde du bilan (Vérifiez server.js):", e.message);
         }
@@ -309,6 +324,10 @@ async function endScenarioSession(scenarioData, history, scenarioId = 'custom') 
         if (report.completionStatus && report.completionStatus.toLowerCase() === 'completed') {
             unlockAchievement('dialogue_1');
         }
+
+        // ▼▼▼ CORRECTION : Appelle la fonction manquante ▼▼▼
+        updateActivityStatusInSidebar(scenarioId, true);
+        // ▲▲▲ FIN DE LA CORRECTION ▲▲▲
 
         showSessionReportModal(report);
 
@@ -742,7 +761,7 @@ function renderAcademyCoursePlayer(selectedActivityId = null) {
     loadActivityContent(selectedActivityId);
 }
 
-
+// CORRIGÉ : Logique de gestion du narrateur
 async function loadActivityContent(activityId) {
     const contentArea = document.getElementById('activity-content-area');
     const narratorBox = document.getElementById('narrator-box');
@@ -790,13 +809,15 @@ async function loadActivityContent(activityId) {
             contentArea.innerHTML = `<p class="error-message">Type d'activité non reconnu.</p>`;
     }
 
+    // Gérer le Narrateur
     if (isDialogue) {
-        narratorBox.classList.add('hidden');
+        narratorBox.classList.add('hidden'); // CACHE la boîte
     } else {
+        // CORRIGÉ : Utilise activity.description si elle existe, sinon le narrateur de l'épisode
         const narratorPrompt = activity.description || episode.narratorIntro;
         narratorText.textContent = narratorPrompt;
         narratorBtn.onclick = () => playNarratorAudio(narratorPrompt, narratorBtn);
-        narratorBox.classList.remove('hidden');
+        narratorBox.classList.remove('hidden'); // MONTRE la boîte
     }
 }
 
@@ -807,6 +828,7 @@ async function loadActivityContent(activityId) {
  * @param {boolean} [completed=false] - Mettre à 'true' pour ajouter la coche.
  */
 function updateActivityStatusInSidebar(activityId, completed = false) {
+    // Trouve l'item dans la sidebar (il peut ne pas être visible si le player n'est pas ouvert)
     const activityItem = document.querySelector(`.activity-item[data-activity-id="${activityId}"]`);
     if (!activityItem) return;
 
@@ -816,17 +838,18 @@ function updateActivityStatusInSidebar(activityId, completed = false) {
 
     // Ajoute la coche si 'completed' est vrai
     if (completed) {
-        activityItem.classList.add('completed'); // Ajoute la classe
+        activityItem.classList.add('completed');
         
         // Change l'icône pour une coche
         const icon = activityItem.querySelector('i');
         if (icon) {
             icon.className = 'fa-solid fa-check-circle';
-            icon.style.color = 'var(--correct-color)'; // Style optionnel
+            // Note : le style (couleur verte) est géré par la classe CSS '.activity-item.completed i'
         }
     }
 }
 // ▲▲▲ FIN DE LA FONCTION AJOUTÉE ▲▲▲
+
 
 function renderVideoPage(container, activity) {
     container.innerHTML = `
@@ -887,273 +910,7 @@ function renderMemorizationPage(container, activity) {
     `;
 }
 
-function renderAcademyQuiz(container, activity) {
-    const quizData = activity.data; 
-    
-    if (!quizData || !quizData.questions) {
-        container.innerHTML = `<p class="error-message">Erreur : Données de quiz non trouvées.</p>`;
-        return;
-    }
-
-    let questionsHtml = '';
-    quizData.questions.forEach((q, index) => {
-        const optionsHtml = q.options.map((option, i) => `
-            <label class="quiz-option">
-                <input type="radio" name="q${index}" value="${i}" required>
-                <div class="option-label">${option}</div>
-            </label>
-        `).join('');
-
-        questionsHtml += `
-            <div class="quiz-question">
-                <div class="question-header">
-                    <p><strong>${index + 1}. ${q.question_text}</strong></p>
-                </div>
-                <div class="quiz-options-grid">${optionsHtml}</div>
-            </div>
-        `;
-    });
-
-    container.innerHTML = `
-        <div class="card" style="margin: 0;">
-            <h3>${activity.title}</h3>
-            <form id="academy-quiz-form">
-                ${questionsHtml}
-                <div style="text-align: right; margin-top: 2rem;">
-                    <button type="submit" class="btn btn-main">
-                        <i class="fa-solid fa-check"></i> Valider le Quiz
-                    </button>
-                </div>
-            </form>
-        </div>
-    `;
-    
-    document.getElementById('academy-quiz-form').addEventListener('submit', (e) => {
-        e.preventDefault();
-        handleAcademyQuizSubmit(activity);
-    });
-}
-
-async function handleAcademyQuizSubmit(activity) {
-    const form = document.getElementById('academy-quiz-form');
-    if (!form) return;
-
-    let score = 0;
-    const totalQuestions = activity.data.questions.length;
-    const userAnswers = [];
-
-    for (let i = 0; i < totalQuestions; i++) {
-        const selected = form.querySelector(`input[name="q${i}"]:checked`);
-        if (selected) {
-            const answerIndex = parseInt(selected.value, 10);
-            userAnswers.push(answerIndex);
-            if (answerIndex === activity.data.questions[i].correct_answer_index) {
-                score++;
-            }
-        } else {
-            userAnswers.push(-1);
-        }
-    }
-
-    const percentage = Math.round((score / totalQuestions) * 100);
-    const resultText = `Quiz terminé ! Votre score : ${score}/${totalQuestions} (${percentage}%)`;
-    const container = document.getElementById('activity-content-area');
-
-    try {
-        container.innerHTML = `
-            <div class="card" style="text-align: center; margin: 0;">
-                <h2>Quiz Terminé !</h2>
-                <p style="font-size: 1.5rem; font-weight: 600; margin: 1rem 0;">
-                    Votre score : ${score} / ${totalQuestions}
-                </p>
-                <p class="subtitle" style="margin-bottom: 2rem;">(${percentage}%)</p>
-                <button id="next-activity-btn" class="btn btn-main">Activité suivante <i class="fa-solid fa-arrow-right"></i></button>
-            </div>
-        `;
-        
-        document.getElementById('next-activity-btn').addEventListener('click', () => {
-            const currentItem = document.querySelector('.activity-item.active');
-            if (currentItem && currentItem.nextElementSibling) {
-                currentItem.nextElementSibling.click();
-            } else {
-                const currentGroup = currentItem.closest('.episode-group');
-                const nextGroup = currentGroup.nextElementSibling;
-                if (nextGroup && nextGroup.classList.contains('episode-group')) {
-                    nextGroup.querySelector('.episode-title').click();
-                    nextGroup.querySelector('.activity-item').click();
-                } else {
-                    alert("Fin de la série !");
-                }
-            }
-        });
-
-        if (percentage >= 80) {
-             unlockAchievement('quiz_1');
-        }
-
-        await saveAcademySession(activity.id, {
-            type: 'quiz',
-            score: percentage,
-            details: resultText,
-            fullAnswers: userAnswers
-        });
-        
-        updateActivityStatusInSidebar(activity.id, true);
-
-    } catch (err) {
-        console.error("Erreur lors de la sauvegarde du quiz:", err);
-        container.innerHTML = `<p class="error-message">Erreur: ${err.message}</p>`;
-    }
-}
-
-export async function renderAcademyTeacherDashboard() {
-    const page = document.getElementById('teacher-dashboard-page');
-    changePage('teacher-dashboard-page'); 
-
-    let html = `
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-            <div>
-                <h2>Tableau de Bord Enseignant / Tuteur 🧑‍🏫</h2>
-                <p class="subtitle">Vue d'overview et suivi des progrès de vos élèves en Arabe Littéraire.</p>
-            </div>
-            
-            <button id="create-scenario-btn" class="btn btn-main" style="white-space: nowrap;">
-                <i class="fa-solid fa-file-circle-plus"></i> Créer un Scénario
-            </button>
-        </div>
-        
-        <div class="scenario-management-section">
-            ${spinnerHtml} 
-        </div>
-
-        <h3 style="margin-top: 2rem;">Vos Élèves</h3>
-        <div id="teacher-student-grid" class="dashboard-grid teacher-grid">
-            ${spinnerHtml}
-        </div>
-    `;
-    page.innerHTML = html;
-    
-    document.getElementById('create-scenario-btn').addEventListener('click', renderScenarioCreatorModal);
-    
-    await renderTeacherScenarioManagement(page); 
-
-    let students = [];
-    const studentGrid = document.getElementById('teacher-student-grid');
-    
-    try {
-        students = await apiRequest(`/api/academy/teacher/students?teacherEmail=${window.currentUser.email}`);
-        
-        if (students.length === 0) {
-            studentGrid.innerHTML = `<p>Aucun élève de l'académie n'est encore enregistré.</p>`;
-            return;
-        }
-
-        let studentHtml = '';
-        students.forEach(student => {
-            const totalSessions = student.academyProgress?.sessions?.length || 0;
-            const lastSession = totalSessions > 0 ? student.academyProgress.sessions.slice().sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt))[0] : null;
-            
-            const lastActivity = lastSession ? new Date(lastSession.completedAt).toLocaleDateString('fr-FR') : 'Aucune';
-            
-            let statusColor = totalSessions > 0 ? 'var(--primary-color)' : 'var(--text-color-secondary)';
-            let statusText = `${totalSessions} Session(s)`;
-            
-            if (lastSession && lastSession.report?.completionStatus === 'Échec') {
-                 statusColor = 'var(--incorrect-color)';
-                 statusText = `Échec Récent`;
-            }
-
-            studentHtml += `
-                <div class="dashboard-card student-card" data-student-id="${student.id}" style="border-left: 5px solid ${statusColor}; cursor: pointer;">
-                    <h4>${student.firstName}</h4>
-                    <p>Statut : <strong style="color: ${statusColor}">${statusText}</strong></p>
-                    <p>Dernière activité : ${lastActivity}</p>
-                    <div style="text-align: right; margin-top: 1rem;">
-                        <button class="btn btn-secondary view-student-btn" data-student-id="${student.id}"><i class="fa-solid fa-chart-line"></i> Voir Détail</button>
-                    </div>
-                </div>
-            `;
-        });
-        
-        studentGrid.innerHTML = studentHtml;
-
-        studentGrid.querySelectorAll('.view-student-btn, .student-card').forEach(element => {
-            element.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const studentId = e.currentTarget.dataset.studentId;
-                const studentData = students.find(s => s.id === studentId);
-                if (studentData) {
-                    renderTeacherStudentDetail(studentData);
-                }
-            });
-        });
-
-    } catch (err) {
-        studentGrid.innerHTML = `<p class="error-message">Erreur lors de la récupération des élèves : ${err.message}</p>`;
-    }
-}
-function renderTeacherStudentDetail(student) {
-    const page = document.getElementById('teacher-dashboard-page');
-    changePage('teacher-dashboard-page'); 
-
-    const sessions = student.academyProgress?.sessions || [];
-    sessions.sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt));
-    
-    let html = `
-        <button id="back-to-teacher-dash" class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> Retour au Tableau de Bord</button>
-        
-        <h2 style="margin-top: 1rem;">Progression de ${student.firstName}</h2>
-        <p class="subtitle">${sessions.length} sessions complétées en Arabe Littéraire.</p>
-
-        <h3 style="margin-top: 2rem;">Historique des Sessions</h3>
-        <div class="dashboard-grid sessions-grid">
-    `;
-
-    if (sessions.length > 0) {
-        sessions.forEach((session, index) => {
-            const date = new Date(session.completedAt).toLocaleDateString('fr-FR', {
-                day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
-            });
-            const title = (session.report?.summaryTitle || 'Bilan de session');
-            const status = session.report?.completionStatus || 'Terminée';
-            const feedbackPreview = (session.report?.feedback && session.report.feedback.length > 0) ? session.report.feedback[0] : 'Cliquez pour les détails.';
-            
-            html += `
-                <div class="dashboard-card clickable-session" data-session-index="${index}" style="cursor: pointer;">
-                    <p style="font-size: 0.9em; color: var(--text-color-secondary); margin-bottom: 5px;">${date}</p>
-                    <h5 style="color: var(--primary-color);">${title}</h5>
-                    <p style="font-size: 0.9em;">Statut : <strong>${status}</strong></p>
-                    <p style="font-style: italic; margin-top: 10px;">Feedback : ${feedbackPreview}</p>
-                    <div style="text-align: right; margin-top: 1rem;">
-                        <button class="btn btn-secondary view-report-btn" data-session-index="${index}"><i class="fa-solid fa-eye"></i> Voir Rapport</button>
-                    </div>
-                </div>
-            `;
-        });
-    } else {
-         html += `<p style="margin-top: 2rem;">Aucun historique de session disponible pour ${student.firstName}.</p>`;
-    }
-    
-    html += '</div>';
-    page.innerHTML = html;
-
-    document.getElementById('back-to-teacher-dash').addEventListener('click', renderAcademyTeacherDashboard);
-
-    page.querySelectorAll('.clickable-session, .view-report-btn').forEach(element => {
-        element.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const index = e.currentTarget.dataset.sessionIndex;
-            if (index !== undefined) {
-                const sessionReport = sessions[index].report; 
-                showSessionReportModal(sessionReport); 
-            }
-        });
-    });
-}
-export async function renderAcademyParentDashboard() {
-    await renderAcademyTeacherDashboard();
-}
-
+// CORRIGÉ : Correction du bug "undefined"
 function renderScenarioViewer(container, scenarioOrData, isCustomScenario = false) {
     container.innerHTML = ''; // Vide la zone d'activité
 
@@ -1341,4 +1098,278 @@ function renderScenarioViewer(container, scenarioOrData, isCustomScenario = fals
     // Prompt Initial du Personnage IA
     appendMessage('aida', intro, true); 
     history.push({ role: 'assistant', content: intro });
+}
+
+//
+// --- NOUVELLES FONCTIONS QUIZ ---
+//
+
+function renderAcademyQuiz(container, activity) {
+    const quizData = activity.data; 
+    
+    if (!quizData || !quizData.questions) {
+        container.innerHTML = `<p class="error-message">Erreur : Données de quiz non trouvées.</p>`;
+        return;
+    }
+
+    let questionsHtml = '';
+    quizData.questions.forEach((q, index) => {
+        const optionsHtml = q.options.map((option, i) => `
+            <label class="quiz-option">
+                <input type="radio" name="q${index}" value="${i}" required>
+                <div class="option-label">${option}</div>
+            </label>
+        `).join('');
+
+        questionsHtml += `
+            <div class="quiz-question">
+                <div class="question-header">
+                    <p><strong>${index + 1}. ${q.question_text}</strong></p>
+                </div>
+                <div class="quiz-options-grid">${optionsHtml}</div>
+            </div>
+        `;
+    });
+
+    container.innerHTML = `
+        <div class="card" style="margin: 0;">
+            <h3>${activity.title}</h3>
+            <form id="academy-quiz-form">
+                ${questionsHtml}
+                <div style="text-align: right; margin-top: 2rem;">
+                    <button type="submit" class="btn btn-main">
+                        <i class="fa-solid fa-check"></i> Valider le Quiz
+                    </button>
+                </div>
+            </form>
+        </div>
+    `;
+    
+    document.getElementById('academy-quiz-form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        handleAcademyQuizSubmit(activity);
+    });
+}
+
+async function handleAcademyQuizSubmit(activity) {
+    const form = document.getElementById('academy-quiz-form');
+    if (!form) return;
+
+    let score = 0;
+    const totalQuestions = activity.data.questions.length;
+    const userAnswers = [];
+
+    for (let i = 0; i < totalQuestions; i++) {
+        const selected = form.querySelector(`input[name="q${i}"]:checked`);
+        if (selected) {
+            const answerIndex = parseInt(selected.value, 10);
+            userAnswers.push(answerIndex);
+            if (answerIndex === activity.data.questions[i].correct_answer_index) {
+                score++;
+            }
+        } else {
+            userAnswers.push(-1);
+        }
+    }
+
+    const percentage = Math.round((score / totalQuestions) * 100);
+    const resultText = `Quiz terminé ! Votre score : ${score}/${totalQuestions} (${percentage}%)`;
+    const container = document.getElementById('activity-content-area');
+
+    try {
+        container.innerHTML = `
+            <div class="card" style="text-align: center; margin: 0;">
+                <h2>Quiz Terminé !</h2>
+                <p style="font-size: 1.5rem; font-weight: 600; margin: 1rem 0;">
+                    Votre score : ${score} / ${totalQuestions}
+                </p>
+                <p class="subtitle" style="margin-bottom: 2rem;">(${percentage}%)</p>
+                <button id="next-activity-btn" class="btn btn-main">Activité suivante <i class="fa-solid fa-arrow-right"></i></button>
+            </div>
+        `;
+        
+        document.getElementById('next-activity-btn').addEventListener('click', () => {
+            const currentItem = document.querySelector('.activity-item.active');
+            if (currentItem && currentItem.nextElementSibling) {
+                currentItem.nextElementSibling.click();
+            } else {
+                const currentGroup = currentItem.closest('.episode-group');
+                const nextGroup = currentGroup.nextElementSibling;
+                if (nextGroup && nextGroup.classList.contains('episode-group')) {
+                    nextGroup.querySelector('.episode-title').click();
+                    nextGroup.querySelector('.activity-item').click();
+                } else {
+                    alert("Fin de la série !");
+                }
+            }
+        });
+
+        if (percentage >= 80) {
+             unlockAchievement('quiz_1');
+        }
+
+        await saveAcademySession(activity.id, {
+            type: 'quiz',
+            score: percentage,
+            details: resultText,
+            fullAnswers: userAnswers
+        });
+        
+        // ▼▼▼ CORRECTION : Appelle la fonction manquante ▼▼▼
+        updateActivityStatusInSidebar(activity.id, true);
+
+    } catch (err) {
+        console.error("Erreur lors de la sauvegarde du quiz:", err);
+        container.innerHTML = `<p class="error-message">Erreur: ${err.message}</p>`;
+    }
+}
+
+
+// --- Fonctions de Rendu (Enseignant/Parent) ---
+export async function renderAcademyTeacherDashboard() {
+    const page = document.getElementById('teacher-dashboard-page');
+    changePage('teacher-dashboard-page'); 
+
+    let html = `
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+            <div>
+                <h2>Tableau de Bord Enseignant / Tuteur 🧑‍🏫</h2>
+                <p class="subtitle">Vue d'overview et suivi des progrès de vos élèves en Arabe Littéraire.</p>
+            </div>
+            
+            <button id="create-scenario-btn" class="btn btn-main" style="white-space: nowrap;">
+                <i class="fa-solid fa-file-circle-plus"></i> Créer un Scénario
+            </button>
+        </div>
+        
+        <div class="scenario-management-section">
+            ${spinnerHtml} 
+        </div>
+
+        <h3 style="margin-top: 2rem;">Vos Élèves</h3>
+        <div id="teacher-student-grid" class="dashboard-grid teacher-grid">
+            ${spinnerHtml}
+        </div>
+    `;
+    page.innerHTML = html;
+    
+    document.getElementById('create-scenario-btn').addEventListener('click', renderScenarioCreatorModal);
+    
+    await renderTeacherScenarioManagement(page); 
+
+    let students = [];
+    const studentGrid = document.getElementById('teacher-student-grid');
+    
+    try {
+        students = await apiRequest(`/api/academy/teacher/students?teacherEmail=${window.currentUser.email}`);
+        
+        if (students.length === 0) {
+            studentGrid.innerHTML = `<p>Aucun élève de l'académie n'est encore enregistré.</p>`;
+            return;
+        }
+
+        let studentHtml = '';
+        students.forEach(student => {
+            const totalSessions = student.academyProgress?.sessions?.length || 0;
+            const lastSession = totalSessions > 0 ? student.academyProgress.sessions.slice().sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt))[0] : null;
+            
+            const lastActivity = lastSession ? new Date(lastSession.completedAt).toLocaleDateString('fr-FR') : 'Aucune';
+            
+            let statusColor = totalSessions > 0 ? 'var(--primary-color)' : 'var(--text-color-secondary)';
+            let statusText = `${totalSessions} Session(s)`;
+            
+            if (lastSession && lastSession.report?.completionStatus === 'Échec') {
+                 statusColor = 'var(--incorrect-color)';
+                 statusText = `Échec Récent`;
+            }
+
+            studentHtml += `
+                <div class="dashboard-card student-card" data-student-id="${student.id}" style="border-left: 5px solid ${statusColor}; cursor: pointer;">
+                    <h4>${student.firstName}</h4>
+                    <p>Statut : <strong style="color: ${statusColor}">${statusText}</strong></p>
+                    <p>Dernière activité : ${lastActivity}</p>
+                    <div style="text-align: right; margin-top: 1rem;">
+                        <button class="btn btn-secondary view-student-btn" data-student-id="${student.id}"><i class="fa-solid fa-chart-line"></i> Voir Détail</button>
+                    </div>
+                </div>
+            `;
+        });
+        
+        studentGrid.innerHTML = studentHtml;
+
+        studentGrid.querySelectorAll('.view-student-btn, .student-card').forEach(element => {
+            element.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const studentId = e.currentTarget.dataset.studentId;
+                const studentData = students.find(s => s.id === studentId);
+                if (studentData) {
+                    renderTeacherStudentDetail(studentData);
+                }
+            });
+        });
+
+    } catch (err) {
+        studentGrid.innerHTML = `<p class="error-message">Erreur lors de la récupération des élèves : ${err.message}</p>`;
+    }
+}
+function renderTeacherStudentDetail(student) {
+    const page = document.getElementById('teacher-dashboard-page');
+    changePage('teacher-dashboard-page'); 
+
+    const sessions = student.academyProgress?.sessions || [];
+    sessions.sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt));
+    
+    let html = `
+        <button id="back-to-teacher-dash" class="btn btn-secondary"><i class="fa-solid fa-arrow-left"></i> Retour au Tableau de Bord</button>
+        
+        <h2 style="margin-top: 1rem;">Progression de ${student.firstName}</h2>
+        <p class="subtitle">${sessions.length} sessions complétées en Arabe Littéraire.</p>
+
+        <h3 style="margin-top: 2rem;">Historique des Sessions</h3>
+        <div class="dashboard-grid sessions-grid">
+    `;
+
+    if (sessions.length > 0) {
+        sessions.forEach((session, index) => {
+            const date = new Date(session.completedAt).toLocaleDateString('fr-FR', {
+                day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
+            });
+            const title = (session.report?.summaryTitle || 'Bilan de session');
+            const status = session.report?.completionStatus || 'Terminée';
+            const feedbackPreview = (session.report?.feedback && session.report.feedback.length > 0) ? session.report.feedback[0] : 'Cliquez pour les détails.';
+            
+            html += `
+                <div class="dashboard-card clickable-session" data-session-index="${index}" style="cursor: pointer;">
+                    <p style="font-size: 0.9em; color: var(--text-color-secondary); margin-bottom: 5px;">${date}</p>
+                    <h5 style="color: var(--primary-color);">${title}</h5>
+                    <p style="font-size: 0.9em;">Statut : <strong>${status}</strong></p>
+                    <p style="font-style: italic; margin-top: 10px;">Feedback : ${feedbackPreview}</p>
+                    <div style="text-align: right; margin-top: 1rem;">
+                        <button class="btn btn-secondary view-report-btn" data-session-index="${index}"><i class="fa-solid fa-eye"></i> Voir Rapport</button>
+                    </div>
+                </div>
+            `;
+        });
+    } else {
+         html += `<p style="margin-top: 2rem;">Aucun historique de session disponible pour ${student.firstName}.</p>`;
+    }
+    
+    html += '</div>';
+    page.innerHTML = html;
+
+    document.getElementById('back-to-teacher-dash').addEventListener('click', renderAcademyTeacherDashboard);
+
+    page.querySelectorAll('.clickable-session, .view-report-btn').forEach(element => {
+        element.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const index = e.currentTarget.dataset.sessionIndex;
+            if (index !== undefined) {
+                const sessionReport = sessions[index].report; 
+                showSessionReportModal(sessionReport); 
+            }
+        });
+    });
+}
+export async function renderAcademyParentDashboard() {
+    await renderAcademyTeacherDashboard();
 }
