@@ -1063,7 +1063,6 @@ body.dark-mode .scenario-card-description {
     text-align: right;
     width: 100%;
 }
-/* DANS style.css */
 
 /* --- Styles pour la Gamification (Académie) --- */
 
@@ -1104,7 +1103,6 @@ body.dark-mode .stats-card .stat-number {
     max-width: 350px;
     animation: fadeIn 0.3s ease-out;
 }
-/* DANS style.css */
 
 /* --- NOUVEAU : Styles pour le Lecteur de Cours (Complété) --- */
 
