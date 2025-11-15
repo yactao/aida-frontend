@@ -3,6 +3,8 @@
 import { changePage, spinnerHtml, apiRequest, renderModal, getModalTemplate } from './utils.js';
 // NOUVEAU : Importe les données de la série depuis le fichier séparé
 import { courseData, memorizationData } from './series_data.js';
+// NOUVEAU : Import pour la traduction
+import i18next from 'i18next';
 
 // ▼▼▼ NOUVEAU : Dictionnaire des Badges ▼▼▼
 /**
@@ -339,6 +341,15 @@ async function endScenarioSession(scenarioData, history, scenarioId = 'custom') 
 }
 
 function showSessionReportModal(report) {
+    if (!report) { // AJOUT d'une vérification de sécurité
+        renderModal(
+            getModalTemplate('session-report-modal', 
+            'Rapport Indisponible', 
+            `<p>Le rapport pour cette session n'a pas pu être chargé.</p>`)
+        );
+        return;
+    }
+    
     const vocabHtml = (report.newVocabulary || []).map(v => `<li><strong>${v.word}</strong>: ${v.translation}</li>`).join('') || '<li>Aucun nouveau vocabulaire relevé.</li>';
     const feedbackHtml = (report.feedback || []).map(f => `<li>${f}</li>`).join('') || '<li>Aucun point de feedback majeur.</li>';
     
@@ -882,8 +893,8 @@ function renderMemorizationPage(container, activity) {
         
     const motsTable = data.mots.map(m => `
         <tr>
-            <td>${m.arabe}</td>
-            <td>${m.phonetique}</td>
+            <td>${p.arabe}</td>
+            <td>${p.phonetique}</td>
             <td>${m.francais}</td>
         </tr>`).join('');
 
