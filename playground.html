@@ -574,39 +574,48 @@
 
             const bubble = document.createElement('div');
             bubble.className = 'message-bubble';
-
-            // --- 1. CONVERSION MARKDOWN DE BASE ---
-            let html = text.replace(/\n/g, '<br>');
-            html = html.replace(/(\*\*|__)(.*?)\1/g, '<strong>$2</strong>'); // Gras
-            html = html.replace(/(\*|_)(.*?)\1/g, '<em>$2</em>'); // Italique
-            html = html.replace(/^\* (.*?)($|<br>)/gm, '<li>$1</li>'); // Listes
-            html = html.replace(/(<li>.*<\/li>)/gs, '<ul>$1</ul>'); // Enveloppe les listes
-            html = html.replace(/<\/ul><br><ul>/g, ''); // Corrige listes multiples
             
-            // --- 2. GESTION SPÉCIALE SVG (GEMINI 2.5) ---
-            // Cette partie détecte si Gemini a envoyé un code ```svg ... ```
+            // --- CORRECTION DU RENDU SVG ---
+            let html = text;
+
+            // 1. D'abord, on s'occupe du SVG BRUT (avant de toucher aux sauts de ligne)
             if (html.includes('<svg')) {
-                // Regex puissante qui enlève : ```svg, ```xml, ou ``` tout court + les <br>
-                html = html.replace(/```(?:svg|xml)?(?:<br>|\s)*(<svg[\s\S]*?<\/svg>)(?:<br>|\s)*```/gi, '$1');
+                // On extrait le SVG en nettoyant les balises markdown ``` autour (si elles existent)
+                // Cette Regex capture le bloc <svg>...</svg> en ignorant ce qu'il y a avant/après les ```
+                html = html.replace(/```(?:xml|svg)?\s*(<svg[\s\S]*?<\/svg>)\s*```/gi, '$1');
                 
-                // On habille le SVG pour qu'il soit beau (cadre blanc, centré)
+                // IMPORTANT : On supprime les sauts de ligne UNIQUEMENT dans le SVG pour qu'il tienne sur une ligne
+                // (Cela évite que l'étape suivante ne casse le SVG avec des <br>)
+                html = html.replace(/(<svg[\s\S]*?<\/svg>)/gi, (match) => {
+                    return match.replace(/\n/g, ' '); // Remplace \n par espace DANS le SVG
+                });
+
+                // On habille le SVG (Cadre blanc, centré)
                 html = html.replace(
                     /(<svg[\s\S]*?<\/svg>)/gi, 
                     `<div style="
                         text-align: center; 
                         margin: 15px auto; 
                         background: white; 
-                        padding: 20px; 
+                        padding: 10px; 
                         border-radius: 12px; 
                         box-shadow: 0 4px 10px rgba(0,0,0,0.1); 
-                        display: inline-block; 
-                        max-width: 100%; 
-                        overflow-x: auto;">
+                        display: block; 
+                        overflow: hidden;">
                         $1
                     </div>`
                 );
             }
-            
+
+            // 2. Ensuite, on applique le formatage Markdown classique sur le reste du texte
+            // (Maintenant que le SVG est protégé/nettoyé, les <br> n'iront pas dedans)
+            html = html.replace(/\n/g, '<br>');
+            html = html.replace(/(\*\*|__)(.*?)\1/g, '<strong>$2</strong>');
+            html = html.replace(/(\*|_)(.*?)\1/g, '<em>$2</em>');
+            html = html.replace(/^\* (.*?)($|<br>)/gm, '<li>$1</li>');
+            html = html.replace(/(<li>.*<\/li>)/gs, '<ul>$1</ul>'); 
+            html = html.replace(/<\/ul><br><ul>/g, ''); 
+
             bubble.innerHTML = html; 
             messageDiv.appendChild(bubble);
             
