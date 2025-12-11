@@ -582,6 +582,22 @@
             html = html.replace(/(<li>.*<\/li>)/gs, '<ul>$1</ul>'); // Enveloppe les listes
             html = html.replace(/<\/ul><br><ul>/g, ''); // Corrige listes multiples
             
+            // --- AJOUT POUR LE RENDU SVG (GÉOMÉTRIE) ---
+        // 1. Si le SVG est dans un bloc de code markdown (```xml ... ```), on l'extrait
+            if (html.includes('```xml') && html.includes('<svg')) {
+            html = html.replace(/```xml\s*(<svg[\s\S]*?<\/svg>)\s*```/g, '$1');
+            }
+        // 2. Si le SVG est dans un bloc markdown générique
+            if (html.includes('```') && html.includes('<svg')) {
+            html = html.replace(/```\s*(<svg[\s\S]*?<\/svg>)\s*```/g, '$1');
+        }
+
+        // 3. Petit ajustement CSS pour centrer les figures
+            html = html.replace(
+            /(<svg[\s\S]*?<\/svg>)/g, 
+            '<div style="text-align: center; margin: 10px 0; background: white; padding: 10px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); display: inline-block;">$1</div>'
+  );
+            
             bubble.innerHTML = html; 
             messageDiv.appendChild(bubble);
             
