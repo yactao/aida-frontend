@@ -5,6 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AIDA - Espace de Travail</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script type="module">
+      import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+      mermaid.initialize({ startOnLoad: false, theme: 'neutral' });
+      window.mermaid = mermaid; 
+    </script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
         :root {
@@ -559,12 +564,16 @@
             addMessage('aida', welcomeMessage, 'Aïda-deep', false);
         }
 
+
+
         // --- 4. FONCTIONS DE L'INTERFACE ---
 
+       // --- FONCTION D'AFFICHAGE (SVG + MERMAID + TTS) ---
         function addMessage(sender, text, agentName = 'Aïda-deep', addToHistory = true) {
             const messageDiv = document.createElement('div');
             messageDiv.className = `chat-message ${sender}`;
 
+            // Affichage du nom de l'agent (Aïda-Tuteur, Aïda-Deep, etc.)
             if (sender === 'aida') {
                 const agentLabel = document.createElement('small');
                 agentLabel.className = 'agent-label';
@@ -575,29 +584,27 @@
             const bubble = document.createElement('div');
             bubble.className = 'message-bubble';
             
-            // --- CORRECTION DU RENDU SVG ---
             let html = text;
 
-            // 1. D'abord, on s'occupe du SVG BRUT (avant de toucher aux sauts de ligne)
+            // --- 1. GESTION GÉOMÉTRIE (SVG) ---
             if (html.includes('<svg')) {
-                // On extrait le SVG en nettoyant les balises markdown ``` autour (si elles existent)
-                // Cette Regex capture le bloc <svg>...</svg> en ignorant ce qu'il y a avant/après les ```
+                // Nettoyage des balises markdown ```xml ou ```svg
                 html = html.replace(/```(?:xml|svg)?\s*(<svg[\s\S]*?<\/svg>)\s*```/gi, '$1');
                 
-                // IMPORTANT : On supprime les sauts de ligne UNIQUEMENT dans le SVG pour qu'il tienne sur une ligne
-                // (Cela évite que l'étape suivante ne casse le SVG avec des <br>)
+                // IMPORTANT : On remplace les sauts de ligne DANS le SVG par des espaces
+                // pour éviter que l'étape 3 (formatage texte) ne casse le code SVG avec des <br>
                 html = html.replace(/(<svg[\s\S]*?<\/svg>)/gi, (match) => {
-                    return match.replace(/\n/g, ' '); // Remplace \n par espace DANS le SVG
+                    return match.replace(/\n/g, ' '); 
                 });
 
-                // On habille le SVG (Cadre blanc, centré)
+                // Habillage du SVG (Cadre blanc, centré)
                 html = html.replace(
                     /(<svg[\s\S]*?<\/svg>)/gi, 
                     `<div style="
                         text-align: center; 
                         margin: 15px auto; 
                         background: white; 
-                        padding: 10px; 
+                        padding: 15px; 
                         border-radius: 12px; 
                         box-shadow: 0 4px 10px rgba(0,0,0,0.1); 
                         display: block; 
@@ -607,32 +614,58 @@
                 );
             }
 
-            // 2. Ensuite, on applique le formatage Markdown classique sur le reste du texte
-            // (Maintenant que le SVG est protégé/nettoyé, les <br> n'iront pas dedans)
+            // --- 2. GESTION SCHÉMAS (MERMAID) ---
+            if (html.includes('```mermaid')) {
+                const id = 'mermaid-' + Math.random().toString(36).substr(2, 9);
+                // On remplace le bloc de code par une div vide qui recevra le dessin
+                html = html.replace(/```mermaid\s*([\s\S]*?)\s*```/gi, (match, code) => {
+                    return `<div class="mermaid-container" id="${id}" style="text-align:center; margin:10px auto; background:white; padding:10px; border-radius:8px;">${code}</div>`;
+                });
+
+                // On lance le rendu une fois que le HTML est injecté
+                setTimeout(async () => {
+                    const element = document.getElementById(id);
+                    if (element && window.mermaid) {
+                        try {
+                            const { svg } = await window.mermaid.render(id + '-svg', element.textContent);
+                            element.innerHTML = svg;
+                        } catch (e) {
+                            element.innerHTML = `<p style="color:red; font-size:0.8em;">Erreur de génération du schéma</p>`;
+                        }
+                    }
+                }, 100);
+            }
+
+            // --- 3. FORMATAGE TEXTE (Gras, Italique, Sauts de ligne) ---
+            // On remplace les \n par <br> (sauf ceux qu'on a déjà nettoyés dans le SVG)
             html = html.replace(/\n/g, '<br>');
             html = html.replace(/(\*\*|__)(.*?)\1/g, '<strong>$2</strong>');
             html = html.replace(/(\*|_)(.*?)\1/g, '<em>$2</em>');
-            html = html.replace(/^\* (.*?)($|<br>)/gm, '<li>$1</li>');
-            html = html.replace(/(<li>.*<\/li>)/gs, '<ul>$1</ul>'); 
-            html = html.replace(/<\/ul><br><ul>/g, ''); 
 
             bubble.innerHTML = html; 
             messageDiv.appendChild(bubble);
             
+            // --- 4. BOUTON AUDIO (TTS) ---
             if (sender === 'aida') {
                 const controls = document.createElement('div');
                 controls.className = 'aida-controls';
+                
                 const listenBtn = document.createElement('button');
                 listenBtn.className = 'btn-icon';
                 listenBtn.innerHTML = '<i class="fa-solid fa-volume-high"></i>';
                 listenBtn.title = 'Écouter la réponse';
-                listenBtn.onclick = () => togglePlayback(text, listenBtn);
+                // On nettoie le texte brut pour la lecture vocale (enlève le code SVG/Mermaid)
+                const textForSpeech = text.replace(/```[\s\S]*?```/g, '').replace(/<svg[\s\S]*?<\/svg>/g, ' [Image] ');
+                
+                listenBtn.onclick = () => togglePlayback(textForSpeech, listenBtn);
+                
                 controls.appendChild(listenBtn);
                 messageDiv.appendChild(controls);
             }
-            
+
             chatWindow.appendChild(messageDiv);
             chatWindow.scrollTop = chatWindow.scrollHeight;
+        
         }
 
         function showTypingIndicator() {
