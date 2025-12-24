@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AIDA - Espace de Travail</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
         :root {
@@ -561,10 +564,12 @@
 
         // --- 4. FONCTIONS DE L'INTERFACE ---
 
+        // --- FONCTION D'AFFICHAGE UNIFIÉE (Texte + Audio + SVG + Mermaid + LaTeX) ---
         function addMessage(sender, text, agentName = 'Aïda-deep', addToHistory = true) {
             const messageDiv = document.createElement('div');
             messageDiv.className = `chat-message ${sender}`;
 
+            // 1. Label de l'agent (Ton code existant)
             if (sender === 'aida') {
                 const agentLabel = document.createElement('small');
                 agentLabel.className = 'agent-label';
@@ -574,17 +579,62 @@
 
             const bubble = document.createElement('div');
             bubble.className = 'message-bubble';
-            // Convertit le markdown simple (listes)
-            let html = text.replace(/\n/g, '<br>');
+            
+            let html = text;
+
+            // --- NOUVEAU : GESTION SVG (Géométrie) ---
+            // On traite le SVG avant les sauts de ligne pour éviter de casser le code vectoriel
+            if (html.includes('<svg')) {
+                // Nettoyage des balises markdown autour
+                html = html.replace(/```(?:xml|svg)?\s*(<svg[\s\S]*?<\/svg>)\s*```/gi, '$1');
+                // IMPORTANT : On remplace les \n par des espaces DANS le SVG uniquement
+                html = html.replace(/(<svg[\s\S]*?<\/svg>)/gi, (m) => m.replace(/\n/g, ' '));
+                // Habillage (Cadre blanc centré)
+                html = html.replace(/(<svg[\s\S]*?<\/svg>)/gi, `<div style="text-align:center; margin:15px auto; background:white; padding:10px; border-radius:8px; box-shadow:0 2px 5px rgba(0,0,0,0.1); overflow:hidden;">$1</div>`);
+            }
+
+            // --- NOUVEAU : GESTION MERMAID (Schémas) ---
+            if (html.includes('```mermaid')) {
+                const id = 'mermaid-' + Math.random().toString(36).substr(2, 9);
+                html = html.replace(/```mermaid\s*([\s\S]*?)\s*```/gi, (match, code) => {
+                    return `<div class="mermaid-container" id="${id}" style="text-align:center; margin:10px auto; background:white; padding:10px; border-radius:8px;">${code}</div>`;
+                });
+                // Déclencheur du rendu graphique
+                setTimeout(async () => {
+                    const el = document.getElementById(id);
+                    if (el && window.mermaid) {
+                        try { const { svg } = await window.mermaid.render(id + '-svg', el.textContent); el.innerHTML = svg; } catch (e) { el.innerHTML = '<p style="color:red; font-size:0.8em">Erreur schéma</p>'; }
+                    }
+                }, 100);
+            }
+
+            // --- FORMATAGE TEXTE (TON CODE EXISTANT PRÉSERVÉ) ---
+            // Convertit le markdown simple (listes, gras, sauts de ligne)
+            html = html.replace(/\n/g, '<br>');
             html = html.replace(/(\*\*|__)(.*?)\1/g, '<strong>$2</strong>'); // Gras
             html = html.replace(/(\*|_)(.*?)\1/g, '<em>$2</em>'); // Italique
             html = html.replace(/^\* (.*?)($|<br>)/gm, '<li>$1</li>'); // Listes
             html = html.replace(/(<li>.*<\/li>)/gs, '<ul>$1</ul>'); // Enveloppe les listes
             html = html.replace(/<\/ul><br><ul>/g, ''); // Corrige listes multiples
-            
+
             bubble.innerHTML = html; 
             messageDiv.appendChild(bubble);
+
+            // --- NOUVEAU : RENDU LATEX (Maths) ---
+            // S'applique sur le contenu final de la bulle
+            if (window.renderMathInElement) {
+                renderMathInElement(bubble, {
+                    delimiters: [
+                        {left: '$$', right: '$$', display: true},
+                        {left: '$', right: '$', display: false},
+                        {left: '\\(', right: '\\)', display: false},
+                        {left: '\\[', right: '\\]', display: true}
+                    ],
+                    throwOnError: false
+                });
+            }
             
+            // 2. Contrôles Audio (Ton code existant)
             if (sender === 'aida') {
                 const controls = document.createElement('div');
                 controls.className = 'aida-controls';
@@ -592,156 +642,17 @@
                 listenBtn.className = 'btn-icon';
                 listenBtn.innerHTML = '<i class="fa-solid fa-volume-high"></i>';
                 listenBtn.title = 'Écouter la réponse';
-                listenBtn.onclick = () => togglePlayback(text, listenBtn);
+                
+                // Petit nettoyage pour l'audio : on ne lit pas le code brut du schéma/maths
+                const textForSpeech = text.replace(/```[\s\S]*?```/g, ' [Schéma] ').replace(/<svg[\s\S]*?<\/svg>/g, ' [Image] ').replace(/\$/g, '');
+                
+                listenBtn.onclick = () => togglePlayback(textForSpeech, listenBtn);
                 controls.appendChild(listenBtn);
                 messageDiv.appendChild(controls);
             }
             
             chatWindow.appendChild(messageDiv);
             chatWindow.scrollTop = chatWindow.scrollHeight;
-        }
-
-        function showTypingIndicator() {
-            const typingDiv = document.createElement('div');
-            typingDiv.id = 'typing-indicator';
-            typingDiv.className = 'chat-message aida';
-            const bubble = document.createElement('div');
-            bubble.className = 'message-bubble';
-            bubble.innerHTML = `<div class="spinner-dots"><span></span><span></span><span></span></div>`;
-            typingDiv.appendChild(bubble);
-            chatWindow.appendChild(typingDiv);
-            chatWindow.scrollTop = chatWindow.scrollHeight;
-        }
-        function removeTypingIndicator() {
-            const indicator = document.getElementById('typing-indicator');
-            if (indicator) {
-                indicator.remove();
-            }
-        }
-
-        async function sendMessage() {
-            const message = userInput.value.trim();
-            if (!message) return;
-
-            const selectedMode = document.querySelector('input[name="mode"]:checked').value;
-            const fullMessage = `(Mode: ${selectedMode}) ${message}`;
-            
-            addMessage('user', message, null, true);
-            userInput.value = '';
-            showTypingIndicator();
-
-            if (currentChatId === null) {
-                currentChatId = uuidv4();
-            }
-            currentMessages.push({ role: 'user', content: fullMessage });
-            
-            try {
-                const response = await fetch(`${backendUrl}/ai/playground-chat`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        history: currentMessages,
-                        preferredAgent: activeAgent
-                    }) 
-                });
-                
-                if (!response.ok) {
-                    const errData = await response.json();
-                    throw new Error(errData.error || "Erreur de communication avec l'API");
-                }
-                
-                const data = await response.json();
-                const aidaMessage = data.reply;
-                const agentName = data.agent || 'Aïda (Erreur)';
-
-                currentMessages.push({ role: 'assistant', content: aidaMessage, agent: agentName });
-                
-                removeTypingIndicator();
-                addMessage('aida', aidaMessage, agentName, true);
-                saveCurrentChat();
-
-            } catch (error) {
-                removeTypingIndicator();
-                addMessage('aida', `Désolé, une erreur est survenue: ${error.message}. Veuillez réessayer.`, 'Système', true);
-            }
-        }
-        
-        // --- 5. FONCTIONS VOCALES ---
-        function setupSpeechRecognition() {
-            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-            if (!SpeechRecognition) {
-                micBtn.disabled = true;
-                micBtn.title = "La reconnaissance vocale n'est pas supportée par votre navigateur.";
-                return;
-            }
-            recognition = new SpeechRecognition();
-            const selectedOption = voiceSelect.options[voiceSelect.selectedIndex];
-            recognition.lang = selectedOption ? selectedOption.dataset.lang : 'fr-FR';
-            recognition.interimResults = false;
-            recognition.onresult = (event) => {
-                const transcript = event.results[0][0].transcript;
-                userInput.value = transcript;
-                sendMessage();
-            };
-            recognition.onstart = () => micBtn.classList.add('recording');
-            recognition.onend = () => micBtn.classList.remove('recording');
-            recognition.onerror = (event) => {
-                console.error("Erreur de reconnaissance vocale:", event.error);
-                micBtn.classList.remove('recording');
-            };
-        }
-        function toggleListening() {
-            if (micBtn.classList.contains('recording')) {
-                recognition.stop();
-            } else {
-                recognition.start();
-            }
-        }
-        async function togglePlayback(text, buttonEl) {
-            if (currentListenBtn === buttonEl) {
-                if(currentAudio) currentAudio.pause();
-                buttonEl.innerHTML = '<i class="fa-solid fa-volume-high"></i>';
-                buttonEl.classList.remove('active-speaker');
-                currentAudio = null;
-                currentListenBtn = null;
-                return;
-            }
-            if (currentAudio) {
-                currentAudio.pause();
-                currentListenBtn.innerHTML = '<i class="fa-solid fa-volume-high"></i>';
-                currentListenBtn.classList.remove('active-speaker');
-            }
-            currentListenBtn = buttonEl;
-            buttonEl.innerHTML = `<div class="spinner-dots" style="transform: scale(0.6);"><span></span><span></span><span></span></div>`;
-            try {
-                const rate = localStorage.getItem('aida-rate') || 1;
-                const pitch = localStorage.getItem('aida-pitch') || 1;
-                const voice = localStorage.getItem('aida-voice-name');
-                const response = await fetch(`${backendUrl}/ai/synthesize-speech`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ text, voice, rate, pitch })
-                });
-                if (!response.ok) { throw new Error(`Erreur du serveur vocal (status: ${response.status}).`); }
-                const data = await response.json();
-                const audioBlob = await (await fetch(`data:audio/mp3;base64,${data.audioContent}`)).blob();
-                const audioUrl = URL.createObjectURL(audioBlob);
-                currentAudio = new Audio(audioUrl);
-                currentAudio.play();
-                buttonEl.innerHTML = '<i class="fa-solid fa-stop"></i>';
-                buttonEl.classList.add('active-speaker');
-                currentAudio.onended = () => {
-                    buttonEl.innerHTML = '<i class="fa-solid fa-volume-high"></i>';
-                    buttonEl.classList.remove('active-speaker');
-                    currentAudio = null;
-                    currentListenBtn = null;
-                };
-            } catch (error) {
-                console.error("Erreur lors de la lecture de l'audio neuronal:", error);
-                alert(`Impossible de jouer la voix d'AIDA : ${error.message}`);
-                buttonEl.innerHTML = '<i class="fa-solid fa-volume-high"></i>';
-                currentListenBtn = null;
-            }
         }
 
         // --- 6. FONCTIONS DE LA MODALE ---
