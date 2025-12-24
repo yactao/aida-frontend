@@ -53,7 +53,7 @@
         .chat-message { display: flex; margin-bottom: 1rem; max-width: 80%; }
         .chat-message.user { justify-content: flex-end; margin-left: auto; }
         .chat-message.aida { justify-content: flex-start; margin-right: auto; flex-direction: column; }
-        .message-bubble { padding: 1rem; border-radius: 12px; }
+        .message-bubble { padding: 1rem; border-radius: 12px; white-space: pre-wrap; word-wrap: break-word; }
         .user .message-bubble { background: linear-gradient(45deg, var(--primary-color), var(--secondary-color)); color: white; border-bottom-right-radius: 0; }
         .aida .message-bubble { background-color: var(--card-bg-color); box-shadow: var(--shadow); border-bottom-left-radius: 0; }
         .message-bubble p:not(:last-child) { margin-bottom: 0.5rem; }
@@ -563,7 +563,7 @@
         }
 
         // --- 4. FONCTIONS DE L'INTERFACE ---
-        // --- 1. FONCTION D'AFFICHAGE (SVG + MERMAID + LATEX + TTS) ---
+      // --- FONCTION D'AFFICHAGE CORRIGÉE ---
         function addMessage(sender, text, agentName = 'Aïda-deep', addToHistory = true) {
             const messageDiv = document.createElement('div');
             messageDiv.className = `chat-message ${sender}`;
@@ -580,39 +580,48 @@
             
             let html = text;
 
-            // A. Gestion SVG
+            // 1. GESTION SVG (Nettoyage préventif)
             if (html.includes('<svg')) {
                 html = html.replace(/```(?:xml|svg)?\s*(<svg[\s\S]*?<\/svg>)\s*```/gi, '$1');
-                html = html.replace(/(<svg[\s\S]*?<\/svg>)/gi, (m) => m.replace(/\n/g, ' '));
                 html = html.replace(/(<svg[\s\S]*?<\/svg>)/gi, `<div style="text-align:center; margin:15px auto; background:white; padding:10px; border-radius:8px; box-shadow:0 2px 5px rgba(0,0,0,0.1); overflow:hidden;">$1</div>`);
             }
 
-            // B. Gestion Mermaid
-            if (html.includes('```mermaid')) {
+            // 2. GESTION MERMAID (Schémas)
+            // On cherche le bloc ```mermaid ... ```
+            if (html.includes('mermaid')) {
                 const id = 'mermaid-' + Math.random().toString(36).substr(2, 9);
+                // Le regex capture le contenu entre les backticks
                 html = html.replace(/```mermaid\s*([\s\S]*?)\s*```/gi, (match, code) => {
-                    return `<div class="mermaid-container" id="${id}" style="text-align:center; margin:10px auto; background:white; padding:10px; border-radius:8px;">${code}</div>`;
+                    // On nettoie le code mermaid des balises HTML parasites éventuelles
+                    const cleanCode = code.replace(/<br>/g, '\n').replace(/&gt;/g, '>').replace(/&lt;/g, '<');
+                    return `<div class="mermaid-container" id="${id}" style="text-align:center; margin:10px auto; background:white; padding:10px; border-radius:8px;">${cleanCode}</div>`;
                 });
+                
                 setTimeout(async () => {
                     const el = document.getElementById(id);
                     if (el && window.mermaid) {
-                        try { const { svg } = await window.mermaid.render(id + '-svg', el.textContent); el.innerHTML = svg; } catch (e) { el.innerHTML = '<p style="color:red; font-size:0.8em">Erreur schéma</p>'; }
+                        try { 
+                            // Rendu du graphique
+                            const { svg } = await window.mermaid.render(id + '-svg', el.textContent); 
+                            el.innerHTML = svg; 
+                        } catch (e) { 
+                            console.error(e);
+                            el.innerHTML = '<p style="color:red; font-size:0.8em">Erreur de rendu du schéma. Code invalide.</p>'; 
+                        }
                     }
-                }, 100);
+                }, 200); // Délai légèrement augmenté pour être sûr
             }
 
-            // C. Formatage Texte
-            html = html.replace(/\n/g, '<br>');
-            html = html.replace(/(\*\*|__)(.*?)\1/g, '<strong>$2</strong>');
-            html = html.replace(/(\*|_)(.*?)\1/g, '<em>$2</em>');
-            html = html.replace(/^\* (.*?)($|<br>)/gm, '<li>$1</li>');
-            html = html.replace(/(<li>.*<\/li>)/gs, '<ul>$1</ul>');
-            html = html.replace(/<\/ul><br><ul>/g, '');
+            // 3. FORMATAGE TEXTE SIMPLE (Gras/Italique uniquement)
+            // Le CSS white-space: pre-wrap s'en charge maintenant.
+            
+            html = html.replace(/(\*\*|__)(.*?)\1/g, '<strong>$2</strong>'); // Gras
+            html = html.replace(/(\*|_)(.*?)\1/g, '<em>$2</em>'); // Italique
 
             bubble.innerHTML = html; 
             messageDiv.appendChild(bubble);
 
-            // D. Rendu Maths (LaTeX)
+            // 4. RENDU LATEX (Maths)
             if (window.renderMathInElement) {
                 renderMathInElement(bubble, {
                     delimiters: [
@@ -625,7 +634,7 @@
                 });
             }
 
-            // E. Bouton Audio
+            // 5. Bouton Audio
             if (sender === 'aida') {
                 const controls = document.createElement('div');
                 controls.className = 'aida-controls';
@@ -633,7 +642,6 @@
                 listenBtn.className = 'btn-icon';
                 listenBtn.innerHTML = '<i class="fa-solid fa-volume-high"></i>';
                 listenBtn.onclick = () => {
-                    // Nettoyage texte pour lecture
                     const textForSpeech = text.replace(/```[\s\S]*?```/g, ' [Schéma] ').replace(/<svg[\s\S]*?<\/svg>/g, ' [Image] ').replace(/\$/g, '');
                     togglePlayback(textForSpeech, listenBtn);
                 };
@@ -643,74 +651,6 @@
 
             chatWindow.appendChild(messageDiv);
             chatWindow.scrollTop = chatWindow.scrollHeight;
-        }
-
-        // --- 2. FONCTIONS UTILITAIRES (Typing) ---
-        function showTypingIndicator() {
-            const typingDiv = document.createElement('div');
-            typingDiv.id = 'typing-indicator';
-            typingDiv.className = 'chat-message aida';
-            const bubble = document.createElement('div');
-            bubble.className = 'message-bubble';
-            bubble.innerHTML = `<div class="spinner-dots"><span></span><span></span><span></span></div>`;
-            typingDiv.appendChild(bubble);
-            chatWindow.appendChild(typingDiv);
-            chatWindow.scrollTop = chatWindow.scrollHeight;
-        }
-
-        function removeTypingIndicator() {
-            const indicator = document.getElementById('typing-indicator');
-            if (indicator) indicator.remove();
-        }
-
-        // --- 3. FONCTION D'ENVOI (Celle qui manquait !) ---
-        async function sendMessage() {
-            const message = userInput.value.trim();
-            if (!message) return;
-
-            // Récupération sécurisée du mode
-            let selectedMode = 'tutor';
-            const modeInput = document.querySelector('input[name="mode"]:checked');
-            if (modeInput) selectedMode = modeInput.value;
-
-            const fullMessage = `(Mode: ${selectedMode}) ${message}`;
-            
-            addMessage('user', message, null, true);
-            userInput.value = '';
-            showTypingIndicator();
-
-            if (currentChatId === null) currentChatId = uuidv4();
-            currentMessages.push({ role: 'user', content: fullMessage });
-            
-            try {
-                const response = await fetch(`${backendUrl}/ai/playground-chat`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        history: currentMessages,
-                        preferredAgent: activeAgent
-                    }) 
-                });
-                
-                if (!response.ok) {
-                    const errData = await response.json();
-                    throw new Error(errData.error || "Erreur API");
-                }
-                
-                const data = await response.json();
-                const aidaMessage = data.reply;
-                const agentName = data.agent || 'Aïda';
-
-                currentMessages.push({ role: 'assistant', content: aidaMessage, agent: agentName });
-                
-                removeTypingIndicator();
-                addMessage('aida', aidaMessage, agentName, true);
-                saveCurrentChat();
-
-            } catch (error) {
-                removeTypingIndicator();
-                addMessage('aida', `Erreur: ${error.message}`, 'Système', true);
-            }
         }
         
         // --- 6. FONCTIONS DE LA MODALE ---
